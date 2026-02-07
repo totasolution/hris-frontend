@@ -44,6 +44,7 @@ import FAQAdminPage from './pages/FAQAdminPage';
 import FAQFormPage from './pages/FAQFormPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -125,7 +126,7 @@ function AppRoutes() {
         <Route path="me/tickets" element={<MyTicketsPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

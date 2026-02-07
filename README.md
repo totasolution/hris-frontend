@@ -72,4 +72,12 @@ export default defineConfig([
 ])
 ```
 # hris-frontend
-# hris-frontend
+
+## Deploy on Vercel
+
+Set the API base URL so the app calls your API host (not the frontend host):
+
+- **Environment variable:** `VITE_API_BASE`
+- **Value:** `https://ponot.sigmasolusiservis.com` (no trailing slash)
+
+In Vercel: Project → Settings → Environment Variables → add `VITE_API_BASE` for Production (and Preview if needed), then redeploy.

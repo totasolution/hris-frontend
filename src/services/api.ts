@@ -1,4 +1,8 @@
-const API_BASE = '/api/v1';
+// In production (e.g. Vercel), set VITE_API_BASE to API host (e.g. https://ponot.sigmasolusiservis.com). Local dev uses relative /api/v1 + Vite proxy.
+const API_BASE = (() => {
+  const base = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
+  return base ? `${base}/api/v1` : '/api/v1';
+})();
 
 export type User = {
   id: number;
