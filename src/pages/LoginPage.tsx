@@ -1,0 +1,120 @@
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') ?? '/dashboard';
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await login({
+        email: email.trim(),
+        password,
+      });
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 relative overflow-hidden font-body">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand/5 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-brand-dark/5 blur-[120px]" />
+      </div>
+
+      <div className="w-full max-w-md relative z-10">
+        <div className="bg-white rounded-bento shadow-bento border border-slate-100 p-10">
+          <div className="flex flex-col items-center mb-10">
+            <img
+              src="/logo-sigma.png"
+              alt="Sigma Solusi"
+              className="h-16 w-auto object-contain mb-4"
+            />
+            <h1 className="text-2xl font-black text-brand-dark tracking-tighter font-headline">Sigma<span className="text-brand">HR</span></h1>
+            {/* <p className="text-slate-400 text-sm font-medium uppercase tracking-widest mt-1">Solusi Servis</p> */}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                Work Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="name@sigmasolusiservis.com"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+              />
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="password" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Password
+                </label>
+                <a href="#" className="text-[10px] font-bold text-brand hover:text-brand-dark uppercase tracking-wider">Forgot?</a>
+              </div>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+              />
+            </div>
+            
+            {error && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
+                <div className="h-2 w-2 rounded-full bg-red-500" />
+                <p className="text-sm text-red-600 font-medium">{error}</p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand-dark text-white py-4 rounded-xl font-bold hover:bg-black shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none font-headline"
+            >
+              {loading ? 'Authenticating...' : 'Sign In to Portal'}
+            </button>
+          </form>
+          
+          <div className="mt-10 pt-8 border-t border-slate-50 flex flex-col items-center">
+            <p className="text-xs text-slate-400 font-medium">
+              Demo Credentials
+            </p>
+            <div className="mt-2 flex gap-4">
+              <code className="text-[10px] bg-slate-50 px-2 py-1 rounded text-slate-500">admin@example.com</code>
+              <code className="text-[10px] bg-slate-50 px-2 py-1 rounded text-slate-500">admin123</code>
+            </div>
+          </div>
+        </div>
+        
+        <p className="mt-8 text-center text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">
+          &copy; 2026 Sigma • SigmaHR v1.0
+        </p>
+      </div>
+    </div>
+  );
+}
