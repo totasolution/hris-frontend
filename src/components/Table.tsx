@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from 'react';
+import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react';
 
 export function Table({ className = '', ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
@@ -20,7 +20,7 @@ export function TR({ className = '', ...props }: HTMLAttributes<HTMLTableRowElem
   return <tr className={`hover:bg-slate-50/50 transition-colors ${className}`} {...props} />;
 }
 
-export function TH({ className = '', ...props }: HTMLAttributes<HTMLTableCellElement>) {
+export function TH({ className = '', ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
       className={`px-6 py-4 text-left text-[10px] font-bold uppercase tracking-[0.15em] text-slate-400 ${className}`}
@@ -29,6 +29,6 @@ export function TH({ className = '', ...props }: HTMLAttributes<HTMLTableCellEle
   );
 }
 
-export function TD({ className = '', ...props }: HTMLAttributes<HTMLTableCellElement>) {
+export function TD({ className = '', ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
   return <td className={`px-6 py-4 text-sm text-slate-600 whitespace-nowrap ${className}`} {...props} />;
 }

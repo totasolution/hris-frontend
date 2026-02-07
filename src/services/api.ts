@@ -258,6 +258,7 @@ export type Project = {
   tenant_id: number;
   client_id: number;
   name: string;
+  client_name?: string;
   description?: string;
   start_date?: string;
   end_date?: string;
@@ -592,15 +593,15 @@ export async function createCandidate(body: {
 
 export async function updateCandidate(
   id: number,
-  body: {
-    project_id?: number;
+  body: Partial<{
+    project_id: number;
     full_name: string;
     email: string;
-    phone?: string;
-    screening_status?: string;
-    screening_notes?: string;
-    screening_rating?: number;
-  }
+    phone: string;
+    screening_status: string;
+    screening_notes: string;
+    screening_rating: number;
+  }>
 ): Promise<Candidate> {
   const res = await fetch(`${API_BASE}/candidates/${id}`, {
     method: 'PUT',
@@ -708,7 +709,8 @@ export type OnboardingFormData = {
   id: number;
   tenant_id: number;
   candidate_id: number;
-  
+  candidate_name?: string;
+
   // Personal Info
   id_number?: string;
   address?: string;

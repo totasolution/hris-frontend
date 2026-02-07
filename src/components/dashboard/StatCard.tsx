@@ -7,7 +7,7 @@ type StatCardProps = {
   subtitle?: string;
   icon?: React.ReactNode;
   link?: string;
-  color?: 'brand' | 'blue' | 'green' | 'orange' | 'red';
+  color?: 'brand' | 'blue' | 'green' | 'orange' | 'red' | 'gray';
   loading?: boolean;
   className?: string;
 };
@@ -28,6 +28,7 @@ export function StatCard({
     green: 'bg-green-50 text-green-600',
     orange: 'bg-orange-50 text-orange-600',
     red: 'bg-red-50 text-red-600',
+    gray: 'bg-slate-100 text-slate-600',
   };
 
   const valueColorClasses = {
@@ -36,6 +37,7 @@ export function StatCard({
     green: 'text-green-600',
     orange: 'text-orange-600',
     red: 'text-red-600',
+    gray: 'text-slate-600',
   };
 
   const content = (

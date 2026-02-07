@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ButtonHTMLAttributes } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
 
 const variantClasses: Record<Variant, string> = {
   primary:
@@ -12,6 +12,8 @@ const variantClasses: Record<Variant, string> = {
     'bg-transparent text-slate-600 hover:bg-brand-lighter hover:text-brand active:scale-95 border-transparent',
   danger:
     'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-500/20 active:scale-95 border-transparent',
+  outline:
+    'bg-transparent text-slate-700 hover:bg-slate-50 border-slate-300 active:scale-95',
 };
 
 const baseClasses =

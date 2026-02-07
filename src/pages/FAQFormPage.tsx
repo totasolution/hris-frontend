@@ -114,7 +114,7 @@ export default function FAQFormPage() {
             <Textarea
               label="Answer"
               value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAnswer(e.target.value)}
               required
               rows={5}
               placeholder="Provide a clear, helpful answer..."

@@ -301,6 +301,7 @@ export default function CandidateDetailPage() {
             employmentTermsForm={employmentTermsForm}
             setEmploymentTermsForm={setEmploymentTermsForm}
             employmentTermsSaveLoading={employmentTermsSaveLoading}
+            setEmploymentTermsSaveLoading={setEmploymentTermsSaveLoading}
             setOnboardingData={setOnboardingData}
             toast={toast}
           />
@@ -315,6 +316,7 @@ export default function CandidateDetailPage() {
             onboardingEditForm={onboardingEditForm}
             setOnboardingEditForm={setOnboardingEditForm}
             onboardingSaveLoading={onboardingSaveLoading}
+            setOnboardingSaveLoading={setOnboardingSaveLoading}
             setOnboardingData={setOnboardingData}
             toast={toast}
           />
@@ -386,6 +388,7 @@ function OverviewTab({
   employmentTermsForm,
   setEmploymentTermsForm,
   employmentTermsSaveLoading,
+  setEmploymentTermsSaveLoading,
   setOnboardingData,
   toast,
 }: {
@@ -414,6 +417,7 @@ function OverviewTab({
   employmentTermsForm: { start_date?: string; duration_months?: number; salary?: string };
   setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{ start_date?: string; duration_months?: number; salary?: string }>>;
   employmentTermsSaveLoading: boolean;
+  setEmploymentTermsSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setOnboardingData: React.Dispatch<React.SetStateAction<api.OnboardingFormData | null>>;
   toast: ReturnType<typeof useToast>;
 }) {
@@ -475,7 +479,7 @@ function OverviewTab({
                     </Button>
                   </>
                 )}
-                {(candidate.screening_status === 'contract_requested' || candidate.screening_status === 'onboarding_completed') && candidate.screening_status !== 'hired' && (
+                {(candidate.screening_status === 'contract_requested' || candidate.screening_status === 'onboarding_completed') && (
                   <Button 
                     onClick={handleHire} 
                     className="!py-2 !text-xs !bg-green-600 hover:!bg-green-700"
@@ -711,6 +715,7 @@ function OnboardingTab({
   onboardingEditForm,
   setOnboardingEditForm,
   onboardingSaveLoading,
+  setOnboardingSaveLoading,
   setOnboardingData,
   toast,
 }: {
@@ -721,6 +726,7 @@ function OnboardingTab({
   onboardingEditForm: Record<string, string>;
   setOnboardingEditForm: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onboardingSaveLoading: boolean;
+  setOnboardingSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setOnboardingData: React.Dispatch<React.SetStateAction<api.OnboardingFormData | null>>;
   toast: ReturnType<typeof useToast>;
 }) {
@@ -791,19 +797,19 @@ function OnboardingTab({
               <Input label="ID Number (KTP)" name="id_number" value={onboardingEditForm.id_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, id_number: e.target.value }))} placeholder="16-digit ID number" />
               <Input label="Place of Birth" name="place_of_birth" value={onboardingEditForm.place_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, place_of_birth: e.target.value }))} placeholder="City" />
               <Input label="Date of Birth" name="date_of_birth" type="date" value={onboardingEditForm.date_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, date_of_birth: e.target.value }))} />
-              <Select label="Gender" name="gender" value={onboardingEditForm.gender ?? 'male'} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, gender: e.target.value }))}>
+              <Select label="Gender" name="gender" value={onboardingEditForm.gender ?? 'male'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, gender: e.target.value }))}>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
               </Select>
               <Input label="Religion" name="religion" value={onboardingEditForm.religion ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, religion: e.target.value }))} placeholder="e.g. Islam, Christian" />
-              <Select label="Marital Status" name="marital_status" value={onboardingEditForm.marital_status ?? 'single'} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, marital_status: e.target.value }))}>
+              <Select label="Marital Status" name="marital_status" value={onboardingEditForm.marital_status ?? 'single'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, marital_status: e.target.value }))}>
                 <option value="single">Single</option>
                 <option value="married">Married</option>
                 <option value="divorced">Divorced</option>
               </Select>
               <Input label="NPWP Number" name="npwp_number" value={onboardingEditForm.npwp_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, npwp_number: e.target.value }))} placeholder="Tax ID (optional)" />
               <div className="md:col-span-2">
-                <Textarea label="Current Address" name="address" value={onboardingEditForm.address ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, address: e.target.value }))} rows={3} placeholder="Full residential address..." />
+                <Textarea label="Current Address" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, address: e.target.value }))} rows={3} placeholder="Full residential address..." />
               </div>
               <Input label="Bank Name" name="bank_name" value={onboardingEditForm.bank_name ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_name: e.target.value }))} placeholder="e.g. BCA, Mandiri" />
               <Input label="Account Number" name="bank_account_number" value={onboardingEditForm.bank_account_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_account_number: e.target.value }))} placeholder="0000000000" />

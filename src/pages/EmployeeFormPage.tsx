@@ -181,7 +181,7 @@ export default function EmployeeFormPage() {
       if (isEdit && id) {
         await api.updateEmployee(parseInt(id, 10), body);
       } else {
-        await api.createEmployee(body);
+        await api.createEmployee({ ...body, full_name: fullName.trim(), email: email.trim() });
       }
       toast.success(isEdit ? 'Employee updated' : 'Employee created');
       navigate(returnTo ?? '/employees', { replace: true });
@@ -364,7 +364,7 @@ export default function EmployeeFormPage() {
                 <Textarea
                   label="Termination Reason"
                   value={terminationReason}
-                  onChange={(e) => setTerminationReason(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTerminationReason(e.target.value)}
                   rows={3}
                   placeholder="Provide details for offboarding..."
                 />
@@ -496,7 +496,7 @@ export default function EmployeeFormPage() {
               <Textarea
                 label="Street Address"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAddress(e.target.value)}
                 rows={2}
                 className="md:col-span-2"
               />

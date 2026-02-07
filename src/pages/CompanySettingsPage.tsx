@@ -86,7 +86,7 @@ export default function CompanySettingsPage() {
               <Label>Company Address</Label>
               <Textarea
                 value={companyAddress}
-                onChange={(e) => setCompanyAddress(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCompanyAddress(e.target.value)}
                 placeholder="Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta 10220"
                 rows={3}
               />

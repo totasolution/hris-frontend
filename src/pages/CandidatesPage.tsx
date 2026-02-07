@@ -49,7 +49,7 @@ export default function CandidatesPage() {
   const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') ?? '');
   const [clientId, setClientId] = useState<string>(() => searchParams.get('client_id') ?? '');
   const [projectId, setProjectId] = useState<string>(() => searchParams.get('project_id') ?? '');
-  const [createdById, setCreatedById] = useState<string>(() => searchParams.get('created_by') ?? '');
+  const [createdById] = useState<string>(() => searchParams.get('created_by') ?? '');
   const [searchName, setSearchName] = useState<string>('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);

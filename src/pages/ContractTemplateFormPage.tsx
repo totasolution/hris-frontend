@@ -245,7 +245,7 @@ export default function ContractTemplateFormPage() {
               <Textarea
                 id="content-textarea"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
                 placeholder="<!DOCTYPE html>
 <html>
 <head>
