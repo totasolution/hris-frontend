@@ -7,6 +7,7 @@ import { Select } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
+import { formatDateLong } from '../utils/formatDate';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -145,7 +146,7 @@ export default function ContractFormPage() {
       // Get sample values for preview
       const sampleValues: Record<string, string> = {
         contract_number: contractNumber || 'PKWT-2026-XXX',
-        contract_date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        contract_date: formatDateLong(new Date()),
         company_name: 'PT Your Company',
         company_address: 'Company Address',
         company_representative: 'HR Director',

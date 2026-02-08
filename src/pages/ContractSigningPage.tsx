@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { useToast } from '../components/Toast';
 import SignatureCanvas from '../components/SignatureCanvas';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function ContractSigningPage() {
   const { token } = useParams<{ token: string }>();
@@ -305,9 +306,9 @@ export default function ContractSigningPage() {
             {contractData.contract.created_at && (
               <div className="mt-6 pt-6 border-t border-gray-200 text-center">
                 <p className="text-xs text-gray-500">
-                  Contract created on {new Date(contractData.contract.created_at).toLocaleDateString()}
+                  Contract created on {formatDate(contractData.contract.created_at)}
                   {contractData.contract.sent_at && (
-                    <> • Sent for signature on {new Date(contractData.contract.sent_at).toLocaleDateString()}</>
+                    <> • Sent for signature on {formatDate(contractData.contract.sent_at)}</>
                   )}
                 </p>
               </div>

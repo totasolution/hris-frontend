@@ -8,6 +8,7 @@ import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { WarningLetter } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function WarningsPage() {
   const [list, setList] = useState<WarningLetter[]>([]);
@@ -125,7 +126,7 @@ export default function WarningsPage() {
                         {w.type}
                       </span>
                     </TD>
-                    <TD>{w.warning_date ? new Date(w.warning_date).toLocaleDateString() : '—'}</TD>
+                    <TD>{w.warning_date ? formatDate(w.warning_date) : '—'}</TD>
                     <TD className="max-w-xs truncate">{w.description ?? '—'}</TD>
                   </TR>
                 ))

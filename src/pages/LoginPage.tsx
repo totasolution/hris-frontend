@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
+  const { t } = useTranslation(['auth', 'common']);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ export default function LoginPage() {
       });
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('auth:loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -52,7 +54,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                Work Email
+                {t('auth:workEmail')}
               </label>
               <input
                 id="email"
@@ -61,16 +63,16 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                placeholder="name@sigmasolusiservis.com"
+                placeholder={t('auth:emailPlaceholder')}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
               />
             </div>
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="password" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Password
+                  {t('auth:password')}
                 </label>
-                <a href="#" className="text-[10px] font-bold text-brand hover:text-brand-dark uppercase tracking-wider">Forgot?</a>
+                <a href="#" className="text-[10px] font-bold text-brand hover:text-brand-dark uppercase tracking-wider">{t('auth:forgotPassword')}</a>
               </div>
               <input
                 id="password"
@@ -79,7 +81,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                placeholder="••••••••"
+                placeholder={t('auth:passwordPlaceholder')}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
               />
             </div>
@@ -96,13 +98,13 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-brand-dark text-white py-4 rounded-xl font-bold hover:bg-black shadow-xl active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none font-headline"
             >
-              {loading ? 'Authenticating...' : 'Sign In to Portal'}
+              {loading ? t('auth:authenticating') : t('auth:signIn')}
             </button>
           </form>
           
           <div className="mt-10 pt-8 border-t border-slate-50 flex flex-col items-center">
             <p className="text-xs text-slate-400 font-medium">
-              Demo Credentials
+              {t('auth:demoCredentials')}
             </p>
             <div className="mt-2 flex gap-4">
               <code className="text-[10px] bg-slate-50 px-2 py-1 rounded text-slate-500">admin@example.com</code>

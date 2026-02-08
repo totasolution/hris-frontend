@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument } from '../services/api';
 import * as api from '../services/api';
+import { formatDate, formatDateLong } from '../utils/formatDate';
 
 type TabType = 'overview' | 'contracts' | 'documents' | 'history';
 
@@ -141,6 +142,7 @@ export default function EmployeeDetailPage() {
             employeeDocuments={employeeDocuments}
             employeeId={employeeId}
             toast={toast}
+            onPaklaringUploaded={load}
           />
         )}
 
@@ -230,7 +232,7 @@ function OverviewTab({
                 Hire Date
               </p>
               <p className="text-sm font-bold text-brand-dark">
-                {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString('id-ID') : '—'}
+                {employee.hire_date ? formatDate(employee.hire_date) : '—'}
               </p>
             </div>
             <div>
@@ -238,7 +240,7 @@ function OverviewTab({
                 Join Date
               </p>
               <p className="text-sm font-bold text-brand-dark">
-                {displayDate ? new Date(displayDate).toLocaleDateString('id-ID') : '—'}
+                {displayDate ? formatDate(displayDate) : '—'}
               </p>
             </div>
             {employee.department_id && (
@@ -278,7 +280,7 @@ function OverviewTab({
                     Termination Date
                   </p>
                   <p className="text-sm font-bold text-brand-dark">
-                    {new Date(employee.termination_date).toLocaleDateString('id-ID')}
+                    {formatDate(employee.termination_date)}
                   </p>
                 </div>
                 {employee.termination_type && (
@@ -329,7 +331,7 @@ function OverviewTab({
                     ID Expired Date
                   </p>
                   <p className="text-sm font-bold text-brand-dark">
-                    {new Date(employee.id_expired_date).toLocaleDateString('id-ID')}
+                    {formatDate(employee.id_expired_date)}
                   </p>
                 </div>
               )}
@@ -347,7 +349,7 @@ function OverviewTab({
                     Date of Birth
                   </p>
                   <p className="text-sm font-bold text-brand-dark">
-                    {new Date(employee.birthdate).toLocaleDateString('id-ID')}
+                    {formatDate(employee.birthdate)}
                   </p>
                 </div>
               )}
@@ -522,10 +524,10 @@ function ContractsTab({
                   </span>
                 </TD>
                 <TD className="text-sm text-slate-500">
-                  {contract.created_at ? new Date(contract.created_at).toLocaleDateString('id-ID') : '—'}
+                  {contract.created_at ? formatDate(contract.created_at) : '—'}
                 </TD>
                 <TD className="text-sm text-slate-500">
-                  {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('id-ID') : '—'}
+                  {contract.signed_at ? formatDate(contract.signed_at) : '—'}
                 </TD>
                 <TD className="text-right">
                   <div className="flex justify-end gap-2">
@@ -576,13 +578,33 @@ function DocumentsTab({
   employeeDocuments,
   employeeId,
   toast,
+  onPaklaringUploaded,
 }: { 
   paklaringDocs: PaklaringDocument[]; 
   warnings: WarningLetter[];
   employeeDocuments: EmployeeDocument[];
   employeeId: number;
   toast: ReturnType<typeof useToast>;
+  onPaklaringUploaded?: () => void;
 }) {
+  const [uploadingPaklaring, setUploadingPaklaring] = useState(false);
+
+  const handlePaklaringUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPaklaring(true);
+    try {
+      await api.uploadPaklaringForEmployee(employeeId, file);
+      toast.success('Paklaring generated and employee notified');
+      onPaklaringUploaded?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploadingPaklaring(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Employee Documents */}
@@ -618,7 +640,7 @@ function DocumentsTab({
                   </TD>
                   <TD className="text-sm text-slate-600 font-medium">{doc.file_name}</TD>
                   <TD className="text-sm text-slate-500">
-                    {new Date(doc.created_at).toLocaleDateString('id-ID')}
+                    {formatDate(doc.created_at)}
                   </TD>
                   <TD className="text-right">
                     <button
@@ -648,10 +670,28 @@ function DocumentsTab({
 
       {/* Paklaring Documents */}
       <Card className="overflow-hidden">
-        <CardHeader>
+        <CardHeader className="flex flex-row justify-between items-center">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
             Paklaring Documents
           </h3>
+          <div>
+            <input
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handlePaklaringUpload}
+              disabled={uploadingPaklaring}
+              className="hidden"
+              id="employee-paklaring-upload"
+            />
+            <label
+              htmlFor="employee-paklaring-upload"
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-colors ${
+                uploadingPaklaring ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
+              }`}
+            >
+              {uploadingPaklaring ? 'Uploading...' : 'Generate paklaring'}
+            </label>
+          </div>
         </CardHeader>
         <Table>
           <THead>
@@ -671,11 +711,7 @@ function DocumentsTab({
               paklaringDocs.map((doc) => (
                 <TR key={doc.id}>
                   <TD className="text-sm text-slate-600">
-                    {new Date(doc.generated_at).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatDateLong(doc.generated_at)}
                   </TD>
                   <TD className="text-right">
                     <button
@@ -735,7 +771,7 @@ function DocumentsTab({
                     </span>
                   </TD>
                   <TD className="text-sm text-slate-600">
-                    {new Date(warning.warning_date).toLocaleDateString('id-ID')}
+                    {formatDate(warning.warning_date)}
                   </TD>
                   <TD className="text-sm text-slate-600 max-w-md truncate">
                     {warning.description || '—'}
@@ -859,11 +895,7 @@ function HistoryTab({
                   <div className="flex items-start justify-between mb-1">
                     <h4 className="text-sm font-bold text-slate-900">{event.title}</h4>
                     <span className="text-xs text-slate-400">
-                      {event.date.toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
+                      {formatDateLong(event.date)}
                     </span>
                   </div>
                   <p className="text-sm text-slate-600">{event.description}</p>

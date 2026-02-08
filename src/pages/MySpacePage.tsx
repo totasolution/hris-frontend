@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ButtonLink } from '../components/Button';
@@ -6,11 +6,12 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
-import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument } from '../services/api';
+import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument, Payslip } from '../services/api';
 import * as api from '../services/api';
+import { formatDate, formatDateLong } from '../utils/formatDate';
 import MyTicketsPage from './MyTicketsPage';
 
-type TabType = 'profile' | 'contracts' | 'documents' | 'tickets';
+type TabType = 'profile' | 'contracts' | 'documents' | 'payslips' | 'tickets';
 
 export default function MySpacePage() {
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -18,6 +19,7 @@ export default function MySpacePage() {
   const [paklaringDocs, setPaklaringDocs] = useState<PaklaringDocument[]>([]);
   const [warnings, setWarnings] = useState<WarningLetter[]>([]);
   const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
+  const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('profile');
@@ -37,16 +39,18 @@ export default function MySpacePage() {
 
   const loadContractsAndDocuments = async (employeeId: number) => {
     try {
-      const [contractsData, paklaringData, warningsData, docsData] = await Promise.all([
+      const [contractsData, paklaringData, warningsData, docsData, payslipsData] = await Promise.all([
         api.getContracts({ employee_id: employeeId, per_page: 100 }).then((r) => r.data).catch(() => []),
         api.getMyPaklaring().catch(() => []),
         api.getMyWarnings().catch(() => []),
         api.getEmployeeDocuments(employeeId).catch(() => []),
+        api.getMyPayslips().catch(() => []),
       ]);
       setContracts(contractsData);
       setPaklaringDocs(paklaringData);
       setWarnings(warningsData);
       setEmployeeDocuments(docsData);
+      setPayslips(payslipsData);
     } catch {
       // ignore
     }
@@ -88,6 +92,7 @@ export default function MySpacePage() {
     { id: 'profile', label: 'Profile' },
     { id: 'contracts', label: 'Contracts' },
     { id: 'documents', label: 'Documents' },
+    { id: 'payslips', label: 'Payslips' },
     { id: 'tickets', label: 'My Tickets' },
   ];
 
@@ -143,6 +148,7 @@ export default function MySpacePage() {
             onDocumentsChange={() => employee.id && loadContractsAndDocuments(employee.id)}
           />
         )}
+        {activeTab === 'payslips' && <MySpacePayslipsTab payslips={payslips} toast={toast} />}
         {activeTab === 'tickets' && <MyTicketsPage embedded />}
       </div>
     </div>
@@ -196,7 +202,7 @@ function ProfileTab({ employee }: { employee: Employee }) {
                 Join Date
               </p>
               <p className="text-sm font-bold text-brand-dark">
-                {displayDate ? new Date(displayDate).toLocaleDateString('id-ID') : '—'}
+                {displayDate ? formatDate(displayDate) : '—'}
               </p>
             </div>
             {(employee.company_email || employee.email) && (
@@ -222,7 +228,7 @@ function ProfileTab({ employee }: { employee: Employee }) {
                     Termination Date
                   </p>
                   <p className="text-sm font-bold text-brand-dark">
-                    {new Date(employee.termination_date).toLocaleDateString('id-ID')}
+                    {formatDate(employee.termination_date)}
                   </p>
                 </div>
                 {employee.termination_type && (
@@ -286,7 +292,7 @@ function ProfileTab({ employee }: { employee: Employee }) {
                     Date of Birth
                   </p>
                   <p className="text-sm font-bold text-brand-dark">
-                    {new Date(employee.birthdate).toLocaleDateString('id-ID')}
+                    {formatDate(employee.birthdate)}
                   </p>
                 </div>
               )}
@@ -450,10 +456,10 @@ function MySpaceContractsTab({
                   </span>
                 </TD>
                 <TD className="text-sm text-slate-500">
-                  {contract.created_at ? new Date(contract.created_at).toLocaleDateString('id-ID') : '—'}
+                  {contract.created_at ? formatDate(contract.created_at) : '—'}
                 </TD>
                 <TD className="text-sm text-slate-500">
-                  {contract.signed_at ? new Date(contract.signed_at).toLocaleDateString('id-ID') : '—'}
+                  {contract.signed_at ? formatDate(contract.signed_at) : '—'}
                 </TD>
                 <TD className="text-right">
                   <div className="flex justify-end gap-2">
@@ -497,6 +503,71 @@ function MySpaceContractsTab({
   );
 }
 
+function MySpacePayslipsTab({
+  payslips,
+  toast,
+}: {
+  payslips: Payslip[];
+  toast: ReturnType<typeof useToast>;
+}) {
+  const handleDownload = async (p: Payslip) => {
+    try {
+      const url = await api.getPayslipPresignedUrl(p.id);
+      window.open(url, '_blank');
+    } catch {
+      toast.error('Failed to open payslip');
+    }
+  };
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
+          My Payslips
+        </h3>
+      </CardHeader>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Period</TH>
+            <TH>Created</TH>
+            <TH className="text-right">Actions</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {payslips.length === 0 ? (
+            <TR>
+              <TD colSpan={3} className="py-8 text-center text-slate-400">
+                No payslips found.
+              </TD>
+            </TR>
+          ) : (
+            payslips.map((p) => (
+              <TR key={p.id}>
+                <TD className="font-medium text-brand-dark">{p.period_label}</TD>
+                <TD className="text-sm text-slate-500">
+                  {formatDate(p.created_at)}
+                </TD>
+                <TD className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleDownload(p)}
+                    className="p-2 text-slate-400 hover:text-brand transition-colors"
+                    title="Download"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                </TD>
+              </TR>
+            ))
+          )}
+        </TBody>
+      </Table>
+    </Card>
+  );
+}
+
 function MySpaceDocumentsTab({
   paklaringDocs,
   warnings,
@@ -512,24 +583,7 @@ function MySpaceDocumentsTab({
   toast: ReturnType<typeof useToast>;
   onDocumentsChange: () => void;
 }) {
-  const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
-
-  const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      await api.uploadEmployeeDocument(employeeId, file);
-      toast.success('Document uploaded successfully');
-      onDocumentsChange();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
 
   const handleDelete = async (docId: number) => {
     if (!confirm('Are you sure you want to delete this document?')) return;
@@ -548,27 +602,10 @@ function MySpaceDocumentsTab({
   return (
     <div className="space-y-8">
       <Card className="overflow-hidden">
-        <CardHeader className="flex justify-between items-center">
+        <CardHeader>
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
             Employee Documents
           </h3>
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              onChange={handleUpload}
-              disabled={uploading}
-              className="hidden"
-              id="me-employee-doc-upload"
-            />
-            <label
-              htmlFor="me-employee-doc-upload"
-              className={`inline-flex items-center px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer ${
-                uploading ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
-              }`}
-            >
-              {uploading ? 'Uploading...' : 'Upload Document'}
-            </label>
-          </div>
         </CardHeader>
         <Table>
           <THead>
@@ -595,7 +632,7 @@ function MySpaceDocumentsTab({
                     </span>
                   </TD>
                   <TD className="text-sm text-slate-600 font-medium">{doc.file_name}</TD>
-                  <TD className="text-sm text-slate-500">{new Date(doc.created_at).toLocaleDateString('id-ID')}</TD>
+                  <TD className="text-sm text-slate-500">{formatDate(doc.created_at)}</TD>
                   <TD className="text-right">
                     <div className="flex justify-end gap-2">
                       <button
@@ -659,11 +696,7 @@ function MySpaceDocumentsTab({
               paklaringDocs.map((doc) => (
                 <TR key={doc.id}>
                   <TD className="text-sm text-slate-600">
-                    {new Date(doc.generated_at).toLocaleDateString('id-ID', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatDateLong(doc.generated_at)}
                   </TD>
                   <TD className="text-right">
                     <button
@@ -722,7 +755,7 @@ function MySpaceDocumentsTab({
                     </span>
                   </TD>
                   <TD className="text-sm text-slate-600">
-                    {new Date(warning.warning_date).toLocaleDateString('id-ID')}
+                    {formatDate(warning.warning_date)}
                   </TD>
                   <TD className="text-sm text-slate-600 max-w-md truncate">{warning.description || '—'}</TD>
                   <TD className="text-right">

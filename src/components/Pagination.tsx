@@ -7,7 +7,7 @@ type PaginationProps = {
 };
 
 export function Pagination({ page, totalPages, total, perPage, onPageChange }: PaginationProps) {
-  if (totalPages <= 1 && total <= perPage) return null;
+  if (total === 0) return null;
   const start = (page - 1) * perPage + 1;
   const end = Math.min(page * perPage, total);
   return (

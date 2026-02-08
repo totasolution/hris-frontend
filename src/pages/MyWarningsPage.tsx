@@ -3,6 +3,7 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function MyWarningsPage() {
   const [list, setList] = useState<api.WarningLetter[]>([]);
@@ -61,7 +62,7 @@ export default function MyWarningsPage() {
                         {w.type}
                       </span>
                     </TD>
-                    <TD>{w.warning_date ? new Date(w.warning_date).toLocaleDateString() : '—'}</TD>
+                    <TD>{w.warning_date ? formatDate(w.warning_date) : '—'}</TD>
                     <TD className="max-w-md whitespace-normal text-slate-500">{w.description ?? '—'}</TD>
                   </TR>
                 ))

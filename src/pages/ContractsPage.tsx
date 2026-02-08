@@ -9,6 +9,7 @@ import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Contract } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function ContractsPage() {
   const [list, setList] = useState<Contract[]>([]);
@@ -146,7 +147,7 @@ export default function ContractsPage() {
                         {c.status.replace(/_/g, ' ')}
                       </span>
                     </TD>
-                    <TD>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</TD>
+                    <TD>{c.created_at ? formatDate(c.created_at) : '—'}</TD>
                     <TD className="text-right">
                       <div className="flex justify-end gap-2">
                         <Link

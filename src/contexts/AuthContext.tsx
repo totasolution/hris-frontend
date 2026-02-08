@@ -112,6 +112,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Guard: on 401 or expired token, clear session and redirect to login.
+  useEffect(() => {
+    api.setUnauthorizedHandler(() => {
+      logout();
+      window.location.href = '/login';
+    });
+    return () => api.setUnauthorizedHandler(() => {});
+  }, [logout]);
+
   const login = useCallback(
     async (input: LoginInput) => {
       const data = await api.login(input);

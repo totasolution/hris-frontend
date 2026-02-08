@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
@@ -69,7 +70,7 @@ export default function NotificationsPage() {
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
     if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString();
+    return formatDate(date);
   };
 
   const unreadCount = notifications.filter(n => !n.read_at).length;

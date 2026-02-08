@@ -39,17 +39,15 @@ export type TenantCompanyInfo = {
 };
 
 export async function getTenantCompanyInfo(): Promise<TenantCompanyInfo> {
-  const res = await fetch(`${API_BASE}/tenant/company-info`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/tenant/company-info`);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch company info');
   return data;
 }
 
 export async function updateTenantCompanyInfo(body: TenantCompanyInfo): Promise<TenantCompanyInfo> {
-  const res = await fetch(`${API_BASE}/tenant/company-info`, {
+  const res = await authFetch(`${API_BASE}/tenant/company-info`, {
     method: 'PUT',
-    credentials: 'include',
-    headers: authHeaders(),
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -88,7 +86,7 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
 }
 
 export async function refresh(refreshToken: string): Promise<LoginResponse> {
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
+  const res = await authFetch(`${API_BASE}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refresh_token: refreshToken }),
@@ -127,6 +125,25 @@ function authHeaders(): HeadersInit {
   return h;
 }
 
+let unauthorizedHandler: (() => void) | null = null;
+export function setUnauthorizedHandler(fn: () => void): void {
+  unauthorizedHandler = fn;
+}
+
+async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const opts: RequestInit = {
+    ...init,
+    credentials: 'include',
+    headers: { ...authHeaders(), ...(init.headers as Record<string, string>) },
+  };
+  const res = await fetch(input, opts);
+  if (res.status === 401) {
+    if (unauthorizedHandler) unauthorizedHandler();
+    throw new Error('Unauthorized');
+  }
+  return res;
+}
+
 // Departments
 export type Department = {
   id: number;
@@ -139,21 +156,21 @@ export type Department = {
 };
 
 export async function getDepartments(): Promise<Department[]> {
-  const res = await fetch(`${API_BASE}/departments`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/departments`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch departments');
   return data.data ?? [];
 }
 
 export async function getDepartment(id: number): Promise<Department> {
-  const res = await fetch(`${API_BASE}/departments/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/departments/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch department');
   return data;
 }
 
 export async function createDepartment(body: { name: string; code?: string; parent_id?: number }): Promise<Department> {
-  const res = await fetch(`${API_BASE}/departments`, {
+  const res = await authFetch(`${API_BASE}/departments`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -168,7 +185,7 @@ export async function updateDepartment(
   id: number,
   body: { name: string; code?: string; parent_id?: number }
 ): Promise<Department> {
-  const res = await fetch(`${API_BASE}/departments/${id}`, {
+  const res = await authFetch(`${API_BASE}/departments/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -180,7 +197,7 @@ export async function updateDepartment(
 }
 
 export async function deleteDepartment(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/departments/${id}`, {
+  const res = await authFetch(`${API_BASE}/departments/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -207,21 +224,21 @@ export type Client = {
 };
 
 export async function getClients(): Promise<Client[]> {
-  const res = await fetch(`${API_BASE}/clients`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/clients`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch clients');
   return data.data ?? [];
 }
 
 export async function getClient(id: number): Promise<Client> {
-  const res = await fetch(`${API_BASE}/clients/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/clients/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch client');
   return data;
 }
 
 export async function createClient(body: Partial<Client> & { name: string }): Promise<Client> {
-  const res = await fetch(`${API_BASE}/clients`, {
+  const res = await authFetch(`${API_BASE}/clients`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -233,7 +250,7 @@ export async function createClient(body: Partial<Client> & { name: string }): Pr
 }
 
 export async function updateClient(id: number, body: Partial<Client> & { name: string }): Promise<Client> {
-  const res = await fetch(`${API_BASE}/clients/${id}`, {
+  const res = await authFetch(`${API_BASE}/clients/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -245,7 +262,7 @@ export async function updateClient(id: number, body: Partial<Client> & { name: s
 }
 
 export async function deleteClient(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/clients/${id}`, {
+  const res = await authFetch(`${API_BASE}/clients/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -273,21 +290,21 @@ export type Project = {
 
 export async function getProjects(clientId?: number): Promise<Project[]> {
   const url = clientId ? `${API_BASE}/projects?client_id=${clientId}` : `${API_BASE}/projects`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch projects');
   return data.data ?? [];
 }
 
 export async function getProject(id: number): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/projects/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch project');
   return data;
 }
 
 export async function createProject(body: Partial<Project> & { name: string; client_id: number }): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects`, {
+  const res = await authFetch(`${API_BASE}/projects`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -299,7 +316,7 @@ export async function createProject(body: Partial<Project> & { name: string; cli
 }
 
 export async function updateProject(id: number, body: Partial<Project> & { name: string; client_id: number }): Promise<Project> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, {
+  const res = await authFetch(`${API_BASE}/projects/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -311,7 +328,7 @@ export async function updateProject(id: number, body: Partial<Project> & { name:
 }
 
 export async function deleteProject(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/projects/${id}`, {
+  const res = await authFetch(`${API_BASE}/projects/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -332,7 +349,7 @@ export type Permission = {
 };
 
 export async function getPermissions(): Promise<Permission[]> {
-  const res = await fetch(`${API_BASE}/permissions`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/permissions`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch permissions');
   return data.data ?? [];
@@ -350,21 +367,21 @@ export type Role = {
 };
 
 export async function getRoles(): Promise<Role[]> {
-  const res = await fetch(`${API_BASE}/roles`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/roles`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch roles');
   return data.data ?? [];
 }
 
 export async function getRole(id: number): Promise<Role> {
-  const res = await fetch(`${API_BASE}/roles/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/roles/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch role');
   return data;
 }
 
 export async function createRole(body: { name: string; slug?: string; description?: string }): Promise<Role> {
-  const res = await fetch(`${API_BASE}/roles`, {
+  const res = await authFetch(`${API_BASE}/roles`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -376,7 +393,7 @@ export async function createRole(body: { name: string; slug?: string; descriptio
 }
 
 export async function updateRole(id: number, body: { name: string; slug?: string; description?: string }): Promise<Role> {
-  const res = await fetch(`${API_BASE}/roles/${id}`, {
+  const res = await authFetch(`${API_BASE}/roles/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -388,7 +405,7 @@ export async function updateRole(id: number, body: { name: string; slug?: string
 }
 
 export async function deleteRole(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/roles/${id}`, {
+  const res = await authFetch(`${API_BASE}/roles/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -400,14 +417,14 @@ export async function deleteRole(id: number): Promise<void> {
 }
 
 export async function getRolePermissionIds(roleId: number): Promise<number[]> {
-  const res = await fetch(`${API_BASE}/roles/${roleId}/permissions`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/roles/${roleId}/permissions`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch role permissions');
   return data.permission_ids ?? [];
 }
 
 export async function setRolePermissions(roleId: number, permissionIds: number[]): Promise<void> {
-  const res = await fetch(`${API_BASE}/roles/${roleId}/permissions`, {
+  const res = await authFetch(`${API_BASE}/roles/${roleId}/permissions`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -435,7 +452,7 @@ export async function getUsers(params?: { page?: number; per_page?: number; sear
   if (params?.per_page) q.set('per_page', String(params.per_page));
   if (params?.search?.trim()) q.set('search', params.search.trim());
   const url = q.toString() ? `${API_BASE}/users?${q}` : `${API_BASE}/users`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch users');
   return {
@@ -454,7 +471,7 @@ export type UserDetail = {
 };
 
 export async function getUser(id: number): Promise<UserDetail> {
-  const res = await fetch(`${API_BASE}/users/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/users/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch user');
   return data;
@@ -471,7 +488,7 @@ export async function createUser(body: {
   role_ids?: number[];
   department_ids?: number[];
 }): Promise<User> {
-  const res = await fetch(`${API_BASE}/users`, {
+  const res = await authFetch(`${API_BASE}/users`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -494,7 +511,7 @@ export async function updateUser(
     department_ids?: number[];
   }
 ): Promise<User> {
-  const res = await fetch(`${API_BASE}/users/${id}`, {
+  const res = await authFetch(`${API_BASE}/users/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -559,7 +576,7 @@ export async function getCandidates(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/candidates?${q}` : `${API_BASE}/candidates`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch candidates');
   return {
@@ -572,7 +589,7 @@ export async function getCandidates(params?: {
 }
 
 export async function getCandidate(id: number): Promise<Candidate> {
-  const res = await fetch(`${API_BASE}/candidates/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/candidates/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch candidate');
   return data;
@@ -584,7 +601,7 @@ export async function createCandidate(body: {
   email: string;
   phone?: string;
 }): Promise<Candidate> {
-  const res = await fetch(`${API_BASE}/candidates`, {
+  const res = await authFetch(`${API_BASE}/candidates`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -607,7 +624,7 @@ export async function updateCandidate(
     screening_rating: number;
   }>
 ): Promise<Candidate> {
-  const res = await fetch(`${API_BASE}/candidates/${id}`, {
+  const res = await authFetch(`${API_BASE}/candidates/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -619,7 +636,7 @@ export async function updateCandidate(
 }
 
 export async function deleteCandidate(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/candidates/${id}`, {
+  const res = await authFetch(`${API_BASE}/candidates/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -654,14 +671,14 @@ export async function getRecruitmentStatistics(params?: {
   if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.project_id) q.set('project_id', String(params.project_id));
   const url = q.toString() ? `${API_BASE}/recruitment/statistics?${q}` : `${API_BASE}/recruitment/statistics`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch recruitment statistics');
   return data;
 }
 
 export async function getCandidateDocuments(candidateId: number): Promise<CandidateDocument[]> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/documents`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/documents`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -677,7 +694,7 @@ export async function uploadCandidateDocument(candidateId: number, file: File, t
   const token = getAccessToken();
   const h: HeadersInit = {};
   if (token) (h as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/documents`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/documents`, {
     method: 'POST',
     credentials: 'include',
     headers: h,
@@ -689,7 +706,7 @@ export async function uploadCandidateDocument(candidateId: number, file: File, t
 }
 
 export async function getCandidateDocumentUrl(candidateId: number, documentId: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/documents/${documentId}/url`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/documents/${documentId}/url`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -751,7 +768,7 @@ export type OnboardingFormData = {
 };
 
 export async function createOnboardingLink(candidateId: number): Promise<OnboardingLink> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/onboarding-link`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/onboarding-link`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -762,14 +779,14 @@ export async function createOnboardingLink(candidateId: number): Promise<Onboard
 }
 
 export async function getOnboardingByToken(token: string): Promise<{ link: OnboardingLink; candidate: Candidate }> {
-  const res = await fetch(`${API_BASE}/public/onboarding/${token}`, { credentials: 'include' });
+  const res = await authFetch(`${API_BASE}/public/onboarding/${token}`, { credentials: 'include' });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Link not found or expired');
   return data;
 }
 
 export async function submitOnboardingForm(token: string, formData: Record<string, unknown>): Promise<void> {
-  const res = await fetch(`${API_BASE}/public/onboarding/${token}/submit`, {
+  const res = await authFetch(`${API_BASE}/public/onboarding/${token}/submit`, {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -801,7 +818,7 @@ export async function uploadOnboardingDocument(token: string, file: File): Promi
   const formData = new FormData();
   formData.append('file', file);
   
-  const res = await fetch(`${API_BASE}/public/onboarding/${token}/upload-document`, {
+  const res = await authFetch(`${API_BASE}/public/onboarding/${token}/upload-document`, {
     method: 'POST',
     credentials: 'include',
     body: formData,
@@ -812,7 +829,7 @@ export async function uploadOnboardingDocument(token: string, file: File): Promi
 }
 
 export async function getOnboardingFormByCandidate(candidateId: number): Promise<OnboardingFormData> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/onboarding-form`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/onboarding-form`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -833,7 +850,7 @@ export async function updateOnboardingFormByCandidate(
   candidateId: number,
   payload: OnboardingFormDataEditable
 ): Promise<OnboardingFormData> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/onboarding-form`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/onboarding-form`, {
     method: 'PUT',
     credentials: 'include',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
@@ -854,7 +871,7 @@ export async function updateEmploymentTerms(
   candidateId: number,
   payload: EmploymentTermsInput
 ): Promise<OnboardingFormData> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/employment-terms`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/employment-terms`, {
     method: 'PUT',
     credentials: 'include',
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
@@ -866,7 +883,7 @@ export async function updateEmploymentTerms(
 }
 
 export async function getOnboardingLinkByCandidate(candidateId: number): Promise<OnboardingLink> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/onboarding-link`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/onboarding-link`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -876,7 +893,7 @@ export async function getOnboardingLinkByCandidate(candidateId: number): Promise
 }
 
 export async function submitCandidateToClient(candidateId: number): Promise<Candidate> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/submit-to-client`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/submit-to-client`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -887,7 +904,7 @@ export async function submitCandidateToClient(candidateId: number): Promise<Cand
 }
 
 export async function requestContract(candidateId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/request-contract`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/request-contract`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -897,7 +914,7 @@ export async function requestContract(candidateId: number): Promise<void> {
 }
 
 export async function approveCandidate(candidateId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/approve`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/approve`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -907,7 +924,7 @@ export async function approveCandidate(candidateId: number): Promise<void> {
 }
 
 export async function rejectCandidate(candidateId: number, comment: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/reject`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/reject`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -918,7 +935,7 @@ export async function rejectCandidate(candidateId: number, comment: string): Pro
 }
 
 export async function hireCandidate(candidateId: number): Promise<{ employee: any; message: string }> {
-  const res = await fetch(`${API_BASE}/candidates/${candidateId}/hire`, {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/hire`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -929,7 +946,7 @@ export async function hireCandidate(candidateId: number): Promise<{ employee: an
 }
 
 export async function getPendingHRDList(): Promise<OnboardingFormData[]> {
-  const res = await fetch(`${API_BASE}/onboarding/pending-hrd`, {
+  const res = await authFetch(`${API_BASE}/onboarding/pending-hrd`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -998,7 +1015,7 @@ export async function getEmployees(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/employees?${q}` : `${API_BASE}/employees`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch employees');
   return {
@@ -1011,14 +1028,14 @@ export async function getEmployees(params?: {
 }
 
 export async function getEmployee(id: number): Promise<Employee> {
-  const res = await fetch(`${API_BASE}/employees/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/employees/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch employee');
   return data;
 }
 
 export async function createEmployee(body: Partial<Employee> & { full_name: string; email: string }): Promise<Employee> {
-  const res = await fetch(`${API_BASE}/employees`, {
+  const res = await authFetch(`${API_BASE}/employees`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1030,7 +1047,7 @@ export async function createEmployee(body: Partial<Employee> & { full_name: stri
 }
 
 export async function updateEmployee(id: number, body: Partial<Employee>): Promise<Employee> {
-  const res = await fetch(`${API_BASE}/employees/${id}`, {
+  const res = await authFetch(`${API_BASE}/employees/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1056,7 +1073,7 @@ export type EmployeeDocument = {
 };
 
 export async function getEmployeeDocuments(employeeId: number): Promise<EmployeeDocument[]> {
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/documents`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/documents`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1074,7 +1091,7 @@ export async function uploadEmployeeDocument(employeeId: number, file: File, typ
   const h: HeadersInit = {};
   if (token) (h as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/documents`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/documents`, {
     method: 'POST',
     credentials: 'include',
     headers: h,
@@ -1086,7 +1103,7 @@ export async function uploadEmployeeDocument(employeeId: number, file: File, typ
 }
 
 export async function getEmployeeDocumentUrl(employeeId: number, documentId: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/documents/${documentId}/url`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/documents/${documentId}/url`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1096,7 +1113,7 @@ export async function getEmployeeDocumentUrl(employeeId: number, documentId: num
 }
 
 export async function deleteEmployeeDocument(employeeId: number, documentId: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/documents/${documentId}`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/documents/${documentId}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -1130,14 +1147,14 @@ export async function getContractTemplates(params?: {
   if (params?.contract_type) q.set('contract_type', params.contract_type);
   if (params?.active_only) q.set('active_only', 'true');
   const url = q.toString() ? `${API_BASE}/contract-templates?${q}` : `${API_BASE}/contract-templates`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch templates');
   return data.data ?? [];
 }
 
 export async function getContractTemplate(id: number): Promise<ContractTemplate> {
-  const res = await fetch(`${API_BASE}/contract-templates/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch template');
   return data;
@@ -1150,7 +1167,7 @@ export async function createContractTemplate(body: {
   content: string;
   is_active?: boolean;
 }): Promise<ContractTemplate> {
-  const res = await fetch(`${API_BASE}/contract-templates`, {
+  const res = await authFetch(`${API_BASE}/contract-templates`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1171,7 +1188,7 @@ export async function updateContractTemplate(
     is_active?: boolean;
   }
 ): Promise<ContractTemplate> {
-  const res = await fetch(`${API_BASE}/contract-templates/${id}`, {
+  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1183,7 +1200,7 @@ export async function updateContractTemplate(
 }
 
 export async function deleteContractTemplate(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/contract-templates/${id}`, {
+  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -1195,7 +1212,7 @@ export async function deleteContractTemplate(id: number): Promise<void> {
 }
 
 export async function getContractTemplatePlaceholders(): Promise<string[]> {
-  const res = await fetch(`${API_BASE}/contract-templates/placeholders`, {
+  const res = await authFetch(`${API_BASE}/contract-templates/placeholders`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1205,7 +1222,7 @@ export async function getContractTemplatePlaceholders(): Promise<string[]> {
 }
 
 export async function previewContractTemplate(id: number, values: Record<string, string>): Promise<string> {
-  const res = await fetch(`${API_BASE}/contract-templates/${id}/preview`, {
+  const res = await authFetch(`${API_BASE}/contract-templates/${id}/preview`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1254,7 +1271,7 @@ export async function getContracts(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/contracts?${q}` : `${API_BASE}/contracts`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch contracts');
   return {
@@ -1267,14 +1284,14 @@ export async function getContracts(params?: {
 }
 
 export async function getContract(id: number): Promise<Contract> {
-  const res = await fetch(`${API_BASE}/contracts/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/contracts/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch contract');
   return data;
 }
 
 export async function createContract(body: Partial<Contract>): Promise<Contract> {
-  const res = await fetch(`${API_BASE}/contracts`, {
+  const res = await authFetch(`${API_BASE}/contracts`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1306,7 +1323,7 @@ export async function uploadManualContract(
   const h: HeadersInit = {};
   if (token) (h as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(`${API_BASE}/contracts/upload`, {
+  const res = await authFetch(`${API_BASE}/contracts/upload`, {
     method: 'POST',
     credentials: 'include',
     headers: h,
@@ -1326,7 +1343,7 @@ export async function updateContractFile(contractId: number, file: File): Promis
   const h: HeadersInit = {};
   if (token) (h as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   
-  const res = await fetch(`${API_BASE}/contracts/${contractId}/file`, {
+  const res = await authFetch(`${API_BASE}/contracts/${contractId}/file`, {
     method: 'PUT',
     credentials: 'include',
     headers: h,
@@ -1338,7 +1355,7 @@ export async function updateContractFile(contractId: number, file: File): Promis
 }
 
 export async function updateContract(id: number, body: Partial<Contract>): Promise<Contract> {
-  const res = await fetch(`${API_BASE}/contracts/${id}`, {
+  const res = await authFetch(`${API_BASE}/contracts/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1350,7 +1367,7 @@ export async function updateContract(id: number, body: Partial<Contract>): Promi
 }
 
 export async function getContractPresignedUrl(id: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/contracts/${id}/url`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/contracts/${id}/url`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get URL');
   return data.url ?? '';
@@ -1358,7 +1375,7 @@ export async function getContractPresignedUrl(id: number): Promise<string> {
 
 /** Generate document from contract draft (HTML, viewable in browser; you can Print to PDF). Only for draft contracts. */
 export async function generateContractDocument(contractId: number): Promise<Contract> {
-  const res = await fetch(`${API_BASE}/contracts/${contractId}/generate-pdf`, {
+  const res = await authFetch(`${API_BASE}/contracts/${contractId}/generate-pdf`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1370,7 +1387,7 @@ export async function generateContractDocument(contractId: number): Promise<Cont
 
 /** Get the signing link for a contract (if it exists) */
 export async function getContractSigningLink(contractId: number): Promise<{ link: any; url: string }> {
-  const res = await fetch(`${API_BASE}/contracts/${contractId}/signing-link`, {
+  const res = await authFetch(`${API_BASE}/contracts/${contractId}/signing-link`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1381,7 +1398,7 @@ export async function getContractSigningLink(contractId: number): Promise<{ link
 
 /** Create a signing link for a contract and return the signing URL */
 export async function createContractSigningLink(contractId: number): Promise<{ link: any; url: string }> {
-  const res = await fetch(`${API_BASE}/contracts/${contractId}/signing-link`, {
+  const res = await authFetch(`${API_BASE}/contracts/${contractId}/signing-link`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1399,10 +1416,33 @@ export type PaklaringDocument = {
   file_path: string;
   generated_at: string;
   created_at: string;
+  employee_name?: string;
 };
 
+export async function getPaklarings(params?: {
+  search?: string;
+  page?: number;
+  per_page?: number;
+}): Promise<PaginatedResponse<PaklaringDocument>> {
+  const q = new URLSearchParams();
+  if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.per_page) q.set('per_page', String(params.per_page));
+  const url = q.toString() ? `${API_BASE}/paklaring?${q}` : `${API_BASE}/paklaring`;
+  const res = await authFetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch paklarings');
+  return {
+    data: data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    per_page: data.per_page ?? 10,
+    total_pages: data.total_pages ?? 1,
+  };
+}
+
 export async function getPaklaringByEmployee(employeeId: number): Promise<PaklaringDocument[]> {
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1412,21 +1452,21 @@ export async function getPaklaringByEmployee(employeeId: number): Promise<Paklar
 }
 
 export async function getMyPaklaring(): Promise<PaklaringDocument[]> {
-  const res = await fetch(`${API_BASE}/me/paklaring`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/me/paklaring`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
   return data.data ?? [];
 }
 
 export async function getPaklaringPresignedUrl(id: number): Promise<string> {
-  const res = await fetch(`${API_BASE}/paklaring/${id}/url`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/paklaring/${id}/url`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get URL');
   return data.url ?? '';
 }
 
 export async function createPaklaringForEmployee(employeeId: number, file_path: string): Promise<PaklaringDocument> {
-  const res = await fetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1434,6 +1474,24 @@ export async function createPaklaringForEmployee(employeeId: number, file_path: 
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create');
+  return data;
+}
+
+/** Upload a PDF file to generate/register a paklaring for an employee. */
+export async function uploadPaklaringForEmployee(employeeId: number, file: File): Promise<PaklaringDocument> {
+  const form = new FormData();
+  form.append('file', file);
+  const token = getAccessToken();
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/paklaring/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to upload paklaring');
   return data;
 }
 
@@ -1462,7 +1520,7 @@ export async function getWarnings(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/warnings?${q}` : `${API_BASE}/warnings`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch warnings');
   return {
@@ -1475,7 +1533,7 @@ export async function getWarnings(params?: {
 }
 
 export async function getWarning(id: number): Promise<WarningLetter> {
-  const res = await fetch(`${API_BASE}/warnings/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/warnings/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch warning');
   return data;
@@ -1487,7 +1545,7 @@ export async function createWarning(body: {
   warning_date: string;
   description?: string;
 }): Promise<WarningLetter> {
-  const res = await fetch(`${API_BASE}/warnings`, {
+  const res = await authFetch(`${API_BASE}/warnings`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1499,10 +1557,77 @@ export async function createWarning(body: {
 }
 
 export async function getMyWarnings(): Promise<WarningLetter[]> {
-  const res = await fetch(`${API_BASE}/me/warnings`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/me/warnings`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
   return data.data ?? [];
+}
+
+// Payslips
+export type Payslip = {
+  id: number;
+  tenant_id: number;
+  employee_id: number;
+  year: number;
+  month: number;
+  period_label: string;
+  file_path: string;
+  created_by?: number;
+  created_at: string;
+  employee_name?: string;
+};
+
+export async function getPayslips(params?: {
+  employee_id?: number;
+  year?: number;
+  month?: number;
+}): Promise<Payslip[]> {
+  const q = new URLSearchParams();
+  if (params?.employee_id) q.set('employee_id', String(params.employee_id));
+  if (params?.year) q.set('year', String(params.year));
+  if (params?.month) q.set('month', String(params.month));
+  const url = q.toString() ? `${API_BASE}/payslips?${q}` : `${API_BASE}/payslips`;
+  const res = await authFetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch payslips');
+  return data.data ?? [];
+}
+
+export async function getMyPayslips(): Promise<Payslip[]> {
+  const res = await authFetch(`${API_BASE}/me/payslips`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
+  return data.data ?? [];
+}
+
+export type BulkUploadPayslipEntry = { employee_id: number; year: number; month: number };
+
+export async function bulkUploadPayslips(
+  entries: BulkUploadPayslipEntry[],
+  files: File[]
+): Promise<{ data: Payslip[]; count: number; failed: string[] }> {
+  const form = new FormData();
+  form.append('entries', JSON.stringify(entries));
+  files.forEach((f) => form.append('files', f));
+  const token = getAccessToken();
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await authFetch(`${API_BASE}/payslips/bulk`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Bulk upload failed');
+  return { data: data.data ?? [], count: data.count ?? 0, failed: data.failed ?? [] };
+}
+
+export async function getPayslipPresignedUrl(id: number): Promise<string> {
+  const res = await authFetch(`${API_BASE}/payslips/${id}/url`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get download URL');
+  return data.url;
 }
 
 // Tickets
@@ -1544,7 +1669,7 @@ export async function getTickets(params?: {
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/tickets?${q}` : `${API_BASE}/tickets`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch tickets');
   return {
@@ -1557,7 +1682,7 @@ export async function getTickets(params?: {
 }
 
 export async function getTicket(id: number): Promise<{ ticket: Ticket; messages: TicketMessage[] }> {
-  const res = await fetch(`${API_BASE}/tickets/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/tickets/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch ticket');
   return { ticket: data.ticket, messages: data.messages ?? [] };
@@ -1568,7 +1693,7 @@ export async function createTicket(body: {
   subject: string;
   message: string;
 }): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets`, {
+  const res = await authFetch(`${API_BASE}/tickets`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1580,7 +1705,7 @@ export async function createTicket(body: {
 }
 
 export async function updateTicketStatus(id: number, status: string): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}/status`, {
+  const res = await authFetch(`${API_BASE}/tickets/${id}/status`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1592,7 +1717,7 @@ export async function updateTicketStatus(id: number, status: string): Promise<Ti
 }
 
 export async function replyTicket(id: number, body: string, isInternal: boolean): Promise<TicketMessage> {
-  const res = await fetch(`${API_BASE}/tickets/${id}/reply`, {
+  const res = await authFetch(`${API_BASE}/tickets/${id}/reply`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1604,21 +1729,21 @@ export async function replyTicket(id: number, body: string, isInternal: boolean)
 }
 
 export async function getMyTickets(): Promise<Ticket[]> {
-  const res = await fetch(`${API_BASE}/me/tickets`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/me/tickets`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
   return data.data ?? [];
 }
 
 export async function getDepartmentNewTickets(): Promise<Ticket[]> {
-  const res = await fetch(`${API_BASE}/tickets/department/new`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/tickets/department/new`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
   return data.data ?? [];
 }
 
 export async function assignTicket(id: number): Promise<Ticket> {
-  const res = await fetch(`${API_BASE}/tickets/${id}/assign`, {
+  const res = await authFetch(`${API_BASE}/tickets/${id}/assign`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1650,14 +1775,14 @@ export type FAQ = {
 };
 
 export async function getFAQCategories(): Promise<FAQCategory[]> {
-  const res = await fetch(`${API_BASE}/faq/categories`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/faq/categories`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch categories');
   return data.data ?? [];
 }
 
 export async function getFAQ(id: number): Promise<FAQ> {
-  const res = await fetch(`${API_BASE}/faq/${id}`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/faq/${id}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch FAQ');
   return data;
@@ -1667,14 +1792,14 @@ export async function getFAQs(categoryId?: number): Promise<FAQ[]> {
   const url = categoryId
     ? `${API_BASE}/faq?category_id=${categoryId}`
     : `${API_BASE}/faq`;
-  const res = await fetch(url, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(url);
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch FAQs');
   return data.data ?? [];
 }
 
 export async function searchFAQ(q: string): Promise<FAQ[]> {
-  const res = await fetch(`${API_BASE}/faq/search?q=${encodeURIComponent(q)}`, {
+  const res = await authFetch(`${API_BASE}/faq/search?q=${encodeURIComponent(q)}`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1684,7 +1809,7 @@ export async function searchFAQ(q: string): Promise<FAQ[]> {
 }
 
 export async function createFAQCategory(body: { name: string; sort_order?: number }): Promise<FAQCategory> {
-  const res = await fetch(`${API_BASE}/faq/categories`, {
+  const res = await authFetch(`${API_BASE}/faq/categories`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1699,7 +1824,7 @@ export async function updateFAQCategory(
   id: number,
   body: { name: string; sort_order?: number }
 ): Promise<FAQCategory> {
-  const res = await fetch(`${API_BASE}/faq/categories/${id}`, {
+  const res = await authFetch(`${API_BASE}/faq/categories/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1711,7 +1836,7 @@ export async function updateFAQCategory(
 }
 
 export async function deleteFAQCategory(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/faq/categories/${id}`, {
+  const res = await authFetch(`${API_BASE}/faq/categories/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -1728,7 +1853,7 @@ export async function createFAQ(body: {
   answer: string;
   sort_order?: number;
 }): Promise<FAQ> {
-  const res = await fetch(`${API_BASE}/faq`, {
+  const res = await authFetch(`${API_BASE}/faq`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
@@ -1743,7 +1868,7 @@ export async function updateFAQ(
   id: number,
   body: { category_id?: number; question: string; answer: string; sort_order?: number }
 ): Promise<FAQ> {
-  const res = await fetch(`${API_BASE}/faq/${id}`, {
+  const res = await authFetch(`${API_BASE}/faq/${id}`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1755,7 +1880,7 @@ export async function updateFAQ(
 }
 
 export async function deleteFAQ(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/faq/${id}`, {
+  const res = await authFetch(`${API_BASE}/faq/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -1783,7 +1908,7 @@ export async function getNotifications(params?: { unread?: boolean; limit?: numb
   const queryParams = new URLSearchParams();
   if (params?.unread) queryParams.set('unread', 'true');
   if (params?.limit) queryParams.set('limit', String(params.limit));
-  const res = await fetch(`${API_BASE}/notifications?${queryParams}`, {
+  const res = await authFetch(`${API_BASE}/notifications?${queryParams}`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1793,7 +1918,7 @@ export async function getNotifications(params?: { unread?: boolean; limit?: numb
 }
 
 export async function getNotification(id: number): Promise<Notification> {
-  const res = await fetch(`${API_BASE}/notifications/${id}`, {
+  const res = await authFetch(`${API_BASE}/notifications/${id}`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1803,7 +1928,7 @@ export async function getNotification(id: number): Promise<Notification> {
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {
-  const res = await fetch(`${API_BASE}/notifications/unread-count`, {
+  const res = await authFetch(`${API_BASE}/notifications/unread-count`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1813,7 +1938,7 @@ export async function getUnreadNotificationCount(): Promise<number> {
 }
 
 export async function markNotificationAsRead(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+  const res = await authFetch(`${API_BASE}/notifications/${id}/read`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1825,7 +1950,7 @@ export async function markNotificationAsRead(id: number): Promise<void> {
 }
 
 export async function markAllNotificationsAsRead(): Promise<void> {
-  const res = await fetch(`${API_BASE}/notifications/read-all`, {
+  const res = await authFetch(`${API_BASE}/notifications/read-all`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
@@ -1837,7 +1962,7 @@ export async function markAllNotificationsAsRead(): Promise<void> {
 }
 
 export async function deleteNotification(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE}/notifications/${id}`, {
+  const res = await authFetch(`${API_BASE}/notifications/${id}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: authHeaders(),
@@ -1867,14 +1992,14 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const res = await fetch(`${API_BASE}/dashboard/stats`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/dashboard/stats`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch dashboard stats');
   return data;
 }
 
 export async function getMyEmployee(): Promise<Employee | null> {
-  const res = await fetch(`${API_BASE}/me/employee`, { credentials: 'include', headers: authHeaders() });
+  const res = await authFetch(`${API_BASE}/me/employee`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) {
     // Employee record might not exist for all users

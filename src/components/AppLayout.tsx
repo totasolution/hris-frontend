@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getVisibleNavItems,
@@ -56,6 +57,18 @@ function getIcon(iconName?: string) {
       return (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case 'paklaring':
+      return (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case 'payslip':
+      return (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l6-6m-5.5 0a2 2 0 114 0 0 2 0 0 014 0M3 20h18a1 1 0 001-1V5a1 1 0 00-1-1H3a1 1 0 00-1 1v14a1 1 0 001 1z" />
         </svg>
       );
     case 'warnings':
@@ -128,6 +141,8 @@ function getIcon(iconName?: string) {
 }
 
 export default function AppLayout() {
+  const { t } = useTranslation('nav');
+  const { i18n } = useTranslation();
   const { user, tenant, roles, permissions = [], logout } = useAuth();
   const location = useLocation();
   const navItems = getVisibleNavItems(roles || [], permissions || []);
@@ -135,6 +150,7 @@ export default function AppLayout() {
 
   const roleLabel = roles[0]?.replace(/_/g, ' ') ?? 'Member';
   const firstName = user?.full_name?.split(' ')[0] ?? 'User';
+  const currentLng = i18n.language === 'id' ? 'id' : 'en';
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 font-body">
@@ -156,11 +172,11 @@ export default function AppLayout() {
           {GROUP_ORDER.map((groupId) => {
             const items = grouped.get(groupId) ?? [];
             if (items.length === 0) return null;
-            const label = NAV_GROUP_LABELS[groupId];
+            const groupLabelKey = NAV_GROUP_LABELS[groupId];
             return (
               <div key={groupId} className="space-y-3">
                 <p className="px-4 text-[10px] font-black uppercase tracking-[0.25em] text-slate-300">
-                  {label}
+                  {t(groupLabelKey)}
                 </p>
                 <ul className="space-y-1">
                   {items.map((item) => {
@@ -181,7 +197,7 @@ export default function AppLayout() {
                           <div className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-brand'}`}>
                             {getIcon(item.icon)}
                           </div>
-                          {item.label}
+                          {t(item.label)}
                         </Link>
                       </li>
                     );
@@ -200,9 +216,12 @@ export default function AppLayout() {
           <div>
             <h2 className="text-2xl font-black text-brand-dark tracking-tight font-headline">
               {location.pathname === '/dashboard' ? `Hello, ${firstName}` : 
-               navItems
-                .filter((n) => location.pathname === n.path || location.pathname.startsWith(n.path + '/'))
-                .sort((a, b) => b.path.length - a.path.length)[0]?.label ?? 'HRIS'}
+               (() => {
+                 const match = navItems
+                   .filter((n) => location.pathname === n.path || location.pathname.startsWith(n.path + '/'))
+                   .sort((a, b) => b.path.length - a.path.length)[0];
+                 return match ? t(match.label) : t('appTitle');
+               })()}
             </h2>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
               {location.pathname === '/dashboard' ? 'Welcome back to your workspace' : 'Management System'}
@@ -215,10 +234,24 @@ export default function AppLayout() {
 
             <div className="h-10 w-px bg-slate-200/60" />
 
-            {/* Localisation Switcher */}
+            {/* Locale switcher */}
             <div className="flex items-center bg-slate-100/80 rounded-xl p-1 border border-slate-200/50">
-              <button className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg bg-white shadow-sm text-brand transition-all">EN</button>
-              <button className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg text-slate-400 hover:text-slate-600 transition-all">ID</button>
+              <button
+                type="button"
+                onClick={() => i18n.changeLanguage('en')}
+                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${currentLng === 'en' ? 'bg-white shadow-sm text-brand' : 'text-slate-400 hover:text-slate-600'}`}
+                aria-label="English"
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => i18n.changeLanguage('id')}
+                className={`px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${currentLng === 'id' ? 'bg-white shadow-sm text-brand' : 'text-slate-400 hover:text-slate-600'}`}
+                aria-label="Indonesian"
+              >
+                ID
+              </button>
             </div>
 
             <div className="h-10 w-px bg-slate-200/60" />

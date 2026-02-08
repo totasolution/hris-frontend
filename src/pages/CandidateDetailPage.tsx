@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Candidate, CandidateDocument } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 type TabType = 'overview' | 'onboarding' | 'documents' | 'contracts';
 
@@ -989,7 +990,7 @@ function ContractsTab({
                     {contract.status.replace(/_/g, ' ')}
                   </span>
                 </TD>
-                <TD className="text-sm text-slate-500">{contract.created_at ? new Date(contract.created_at).toLocaleDateString() : '—'}</TD>
+                <TD className="text-sm text-slate-500">{contract.created_at ? formatDate(contract.created_at) : '—'}</TD>
                 <TD className="text-right">
                   <div className="flex flex-col items-end gap-2">
                     {contract.status === 'draft' && (

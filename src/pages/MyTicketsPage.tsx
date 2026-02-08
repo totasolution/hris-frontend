@@ -6,6 +6,7 @@ import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Ticket } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 type MyTicketsPageProps = { embedded?: boolean };
 
@@ -83,7 +84,7 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
                         {t.status.replace('_', ' ')}
                       </span>
                     </TD>
-                    <TD>{t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}</TD>
+                    <TD>{t.created_at ? formatDate(t.created_at) : '—'}</TD>
                     <TD className="text-right">
                       <Link
                         to={`/tickets/${t.id}`}

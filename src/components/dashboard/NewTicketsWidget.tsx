@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardHeader, CardBody } from '../Card';
 import type { Ticket } from '../../services/api';
 import * as api from '../../services/api';
+import { formatDate } from '../../utils/formatDate';
 
 type NewTicketsWidgetProps = {
   permissions: string[];
@@ -63,7 +64,7 @@ export function NewTicketsWidget({ permissions }: NewTicketsWidgetProps) {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-brand-dark truncate">{t.subject}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    #{t.id} • {new Date(t.created_at).toLocaleDateString()}
+                    #{t.id} • {formatDate(t.created_at)}
                   </p>
                 </div>
                 <span className="text-slate-300 group-hover:text-brand transition-colors">→</span>

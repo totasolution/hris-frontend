@@ -44,6 +44,8 @@ import FAQAdminPage from './pages/FAQAdminPage';
 import FAQFormPage from './pages/FAQFormPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
+import PayslipsPage from './pages/PayslipsPage';
+import PaklaringPage from './pages/PaklaringPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -113,6 +115,8 @@ function AppRoutes() {
         <Route path="company-settings" element={<CompanySettingsPage />} />
         <Route path="warnings" element={<WarningsPage />} />
         <Route path="warnings/new" element={<WarningFormPage />} />
+        <Route path="payslips" element={<PayslipsPage />} />
+        <Route path="paklaring" element={<PaklaringPage />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/new" element={<NewTicketPage />} />
         <Route path="tickets/:id" element={<TicketDetailPage />} />

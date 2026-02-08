@@ -63,17 +63,6 @@ export default function FAQPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Frequently Asked Questions"
-        subtitle="Find quick answers to common questions"
-        actions={
-          canManage ? (
-            <ButtonLink to="/faq/admin" variant="secondary">
-              Manage FAQ
-            </ButtonLink>
-          ) : undefined
-        }
-      />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <form onSubmit={handleSearch} className="flex-1 flex gap-2 min-w-[300px]">

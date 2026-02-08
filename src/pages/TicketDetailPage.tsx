@@ -9,6 +9,7 @@ import { Textarea } from '../components/Input';
 import { useAuth } from '../contexts/AuthContext';
 import type { Ticket, TicketMessage } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -105,7 +106,7 @@ export default function TicketDetailPage() {
         subtitle={
           ticket.assignee_name
             ? `Ticket #${ticket.id} • Assigned to ${ticket.assignee_name}`
-            : `Ticket #${ticket.id} • Created ${new Date(ticket.created_at).toLocaleDateString()}`
+            : `Ticket #${ticket.id} • Created ${formatDate(ticket.created_at)}`
         }
         actions={
           <div className="flex items-center gap-3">

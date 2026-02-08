@@ -8,6 +8,7 @@ import { Select } from '../components/Select';
 import { useToast } from '../components/Toast';
 import type { ContractTemplate, ContractTemplateType } from '../services/api';
 import * as api from '../services/api';
+import { formatDateLong } from '../utils/formatDate';
 
 export default function ContractTemplateFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +101,7 @@ export default function ContractTemplateFormPage() {
       // Generate sample values for preview
       const sampleValues: Record<string, string> = {
         contract_number: 'PKWT-2026-001',
-        contract_date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        contract_date: formatDateLong(new Date()),
         company_name: 'PT Example Company',
         company_address: 'Jl. Sudirman No. 123, Jakarta',
         company_representative: 'John Director',
