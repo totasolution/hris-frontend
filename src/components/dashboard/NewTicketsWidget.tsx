@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardBody } from '../Card';
+import { Button } from '../Button';
+import { useToast } from '../Toast';
+import { useAuth } from '../../contexts/AuthContext';
 import type { Ticket } from '../../services/api';
 import * as api from '../../services/api';
 import { formatDate } from '../../utils/formatDate';
@@ -12,10 +15,15 @@ type NewTicketsWidgetProps = {
 export function NewTicketsWidget({ permissions }: NewTicketsWidgetProps) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [assigning, setAssigning] = useState<number | null>(null);
+  const toast = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   const canSee = permissions.includes('dashboard:ticket');
+  const canRespond = permissions.includes('ticket:respond');
 
-  useEffect(() => {
+  const loadTickets = () => {
     if (!canSee) {
       setLoading(false);
       return;
@@ -25,7 +33,50 @@ export function NewTicketsWidget({ permissions }: NewTicketsWidgetProps) {
       .then(setTickets)
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadTickets();
   }, [canSee]);
+
+  const handleTakeOver = async (ticketId: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canRespond || !user?.id) return;
+    
+    setAssigning(ticketId);
+    try {
+      await api.assignTicket(ticketId);
+      toast.success('You have taken over this ticket');
+      loadTickets();
+      // Navigate to ticket detail after taking over
+      setTimeout(() => navigate(`/tickets/${ticketId}`), 500);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to take over ticket');
+    } finally {
+      setAssigning(null);
+    }
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    return diffMins > 0 ? `${diffMins}m ago` : 'Just now';
+  };
+
+  const isUrgent = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+    return diffHours > 24; // Urgent if older than 24 hours
+  };
 
   if (!canSee) return null;
 
@@ -54,22 +105,72 @@ export function NewTicketsWidget({ permissions }: NewTicketsWidgetProps) {
             <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">No new tickets</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {tickets.map((t) => (
-              <Link
-                key={t.id}
-                to={`/tickets/${t.id}`}
-                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-brand-dark truncate">{t.subject}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    #{t.id} • {formatDate(t.created_at)}
-                  </p>
+          <div className="space-y-3">
+            {tickets.map((t) => {
+              const urgent = isUrgent(t.created_at);
+              const canTakeOver = canRespond && !t.assignee_id && user?.id;
+              
+              return (
+                <div
+                  key={t.id}
+                  className={`p-4 rounded-2xl border transition-all ${
+                    urgent
+                      ? 'bg-red-50 border-red-100 hover:bg-red-100'
+                      : 'bg-white border-slate-100 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Link
+                          to={`/tickets/${t.id}`}
+                          className="text-sm font-bold text-brand-dark hover:text-brand transition-colors truncate"
+                        >
+                          {t.subject}
+                        </Link>
+                        {urgent && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-200 text-red-700">
+                            Urgent
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+                        <span>#{t.id}</span>
+                        <span>•</span>
+                        {t.author_name && (
+                          <>
+                            <span className="font-medium text-slate-600">From: {t.author_name}</span>
+                            <span>•</span>
+                          </>
+                        )}
+                        <span>{getTimeAgo(t.created_at)}</span>
+                        <span>•</span>
+                        <span>{formatDate(t.created_at)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {canTakeOver && (
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={(e) => handleTakeOver(t.id, e)}
+                          disabled={assigning === t.id}
+                          className="!px-3 !py-1.5 !text-xs whitespace-nowrap"
+                        >
+                          {assigning === t.id ? 'Taking...' : 'Take Over'}
+                        </Button>
+                      )}
+                      <Link
+                        to={`/tickets/${t.id}`}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-brand-lighter hover:text-brand transition-all text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                      >
+                        View
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-slate-300 group-hover:text-brand transition-colors">→</span>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardBody>

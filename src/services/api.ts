@@ -1644,6 +1644,7 @@ export type Ticket = {
   id: number;
   tenant_id: number;
   author_id: number;
+  author_name?: string;
   department_id: number;
   assignee_id?: number;
   assignee_name?: string;
@@ -1657,6 +1658,7 @@ export type TicketMessage = {
   id: number;
   ticket_id: number;
   author_id: number;
+  author_name?: string;
   body: string;
   is_internal: boolean;
   created_at: string;

@@ -118,6 +118,7 @@ export default function TicketsPage() {
                 <TH>{t('pages:tickets.subject')}</TH>
                 <TH>{t('pages:tickets.status')}</TH>
                 <TH>{t('pages:tickets.department')}</TH>
+                <TH>Author</TH>
                 <TH>{t('pages:tickets.assignee')}</TH>
                 <TH>{t('pages:tickets.createdAt')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -126,7 +127,7 @@ export default function TicketsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={6} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     {t('pages:tickets.noTicketsFound')}
                   </TD>
                 </TR>
@@ -144,7 +145,8 @@ export default function TicketsPage() {
                       </span>
                     </TD>
                     <TD>{departments.find(d => d.id === ticket.department_id)?.name ?? `ID: ${ticket.department_id}`}</TD>
-                    <TD className="text-sm text-slate-600">{ticket.assignee_name ?? (ticket.assignee_id ? 'Assigned' : '—')}</TD>
+                    <TD className="text-sm text-slate-600 font-medium">{ticket.author_name || '—'}</TD>
+                    <TD className="text-sm text-slate-600">{ticket.assignee_name || '—'}</TD>
                     <TD>{ticket.created_at ? new Date(ticket.created_at).toLocaleString() : '—'}</TD>
                     <TD className="text-right">
                       <Link

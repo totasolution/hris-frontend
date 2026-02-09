@@ -19,7 +19,7 @@ export default function UserFormPage() {
   const [status, setStatus] = useState('active');
   const [userType, setUserType] = useState('internal');
   const [roleIds, setRoleIds] = useState<number[]>([]);
-  const [departmentIds, setDepartmentIds] = useState<number[]>([]);
+  const [departmentId, setDepartmentId] = useState<string>('');
   const [employeeId, setEmployeeId] = useState<string>('');
   const [roles, setRoles] = useState<api.Role[]>([]);
   const [departments, setDepartments] = useState<api.Department[]>([]);
@@ -48,7 +48,7 @@ export default function UserFormPage() {
           setStatus(detail.user.status ?? 'active');
           setUserType(detail.user.user_type ?? 'internal');
           setRoleIds(detail.role_ids ?? []);
-          setDepartmentIds(detail.department_ids ?? []);
+          setDepartmentId(detail.department_ids && detail.department_ids.length > 0 ? String(detail.department_ids[0]) : '');
           setEmployeeId(detail.user.employee_id != null ? String(detail.user.employee_id) : '');
         }
       } catch (e) {
@@ -65,11 +65,6 @@ export default function UserFormPage() {
     );
   };
 
-  const toggleDepartment = (deptId: number) => {
-    setDepartmentIds((prev) =>
-      prev.includes(deptId) ? prev.filter((d) => d !== deptId) : [...prev, deptId]
-    );
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +79,7 @@ export default function UserFormPage() {
           status,
           employee_id: employeeId ? parseInt(employeeId, 10) : null,
           role_ids: roleIds,
-          department_ids: departmentIds,
+          department_ids: departmentId ? [parseInt(departmentId, 10)] : [],
         });
       } else {
         if (!password.trim()) {
@@ -101,7 +96,7 @@ export default function UserFormPage() {
           user_type: userType,
           status,
           role_ids: roleIds,
-          department_ids: departmentIds,
+          department_ids: departmentId ? [parseInt(departmentId, 10)] : [],
         });
       }
       navigate('/users');
@@ -228,20 +223,19 @@ export default function UserFormPage() {
 
           <Card>
             <CardBody className="space-y-6">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Departments</h3>
-              <div className="space-y-2">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Department</h3>
+              <Select
+                label="Department"
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+              >
+                <option value="">None</option>
                 {departments.map((d) => (
-                  <label key={d.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-brand-light transition-all cursor-pointer group">
-                    <input
-                      type="checkbox"
-                      checked={departmentIds.includes(d.id)}
-                      onChange={() => toggleDepartment(d.id)}
-                      className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/20"
-                    />
-                    <span className="text-sm font-bold text-slate-700 group-hover:text-brand transition-colors">{d.name}</span>
-                  </label>
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
                 ))}
-              </div>
+              </Select>
             </CardBody>
           </Card>
         </div>
