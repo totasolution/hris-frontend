@@ -671,10 +671,14 @@ export type RecruitmentStatistics = {
 export async function getRecruitmentStatistics(params?: {
   client_id?: number;
   project_id?: number;
+  year?: number;
+  month?: number;
 }): Promise<RecruitmentStatistics> {
   const q = new URLSearchParams();
   if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.project_id) q.set('project_id', String(params.project_id));
+  if (params?.year) q.set('year', String(params.year));
+  if (params?.month) q.set('month', String(params.month));
   const url = q.toString() ? `${API_BASE}/recruitment/statistics?${q}` : `${API_BASE}/recruitment/statistics`;
   const res = await authFetch(url);
   const data = await res.json();

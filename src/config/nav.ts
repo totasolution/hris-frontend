@@ -24,7 +24,13 @@ export type NavItem = {
 };
 
 /** Dashboard visible when user has any dashboard section permission (defined in permission settings). */
-export const DASHBOARD_SECTION_PERMISSIONS = ['dashboard:admin', 'dashboard:recruitment', 'dashboard:employee'] as const;
+export const DASHBOARD_SECTION_PERMISSIONS = [
+  'dashboard:admin',
+  'dashboard:recruitment',
+  'dashboard:employee',
+  'dashboard:ticket',
+  'dashboard:requestContract',
+] as const;
 
 /** Translation keys for nav item labels (resolved with useTranslation('nav')). */
 export const NAV_ITEMS: NavItem[] = [

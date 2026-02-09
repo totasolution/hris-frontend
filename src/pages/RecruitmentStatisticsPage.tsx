@@ -62,6 +62,7 @@ export default function RecruitmentStatisticsPage() {
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>('');
   const [projectId, setProjectId] = useState<string>('');
+  const [monthFilter, setMonthFilter] = useState<string>(''); // YYYY-MM or '' for all time
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -69,9 +70,16 @@ export default function RecruitmentStatisticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params: { client_id?: number; project_id?: number } = {};
+      const params: { client_id?: number; project_id?: number; year?: number; month?: number } = {};
       if (clientId) params.client_id = parseInt(clientId, 10);
       if (projectId) params.project_id = parseInt(projectId, 10);
+      if (monthFilter) {
+        const [y, m] = monthFilter.split('-').map(Number);
+        if (!Number.isNaN(y) && !Number.isNaN(m)) {
+          params.year = y;
+          params.month = m;
+        }
+      }
       const data = await api.getRecruitmentStatistics(params);
       setStats(data);
     } catch (e) {
@@ -83,7 +91,7 @@ export default function RecruitmentStatisticsPage() {
 
   useEffect(() => {
     loadStats();
-  }, [clientId, projectId]);
+  }, [clientId, projectId, monthFilter]);
 
   useEffect(() => {
     Promise.all([api.getClients(), api.getProjects()])
@@ -120,7 +128,27 @@ export default function RecruitmentStatisticsPage() {
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex flex-col gap-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Month</label>
+          <input
+            type="month"
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+            className="w-40 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand focus:ring-2 focus:ring-brand/20 outline-none"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider opacity-0">clear</label>
+          <button
+            type="button"
+            onClick={() => setMonthFilter('')}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            All time
+          </button>
+        </div>
         <div className="w-64">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Client</label>
           <Select
             options={clientOptions}
             value={clientOptions.find((o) => o.value === clientId)}
@@ -135,6 +163,7 @@ export default function RecruitmentStatisticsPage() {
           />
         </div>
         <div className="w-64">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project</label>
           <Select
             options={projectOptions}
             value={projectOptions.find((o) => o.value === projectId)}

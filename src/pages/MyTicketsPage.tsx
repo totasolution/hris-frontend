@@ -74,22 +74,22 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
                   </TD>
                 </TR>
               ) : (
-                list.map((t) => (
-                  <TR key={t.id}>
-                    <TD className="font-bold text-[#0f172a]">{t.subject}</TD>
+                list.map((ticket) => (
+                  <TR key={ticket.id}>
+                    <TD className="font-bold text-[#0f172a]">{ticket.subject}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                        t.status === 'open' ? 'bg-blue-100 text-blue-700' :
-                        t.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                        ticket.status === 'open' ? 'bg-blue-100 text-blue-700' :
+                        ticket.status === 'resolved' ? 'bg-green-100 text-green-700' :
                         'bg-slate-100 text-slate-600'
                       }`}>
-                        {t.status.replace('_', ' ')}
+                        {ticket.status.replace('_', ' ')}
                       </span>
                     </TD>
-                    <TD>{t.created_at ? formatDate(t.created_at) : '—'}</TD>
+                    <TD>{ticket.created_at ? formatDate(ticket.created_at) : '—'}</TD>
                     <TD className="text-right">
                       <Link
-                        to={`/tickets/${t.id}`}
+                        to={`/tickets/${ticket.id}`}
                         className="p-2 text-slate-400 hover:text-brand transition-colors inline-block"
                         title={t('pages:myTickets.viewTicket')}
                       >

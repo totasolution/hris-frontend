@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { StatCard } from './StatCard';
-import { TableWidget } from './TableWidget';
 import { QuickActions } from './QuickActions';
 import { RecentActivity } from './RecentActivity';
 import * as api from '../../services/api';
@@ -17,7 +16,6 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
     onboardingQueue: 0,
     activeProjects: 0,
   });
-  const [recentCandidates, setRecentCandidates] = useState<api.Candidate[]>([]);
   const [projects, setProjects] = useState<api.Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +36,6 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
           onboardingQueue: onboarding.length,
           activeProjects: projs.filter((p) => p.status === 'active').length,
         });
-        setRecentCandidates(candidates.slice(0, 5));
         setProjects(projs.filter((p) => p.status === 'active').slice(0, 5));
       } catch (err) {
         console.error('Failed to load recruiter dashboard data', err);
@@ -118,37 +115,6 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TableWidget
-          title="Recent Candidates"
-          subtitle="Latest pipeline updates"
-          columns={[
-            {
-              key: 'full_name',
-              label: 'Candidate',
-              render: (candidate) => (
-                <div>
-                  <p className="text-sm font-bold text-brand-dark">{candidate.full_name}</p>
-                  <p className="text-xs text-slate-400">{candidate.email}</p>
-                </div>
-              ),
-            },
-            {
-              key: 'screening_status',
-              label: 'Status',
-              render: (candidate) => (
-                <span className="text-xs font-bold uppercase px-2 py-1 rounded bg-slate-50 text-slate-600">
-                  {candidate.screening_status.replace('_', ' ')}
-                </span>
-              ),
-            },
-          ]}
-          data={recentCandidates}
-          loading={loading}
-          emptyMessage="No candidates yet"
-          viewAllLink="/candidates"
-          getRowLink={(candidate) => `/candidates/${candidate.id}`}
-        />
-
         <RecentActivity
           title="Active Projects"
           subtitle="Projects you're managing"

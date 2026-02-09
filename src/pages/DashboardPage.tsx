@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TenantAdminWidgets } from '../components/dashboard/TenantAdminWidgets';
 import { HRDWidgets } from '../components/dashboard/HRDWidgets';
 import { NewTicketsWidget } from '../components/dashboard/NewTicketsWidget';
+import { IncomingRequestContractWidget } from '../components/dashboard/IncomingRequestContractWidget';
 import { RecruiterWidgets } from '../components/dashboard/RecruiterWidgets';
 import { InternalEmployeeWidgets } from '../components/dashboard/InternalEmployeeWidgets';
 import { ExternalEmployeeWidgets } from '../components/dashboard/ExternalEmployeeWidgets';
@@ -13,6 +14,8 @@ import * as api from '../services/api';
 const DASHBOARD_ADMIN = 'dashboard:admin';
 const DASHBOARD_RECRUITMENT = 'dashboard:recruitment';
 const DASHBOARD_EMPLOYEE = 'dashboard:employee';
+const DASHBOARD_TICKET = 'dashboard:ticket';
+const DASHBOARD_REQUEST_CONTRACT = 'dashboard:requestContract';
 
 export default function DashboardPage() {
   const { t } = useTranslation('pages');
@@ -23,6 +26,8 @@ export default function DashboardPage() {
   const hasAdminSection = permissions.includes(DASHBOARD_ADMIN);
   const hasRecruitmentSection = permissions.includes(DASHBOARD_RECRUITMENT);
   const hasEmployeeSection = permissions.includes(DASHBOARD_EMPLOYEE);
+  const hasTicketWidget = permissions.includes(DASHBOARD_TICKET);
+  const hasRequestContractWidget = permissions.includes(DASHBOARD_REQUEST_CONTRACT);
 
   // For employee section we need employee type (internal vs external) to show the right view
   useEffect(() => {
@@ -42,7 +47,7 @@ export default function DashboardPage() {
       .finally(() => setLoadingEmployeeSection(false));
   }, [hasEmployeeSection]);
 
-  const hasAnySection = hasAdminSection || hasRecruitmentSection || hasEmployeeSection;
+  const hasAnySection = hasAdminSection || hasRecruitmentSection || hasEmployeeSection || hasTicketWidget || hasRequestContractWidget;
 
   if (!hasAnySection) {
     return (
@@ -56,6 +61,16 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-10 font-body">
+      {/* New tickets & Incoming request contract — visible when user has dashboard:ticket and/or dashboard:requestContract */}
+      {(hasTicketWidget || hasRequestContractWidget) && (
+        <section aria-label="Dashboard - Notifications">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {hasTicketWidget && <NewTicketsWidget permissions={permissions} />}
+            {hasRequestContractWidget && <IncomingRequestContractWidget permissions={permissions} />}
+          </div>
+        </section>
+      )}
+
       {/* Admin/HR section — visible if user has dashboard:admin (permission setting) */}
       {hasAdminSection && (
         <section aria-label="Dashboard - Admin/HR">
@@ -67,11 +82,6 @@ export default function DashboardPage() {
           <div className="space-y-8">
             <TenantAdminWidgets permissions={permissions} />
             <HRDWidgets permissions={permissions} />
-            {permissions.includes('ticket:read') && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <NewTicketsWidget permissions={permissions} />
-              </div>
-            )}
           </div>
         </section>
       )}
