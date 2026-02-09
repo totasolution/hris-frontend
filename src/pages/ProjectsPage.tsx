@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { ConfirmModal } from '../components/Modal';
@@ -11,6 +12,7 @@ import type { Client, Project } from '../services/api';
 import * as api from '../services/api';
 
 export default function ProjectsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [searchParams] = useSearchParams();
   const clientIdParam = searchParams.get('client_id');
   const [list, setList] = useState<Project[]>([]);
@@ -34,7 +36,7 @@ export default function ProjectsPage() {
       setList(projects);
       setClients(clientList);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      setError(e instanceof Error ? e.message : t('pages:projects.loadError'));
     } finally {
       setLoading(false);
     }
@@ -49,12 +51,12 @@ export default function ProjectsPage() {
     setDeleteLoading(true);
     try {
       await api.deleteProject(projectToDelete.id);
-      toast.success(`Project ${projectToDelete.name} deleted`);
+      toast.success(t('pages:projects.projectDeleted', { name: projectToDelete.name }));
       setShowDeleteConfirm(false);
       setProjectToDelete(null);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : t('pages:projects.deleteFailed'));
     } finally {
       setDeleteLoading(false);
     }
@@ -65,11 +67,11 @@ export default function ProjectsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Projects"
-        subtitle="Manage client-specific projects"
+        title={t('pages:projects.title')}
+        subtitle={t('pages:projects.subtitle')}
         actions={
           <ButtonLink to={filterClientId ? `/projects/new?client_id=${filterClientId}` : '/projects/new'}>
-            Add Project
+            {t('pages:projects.addProject')}
           </ButtonLink>
         }
       />
@@ -80,7 +82,7 @@ export default function ProjectsPage() {
             value={filterClientId}
             onChange={(e) => setFilterClientId(e.target.value)}
           >
-            <option value="">All Clients</option>
+            <option value="">{t('pages:projects.allClients')}</option>
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -106,17 +108,17 @@ export default function ProjectsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Project Name</TH>
-                <TH>Client</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:projects.projectName')}</TH>
+                <TH>{t('pages:projects.client')}</TH>
+                <TH>{t('common:status')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No projects found.
+                    {t('pages:projects.noProjectsFound')}
                   </TD>
                 </TR>
               ) : (
@@ -138,7 +140,7 @@ export default function ProjectsPage() {
                         <Link
                           to={`/projects/${p.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Edit"
+                          title={t('common:edit')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -150,7 +152,7 @@ export default function ProjectsPage() {
                             setShowDeleteConfirm(true);
                           }}
                           className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                          title="Delete"
+                          title={t('common:delete')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h14" />
@@ -173,13 +175,13 @@ export default function ProjectsPage() {
           setProjectToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Project"
-        confirmText="Yes, Delete"
+        title={t('pages:projects.deleteModalTitle')}
+        confirmText={t('common:yesDelete')}
         variant="danger"
         isLoading={deleteLoading}
       >
-        <p>Are you sure you want to delete the project <span className="font-bold text-brand-dark">{projectToDelete?.name}</span>?</p>
-        <p className="mt-2 text-sm text-red-500 font-medium">This action cannot be undone.</p>
+        <p>{t('pages:projects.confirmDeleteProject', { name: projectToDelete?.name ?? '' })}</p>
+        <p className="mt-2 text-sm text-red-500 font-medium">{t('pages:projects.deleteWarning')}</p>
       </ConfirmModal>
     </div>
   );

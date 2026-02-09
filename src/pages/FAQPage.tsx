@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
@@ -10,6 +11,7 @@ import type { FAQ, FAQCategory } from '../services/api';
 import * as api from '../services/api';
 
 export default function FAQPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const { roles = [] } = useAuth();
   const canManage = roles.some((r) => ['super_admin', 'tenant_admin', 'hrd'].includes(r));
   const [categories, setCategories] = useState<FAQCategory[]>([]);
@@ -33,7 +35,7 @@ export default function FAQPage() {
       setCategories(cats);
       setFaqs(list);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load FAQ');
+      setError(e instanceof Error ? e.message : t('pages:faq.loadError'));
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ export default function FAQPage() {
       const list = await api.searchFAQ(searchQ.trim());
       setFaqs(list);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Search failed');
+      setError(e instanceof Error ? e.message : t('pages:faq.searchFailed'));
     } finally {
       setLoading(false);
     }
@@ -69,11 +71,11 @@ export default function FAQPage() {
           <Input
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
-            placeholder="Search for answers..."
+            placeholder={t('pages:faq.searchPlaceholder')}
             className="flex-1"
           />
           <Button type="submit" variant="secondary">
-            Search
+            {t('common:search')}
           </Button>
         </form>
         <div className="w-64">
@@ -81,7 +83,7 @@ export default function FAQPage() {
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
           >
-            <option value="">All Categories</option>
+            <option value="">{t('pages:faq.allCategories')}</option>
             {categories.map((c) => (
               <option key={c.id} value={String(c.id)}>{c.name}</option>
             ))}
@@ -102,7 +104,7 @@ export default function FAQPage() {
         </div>
       ) : faqs.length === 0 ? (
         <Card className="p-12 text-center text-slate-400">
-          No FAQs found matching your search.
+          {t('pages:faq.noFaqMatching')}
         </Card>
       ) : (
         <div className="space-y-3">

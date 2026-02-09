@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -15,6 +16,7 @@ import { formatDateLong } from '../utils/formatDate';
 const DEBOUNCE_MS = 350;
 
 export default function PaklaringPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<PaklaringDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export default function PaklaringPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load paklarings');
+      setError(e instanceof Error ? e.message : t('pages:paklaring.loadError'));
     } finally {
       setLoading(false);
     }
@@ -100,14 +102,14 @@ export default function PaklaringPage() {
       const url = await api.getPaklaringPresignedUrl(doc.id);
       window.open(url, '_blank');
     } catch {
-      toast.error('Failed to open document');
+      toast.error(t('pages:paklaring.failedToOpenDocument'));
     }
   };
 
   const handleGenerateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!generateEmployeeId || !generateFile) {
-      toast.error('Select an employee and a PDF file');
+      toast.error(t('pages:paklaring.selectEmployeeAndFile'));
       return;
     }
     const empId = parseInt(generateEmployeeId, 10);
@@ -115,13 +117,13 @@ export default function PaklaringPage() {
     setUploading(true);
     try {
       await api.uploadPaklaringForEmployee(empId, generateFile);
-      toast.success('Paklaring generated and employee notified');
+      toast.success(t('pages:paklaring.paklaringGenerated'));
       setModalOpen(false);
       setGenerateEmployeeId('');
       setGenerateFile(null);
       load();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : t('pages:paklaring.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -133,11 +135,11 @@ export default function PaklaringPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Paklaring"
-        subtitle="Employment reference letters (surat keterangan kerja)"
+        title={t('pages:paklaring.title')}
+        subtitle={t('pages:paklaring.subtitle')}
         actions={
           canCreate ? (
-            <Button onClick={() => setModalOpen(true)}>Generate paklaring</Button>
+            <Button onClick={() => setModalOpen(true)}>{t('pages:paklaring.generatePaklaring')}</Button>
           ) : undefined
         }
       />
@@ -145,13 +147,13 @@ export default function PaklaringPage() {
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex-1 min-w-[200px] max-w-md">
           <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-            Search by employee name
+            {t('pages:paklaring.searchByEmployeeName')}
           </label>
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Type to filter..."
+            placeholder={t('pages:paklaring.typeToFilter')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
           />
         </div>
@@ -173,16 +175,16 @@ export default function PaklaringPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Employee</TH>
-                <TH>Generated</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:paklaring.employee')}</TH>
+                <TH>{t('pages:paklaring.generated')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={3} className="py-12 text-center text-slate-400">
-                    No paklaring documents found.
+                    {t('pages:paklaring.noPaklaringFound')}
                   </TD>
                 </TR>
               ) : (
@@ -201,7 +203,7 @@ export default function PaklaringPage() {
                         type="button"
                         onClick={() => handleDownload(doc)}
                         className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title="Download"
+                        title={t('common:download')}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -234,27 +236,27 @@ export default function PaklaringPage() {
             setGenerateEmployeeId('');
             setGenerateFile(null);
           }}
-          title="Generate paklaring"
+          title={t('pages:paklaring.generateModalTitle')}
         >
           <form onSubmit={handleGenerateSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Employee
+                {t('pages:paklaring.employeeLabel')}
               </label>
               <input
                 type="text"
                 value={employeeSearch}
                 onChange={(e) => setEmployeeSearch(e.target.value)}
-                placeholder="Search by name..."
+                placeholder={t('pages:paklaring.searchByNamePlaceholder')}
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand mb-2"
               />
               {employeeSearching && (
-                <p className="text-sm text-slate-500">Searching...</p>
+                <p className="text-sm text-slate-500">{t('pages:paklaring.searching')}</p>
               )}
               {!employeeSearching && employeeSearch.trim() && (
                 <ul className="border border-slate-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
                   {employeeSearchResults.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-slate-500">No employees found</li>
+                    <li className="px-3 py-2 text-sm text-slate-500">{t('pages:paklaring.noEmployeesFound')}</li>
                   ) : (
                     employeeSearchResults.map((e) => (
                       <li key={e.id}>
@@ -276,13 +278,13 @@ export default function PaklaringPage() {
               )}
               {generateEmployeeId && (
                 <p className="mt-1.5 text-xs text-slate-500">
-                  Selected: {employeeSearchResults.find((e) => String(e.id) === generateEmployeeId)?.full_name ?? employeeSearch}
+                  {t('pages:paklaring.selected')}: {employeeSearchResults.find((e) => String(e.id) === generateEmployeeId)?.full_name ?? employeeSearch}
                 </p>
               )}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                PDF file
+                {t('pages:paklaring.pdfFile')}
               </label>
               <input
                 type="file"
@@ -294,10 +296,10 @@ export default function PaklaringPage() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="secondary" onClick={() => setModalOpen(false)} disabled={uploading}>
-                Cancel
+                {t('common:cancel')}
               </Button>
               <Button type="submit" disabled={uploading || !generateEmployeeId || !generateFile}>
-                {uploading ? 'Uploading...' : 'Generate'}
+                {uploading ? t('pages:paklaring.uploading') : t('pages:paklaring.generate')}
               </Button>
             </div>
           </form>

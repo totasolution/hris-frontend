@@ -131,10 +131,15 @@ export function setUnauthorizedHandler(fn: () => void): void {
 }
 
 async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  // For FormData, do not set Content-Type so the browser sets multipart/form-data with boundary
+  const isFormData = init.body != null && init.body instanceof FormData;
+  const headers: Record<string, string> = isFormData
+    ? (getAccessToken() ? { Authorization: `Bearer ${getAccessToken()!}` } : {})
+    : { ...(authHeaders() as Record<string, string>) };
   const opts: RequestInit = {
     ...init,
     credentials: 'include',
-    headers: { ...authHeaders(), ...(init.headers as Record<string, string>) },
+    headers: { ...headers, ...(init.headers as Record<string, string>) },
   };
   const res = await fetch(input, opts);
   if (res.status === 401) {

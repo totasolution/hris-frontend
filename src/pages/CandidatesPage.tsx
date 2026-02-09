@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
@@ -42,6 +43,7 @@ const customSelectStyles = {
 };
 
 export default function CandidatesPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [searchParams] = useSearchParams();
   const [list, setList] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +77,7 @@ export default function CandidatesPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load candidates');
+      setError(e instanceof Error ? e.message : t('pages:candidates.loadError'));
     } finally {
       setLoading(false);
     }
@@ -115,16 +117,16 @@ export default function CandidatesPage() {
   return (
     <div className="space-y-8 font-body">
       <PageHeader
-        title="Candidates"
-        subtitle="Manage your recruitment pipeline"
-        actions={<ButtonLink to="/candidates/new">Add Candidate</ButtonLink>}
+        title={t('pages:candidates.title')}
+        subtitle={t('pages:candidates.subtitle')}
+        actions={<ButtonLink to="/candidates/new">{t('pages:candidates.addCandidate')}</ButtonLink>}
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('pages:candidates.searchPlaceholder')}
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
@@ -138,7 +140,7 @@ export default function CandidatesPage() {
               setClientId(option?.value || '');
               setProjectId('');
             }}
-            placeholder="All Clients"
+            placeholder={t('pages:candidates.allClients')}
             styles={customSelectStyles}
             isClearable
             isSearchable
@@ -149,7 +151,7 @@ export default function CandidatesPage() {
             options={projectOptions}
             value={projectOptions.find(o => o.value === projectId)}
             onChange={(option: any) => setProjectId(option?.value || '')}
-            placeholder="All Projects"
+            placeholder={t('pages:candidates.allProjects')}
             styles={customSelectStyles}
             isClearable
             isSearchable
@@ -161,7 +163,7 @@ export default function CandidatesPage() {
             options={statusOptions}
             value={statusOptions.find(o => o.value === statusFilter)}
             onChange={(option: any) => setStatusFilter(option?.value || '')}
-            placeholder="All Statuses"
+            placeholder={t('pages:candidates.allStatuses')}
             styles={customSelectStyles}
             isClearable
             isSearchable
@@ -185,18 +187,18 @@ export default function CandidatesPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Full Name</TH>
-                <TH>Client / Project</TH>
-                <TH>PIC / Recruiter</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:candidates.fullName')}</TH>
+                <TH>{t('pages:candidates.clientProject')}</TH>
+                <TH>{t('pages:candidates.picRecruiter')}</TH>
+                <TH>{t('pages:candidates.status')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={5} className="py-12 text-center text-slate-400">
-                    No candidates found matching your criteria.
+                    {t('pages:candidates.noCandidatesMatching')}
                   </TD>
                 </TR>
               ) : (
@@ -231,8 +233,8 @@ export default function CandidatesPage() {
                         {c.screening_status.replace(/_/g, ' ')}
                       </span>
                       {c.screening_status === 'onboarding_completed' && (
-                        <span className="ml-1.5 text-[10px] text-cyan-600 font-medium normal-case" title="Personal information submitted">
-                          (form submitted)
+                        <span className="ml-1.5 text-[10px] text-cyan-600 font-medium normal-case" title={t('pages:candidates.formSubmitted')}>
+                          {t('pages:candidates.formSubmitted')}
                         </span>
                       )}
                     </TD>
@@ -241,7 +243,7 @@ export default function CandidatesPage() {
                         <Link
                           to={`/candidates/${c.id}`}
                           className="p-2 text-slate-400 hover:text-brand transition-colors"
-                          title="View Details"
+                          title={t('pages:candidates.viewDetails')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -251,7 +253,7 @@ export default function CandidatesPage() {
                         <Link
                           to={`/candidates/${c.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Edit"
+                          title={t('common:edit')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { ConfirmModal } from '../components/Modal';
@@ -10,6 +11,7 @@ import type { Client } from '../services/api';
 import * as api from '../services/api';
 
 export default function ClientsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function ClientsPage() {
       const data = await api.getClients();
       setList(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load clients');
+      setError(e instanceof Error ? e.message : t('pages:clients.loadError'));
     } finally {
       setLoading(false);
     }
@@ -40,12 +42,12 @@ export default function ClientsPage() {
     setDeleteLoading(true);
     try {
       await api.deleteClient(clientToDelete.id);
-      toast.success(`Client ${clientToDelete.name} deleted`);
+      toast.success(t('pages:clients.clientDeleted', { name: clientToDelete.name }));
       setShowDeleteConfirm(false);
       setClientToDelete(null);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : t('pages:clients.deleteFailed'));
     } finally {
       setDeleteLoading(false);
     }
@@ -54,9 +56,9 @@ export default function ClientsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Clients"
-        subtitle="Manage your client companies"
-        actions={<ButtonLink to="/clients/new">Add Client</ButtonLink>}
+        title={t('pages:clients.title')}
+        subtitle={t('pages:clients.subtitle')}
+        actions={<ButtonLink to="/clients/new">{t('pages:clients.addClient')}</ButtonLink>}
       />
 
       {error && (
@@ -75,17 +77,17 @@ export default function ClientsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Client Name</TH>
-                <TH>Contact Person</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:clients.clientName')}</TH>
+                <TH>{t('pages:clients.contactPerson')}</TH>
+                <TH>{t('common:status')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No clients found.
+                    {t('pages:clients.noClientsFound')}
                   </TD>
                 </TR>
               ) : (
@@ -110,7 +112,7 @@ export default function ClientsPage() {
                         <Link
                           to={`/clients/${c.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Edit"
+                          title={t('common:edit')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -122,7 +124,7 @@ export default function ClientsPage() {
                             setShowDeleteConfirm(true);
                           }}
                           className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                          title="Delete"
+                          title={t('common:delete')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h14" />
@@ -145,13 +147,13 @@ export default function ClientsPage() {
           setClientToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Client"
-        confirmText="Yes, Delete"
+        title={t('pages:clients.deleteModalTitle')}
+        confirmText={t('common:yesDelete')}
         variant="danger"
         isLoading={deleteLoading}
       >
-        <p>Are you sure you want to delete the client <span className="font-bold text-brand-dark">{clientToDelete?.name}</span>?</p>
-        <p className="mt-2 text-sm text-red-500 font-medium">This action will delete all data related to this client and cannot be undone.</p>
+        <p>{t('pages:clients.confirmDeleteClient', { name: clientToDelete?.name ?? '' })}</p>
+        <p className="mt-2 text-sm text-red-500 font-medium">{t('pages:clients.deleteWarning')}</p>
       </ConfirmModal>
     </div>
   );

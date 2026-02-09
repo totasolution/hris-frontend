@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -11,6 +12,7 @@ import { formatDate } from '../utils/formatDate';
 type MyTicketsPageProps = { embedded?: boolean };
 
 export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
+  const { t } = useTranslation(['pages', 'common']);
   const location = useLocation();
   const [list, setList] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +25,7 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
     api
       .getMyTickets()
       .then(setList)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('pages:myTickets.loadError')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -31,14 +33,14 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
     <div className={embedded ? 'space-y-4' : 'space-y-8'}>
       {!embedded && (
         <PageHeader
-          title="My Support Tickets"
-          subtitle="Track your submitted inquiries and their status"
-          actions={<ButtonLink to={`/tickets/new?return=${encodeURIComponent(returnTo)}`}>New Ticket</ButtonLink>}
+          title={t('pages:myTickets.title')}
+          subtitle={t('pages:myTickets.subtitle')}
+          actions={<ButtonLink to={`/tickets/new?return=${encodeURIComponent(returnTo)}`}>{t('pages:myTickets.newTicket')}</ButtonLink>}
         />
       )}
       {embedded && (
         <div className="flex justify-end">
-          <ButtonLink to={`/tickets/new?return=${encodeURIComponent(returnTo)}`}>New Ticket</ButtonLink>
+          <ButtonLink to={`/tickets/new?return=${encodeURIComponent(returnTo)}`}>{t('pages:myTickets.newTicket')}</ButtonLink>
         </div>
       )}
 
@@ -58,17 +60,17 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
           <Table>
             <THead>
               <TR>
-                <TH>Subject</TH>
-                <TH>Status</TH>
-                <TH>Created Date</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:myTickets.subject')}</TH>
+                <TH>{t('pages:myTickets.status')}</TH>
+                <TH>{t('pages:myTickets.createdDate')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    You haven't submitted any support tickets yet.
+                    {t('pages:myTickets.noTicketsYet')}
                   </TD>
                 </TR>
               ) : (
@@ -89,7 +91,7 @@ export default function MyTicketsPage({ embedded }: MyTicketsPageProps) {
                       <Link
                         to={`/tickets/${t.id}`}
                         className="p-2 text-slate-400 hover:text-brand transition-colors inline-block"
-                        title="View Ticket Thread"
+                        title={t('pages:myTickets.viewTicket')}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

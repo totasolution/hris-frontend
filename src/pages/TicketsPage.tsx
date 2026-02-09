@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -10,6 +11,7 @@ import type { Ticket } from '../services/api';
 import * as api from '../services/api';
 
 export default function TicketsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function TicketsPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load tickets');
+      setError(e instanceof Error ? e.message : t('pages:tickets.loadError'));
     } finally {
       setLoading(false);
     }
@@ -54,16 +56,16 @@ export default function TicketsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Support Tickets"
-        subtitle="Manage employee inquiries and issues"
-        actions={<ButtonLink to="/tickets/new">New Ticket</ButtonLink>}
+        title={t('pages:tickets.title')}
+        subtitle={t('pages:tickets.subtitle')}
+        actions={<ButtonLink to="/tickets/new">{t('pages:tickets.newTicket')}</ButtonLink>}
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by subject or name or email..."
+            placeholder={t('pages:tickets.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -77,7 +79,7 @@ export default function TicketsPage() {
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}
           >
-            <option value="">All Departments</option>
+            <option value="">{t('pages:tickets.allDepartments')}</option>
             {departments.map((d) => (
               <option key={d.id} value={String(d.id)}>{d.name}</option>
             ))}
@@ -88,11 +90,11 @@ export default function TicketsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="closed">Closed</option>
+            <option value="">{t('pages:tickets.allStatuses')}</option>
+            <option value="open">{t('pages:tickets.statusOpen')}</option>
+            <option value="in_progress">{t('pages:tickets.statusInProgress')}</option>
+            <option value="resolved">{t('pages:tickets.statusResolved')}</option>
+            <option value="closed">{t('pages:tickets.statusClosed')}</option>
           </Select>
         </div>
       </div>
@@ -113,19 +115,19 @@ export default function TicketsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Subject</TH>
-                <TH>Status</TH>
-                <TH>Department</TH>
-                <TH>Assignee</TH>
-                <TH>Created At</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:tickets.subject')}</TH>
+                <TH>{t('pages:tickets.status')}</TH>
+                <TH>{t('pages:tickets.department')}</TH>
+                <TH>{t('pages:tickets.assignee')}</TH>
+                <TH>{t('pages:tickets.createdAt')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={6} className="py-12 text-center text-slate-400">
-                    No tickets found.
+                    {t('pages:tickets.noTicketsFound')}
                   </TD>
                 </TR>
               ) : (
@@ -148,7 +150,7 @@ export default function TicketsPage() {
                       <Link
                         to={`/tickets/${t.id}`}
                         className="p-2 text-slate-400 hover:text-brand transition-colors inline-block"
-                        title="View Ticket"
+                        title={t('pages:tickets.viewTicket')}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

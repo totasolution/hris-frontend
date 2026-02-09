@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { Card, CardHeader, CardBody } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -7,6 +8,7 @@ import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 
 export default function CompanySettingsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,7 +27,7 @@ export default function CompanySettingsPage() {
         setRepresentativeName(info.company_representative_name || '');
         setRepresentativeTitle(info.company_representative_title || '');
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : 'Failed to load company info');
+        toast.error(e instanceof Error ? e.message : t('pages:companySettings.loadError'));
       } finally {
         setLoading(false);
       }
@@ -43,9 +45,9 @@ export default function CompanySettingsPage() {
         company_representative_name: representativeName || undefined,
         company_representative_title: representativeTitle || undefined,
       });
-      toast.success('Company information updated');
+      toast.success(t('pages:companySettings.updateSuccess'));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update');
+      toast.error(e instanceof Error ? e.message : t('pages:companySettings.updateFailed'));
     } finally {
       setSaving(false);
     }
@@ -62,68 +64,68 @@ export default function CompanySettingsPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       <PageHeader
-        title="Company Information"
-        subtitle="Manage your company details for use in contracts and documents"
+        title={t('pages:companySettings.title')}
+        subtitle={t('pages:companySettings.subtitle')}
       />
 
       <Card>
-        <CardHeader title="Company Details" />
+        <CardHeader title={t('pages:companySettings.companyDetails')} />
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormGroup>
-              <Label>Company Name</Label>
+              <Label>{t('pages:companySettings.companyName')}</Label>
               <Input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
-                placeholder="PT Example Company"
+                placeholder={t('pages:companySettings.companyNamePlaceholder')}
               />
               <p className="text-xs text-slate-400 mt-1">
-                This name will appear in contract documents as the employer/company name
+                {t('pages:companySettings.companyNameHint')}
               </p>
             </FormGroup>
 
             <FormGroup>
-              <Label>Company Address</Label>
+              <Label>{t('pages:companySettings.companyAddress')}</Label>
               <Textarea
                 value={companyAddress}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCompanyAddress(e.target.value)}
-                placeholder="Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta 10220"
+                placeholder={t('pages:companySettings.companyAddressPlaceholder')}
                 rows={3}
               />
               <p className="text-xs text-slate-400 mt-1">
-                Full company address for legal documents
+                {t('pages:companySettings.companyAddressHint')}
               </p>
             </FormGroup>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormGroup>
-                <Label>Representative Name</Label>
+                <Label>{t('pages:companySettings.representativeName')}</Label>
                 <Input
                   value={representativeName}
                   onChange={(e) => setRepresentativeName(e.target.value)}
-                  placeholder="John Director"
+                  placeholder={t('pages:companySettings.representativeNamePlaceholder')}
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Name of the person representing the company
+                  {t('pages:companySettings.representativeNameHint')}
                 </p>
               </FormGroup>
 
               <FormGroup>
-                <Label>Representative Title</Label>
+                <Label>{t('pages:companySettings.representativeTitle')}</Label>
                 <Input
                   value={representativeTitle}
                   onChange={(e) => setRepresentativeTitle(e.target.value)}
-                  placeholder="Human Resources Director"
+                  placeholder={t('pages:companySettings.representativeTitlePlaceholder')}
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  Job title/position of the representative
+                  {t('pages:companySettings.representativeTitleHint')}
                 </p>
               </FormGroup>
             </div>
 
             <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving...' : 'Save Company Information'}
+                {saving ? t('pages:companySettings.saving') : t('pages:companySettings.saveButton')}
               </Button>
             </div>
           </form>
@@ -132,12 +134,12 @@ export default function CompanySettingsPage() {
 
       <Card className="bg-blue-50 border-blue-100">
         <CardBody>
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">How this information is used</h3>
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">{t('pages:companySettings.howUsedTitle')}</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-            <li>Company name and address appear in contract templates as <code className="bg-blue-100 px-1 rounded">{"{{company_name}}"}</code> and <code className="bg-blue-100 px-1 rounded">{"{{company_address}}"}</code></li>
-            <li>Representative name and title appear as <code className="bg-blue-100 px-1 rounded">{"{{company_representative}}"}</code> and <code className="bg-blue-100 px-1 rounded">{"{{representative_position}}"}</code></li>
-            <li>This information is automatically filled in when generating contract documents</li>
-            <li>Update this information whenever your company details change</li>
+            <li>{t('pages:companySettings.howUsed1')}</li>
+            <li>{t('pages:companySettings.howUsed2')}</li>
+            <li>{t('pages:companySettings.howUsed3')}</li>
+            <li>{t('pages:companySettings.howUsed4')}</li>
           </ul>
         </CardBody>
       </Card>

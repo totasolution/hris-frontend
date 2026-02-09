@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { ConfirmModal } from '../components/Modal';
@@ -10,6 +11,7 @@ import type { Role } from '../services/api';
 import * as api from '../services/api';
 
 export default function RolesPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function RolesPage() {
       const data = await api.getRoles();
       setList(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load roles');
+      setError(e instanceof Error ? e.message : t('pages:roles.loadError'));
     } finally {
       setLoading(false);
     }
@@ -40,12 +42,12 @@ export default function RolesPage() {
     setDeleteLoading(true);
     try {
       await api.deleteRole(roleToDelete.id);
-      toast.success(`Role ${roleToDelete.name} deleted`);
+      toast.success(t('pages:roles.roleDeleted', { name: roleToDelete.name }));
       setShowDeleteConfirm(false);
       setRoleToDelete(null);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Delete failed');
+      toast.error(e instanceof Error ? e.message : t('pages:roles.deleteFailed'));
     } finally {
       setDeleteLoading(false);
     }
@@ -54,9 +56,9 @@ export default function RolesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Roles"
-        subtitle="Define system access levels and permissions"
-        actions={<ButtonLink to="/roles/new">Add Role</ButtonLink>}
+        title={t('pages:roles.title')}
+        subtitle={t('pages:roles.subtitle')}
+        actions={<ButtonLink to="/roles/new">{t('pages:roles.addRole')}</ButtonLink>}
       />
 
       {error && (
@@ -75,17 +77,17 @@ export default function RolesPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Role Name</TH>
-                <TH>Slug</TH>
-                <TH>Description</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:roles.roleName')}</TH>
+                <TH>{t('pages:roles.slug')}</TH>
+                <TH>{t('pages:roles.description')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No roles found.
+                    {t('pages:roles.noRolesFound')}
                   </TD>
                 </TR>
               ) : (
@@ -103,7 +105,7 @@ export default function RolesPage() {
                         <Link
                           to={`/roles/${r.id}/permissions`}
                           className="p-2 text-slate-400 hover:text-brand transition-colors"
-                          title="Manage Permissions"
+                          title={t('pages:roles.managePermissions')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -112,7 +114,7 @@ export default function RolesPage() {
                         <Link
                           to={`/roles/${r.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Edit Role"
+                          title={t('pages:roles.editRole')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -124,7 +126,7 @@ export default function RolesPage() {
                             setShowDeleteConfirm(true);
                           }}
                           className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                          title="Delete Role"
+                          title={t('common:delete')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h14" />
@@ -147,13 +149,13 @@ export default function RolesPage() {
           setRoleToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Delete Role"
-        confirmText="Yes, Delete"
+        title={t('pages:roles.deleteModalTitle')}
+        confirmText={t('common:yesDelete')}
         variant="danger"
         isLoading={deleteLoading}
       >
-        <p>Are you sure you want to delete the role <span className="font-bold text-brand-dark">{roleToDelete?.name}</span>?</p>
-        <p className="mt-2 text-sm text-red-500 font-medium">This action may affect users assigned to this role.</p>
+        <p>{t('pages:roles.confirmDeleteRole', { name: roleToDelete?.name ?? '' })}</p>
+        <p className="mt-2 text-sm text-red-500 font-medium">{t('pages:roles.deleteWarning')}</p>
       </ConfirmModal>
     </div>
   );

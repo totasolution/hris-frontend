@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { TenantAdminWidgets } from '../components/dashboard/TenantAdminWidgets';
 import { HRDWidgets } from '../components/dashboard/HRDWidgets';
@@ -14,6 +15,7 @@ const DASHBOARD_RECRUITMENT = 'dashboard:recruitment';
 const DASHBOARD_EMPLOYEE = 'dashboard:employee';
 
 export default function DashboardPage() {
+  const { t } = useTranslation('pages');
   const { user, permissions = [] } = useAuth();
   const [employeeType, setEmployeeType] = useState<'internal' | 'external' | null>(null);
   const [loadingEmployeeSection, setLoadingEmployeeSection] = useState(false);
@@ -46,7 +48,7 @@ export default function DashboardPage() {
     return (
       <div className="max-w-[1600px] mx-auto space-y-10 font-body">
         <div className="flex items-center justify-center min-h-[400px]">
-          <p className="text-slate-400">You do not have permission to view any dashboard section.</p>
+          <p className="text-slate-400">{t('dashboard.noPermission')}</p>
         </div>
       </div>
     );
@@ -59,7 +61,7 @@ export default function DashboardPage() {
         <section aria-label="Dashboard - Admin/HR">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-              Admin / HR
+              {t('dashboard.adminSection')}
             </span>
           </div>
           <div className="space-y-8">
@@ -79,7 +81,7 @@ export default function DashboardPage() {
         <section aria-label="Dashboard - Recruitment">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-              Recruitment
+              {t('dashboard.recruitmentSection')}
             </span>
           </div>
           <RecruiterWidgets permissions={permissions} />
@@ -91,12 +93,12 @@ export default function DashboardPage() {
         <section aria-label="Dashboard - Employee">
           <div className="flex items-center gap-3 mb-6">
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-              Employee / self-service
+              {t('dashboard.employeeSection')}
             </span>
           </div>
           {loadingEmployeeSection ? (
             <div className="flex items-center justify-center min-h-[200px]">
-              <p className="text-slate-400">Loading...</p>
+              <p className="text-slate-400">{t('dashboard.loading')}</p>
             </div>
           ) : employeeType === 'internal' ? (
             <InternalEmployeeWidgets permissions={permissions} userId={user?.id} />
@@ -105,8 +107,7 @@ export default function DashboardPage() {
           ) : (
             <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-8 text-center">
               <p className="text-slate-500">
-                No employee record linked. Self-service widgets will appear when your account is
-                linked to an employee.
+                {t('dashboard.noEmployeeRecord')}
               </p>
             </div>
           )}

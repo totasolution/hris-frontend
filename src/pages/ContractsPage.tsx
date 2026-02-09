@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -12,6 +13,7 @@ import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
 
 export default function ContractsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function ContractsPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load contracts');
+      setError(e instanceof Error ? e.message : t('pages:contracts.loadError'));
     } finally {
       setLoading(false);
     }
@@ -52,23 +54,23 @@ export default function ContractsPage() {
       const url = await api.getContractPresignedUrl(c.id);
       window.open(url, '_blank');
     } catch (e) {
-      toast.error('Download failed');
+      toast.error(t('pages:contracts.downloadFailed'));
     }
   };
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Contracts"
-        subtitle="Manage employment agreements and e-signatures"
-        actions={<ButtonLink to="/contracts/new">New Contract</ButtonLink>}
+        title={t('pages:contracts.title')}
+        subtitle={t('pages:contracts.subtitle')}
+        actions={<ButtonLink to="/contracts/new">{t('pages:contracts.newContract')}</ButtonLink>}
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('pages:contracts.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -82,12 +84,12 @@ export default function ContractsPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="sent_for_signature">Sent for Signature</option>
-            <option value="signed">Signed</option>
-            <option value="expired">Expired</option>
-            <option value="cancelled">Cancelled</option>
+            <option value="">{t('pages:contracts.allStatuses')}</option>
+            <option value="draft">{t('pages:contracts.statusDraft')}</option>
+            <option value="sent_for_signature">{t('pages:contracts.statusSentForSignature')}</option>
+            <option value="signed">{t('pages:contracts.statusSigned')}</option>
+            <option value="expired">{t('pages:contracts.statusExpired')}</option>
+            <option value="cancelled">{t('pages:contracts.statusCancelled')}</option>
           </Select>
         </div>
       </div>
@@ -108,17 +110,17 @@ export default function ContractsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Contract</TH>
-                <TH>Status</TH>
-                <TH>Created Date</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:contracts.contract')}</TH>
+                <TH>{t('common:status')}</TH>
+                <TH>{t('pages:contracts.createdDate')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No contracts found.
+                    {t('pages:contracts.noContractsFound')}
                   </TD>
                 </TR>
               ) : (
@@ -153,7 +155,7 @@ export default function ContractsPage() {
                         <Link
                           to={`/contracts/${c.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title="Edit Contract"
+                          title={t('pages:contracts.editContract')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -163,7 +165,7 @@ export default function ContractsPage() {
                           <button
                             onClick={() => handleDownload(c)}
                             className="p-2 text-slate-400 hover:text-brand transition-colors"
-                            title="Download Document"
+                            title={t('pages:contracts.downloadDocument')}
                           >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

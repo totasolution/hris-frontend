@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -24,6 +25,7 @@ const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 type BulkRow = { file: File | null; employee_id: string; year: string; month: string };
 
 export default function PayslipsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export default function PayslipsPage() {
       });
       setList(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load payslips');
+      setError(e instanceof Error ? e.message : t('pages:payslips.loadError'));
     } finally {
       setLoading(false);
     }
@@ -65,22 +67,22 @@ export default function PayslipsPage() {
       const url = await api.getPayslipPresignedUrl(p.id);
       window.open(url, '_blank');
     } catch {
-      toast.error('Failed to open payslip');
+      toast.error(t('pages:payslips.failedToOpenPayslip'));
     }
   };
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Payslips"
-        subtitle="Payslip per employee per month"
+        title={t('pages:payslips.title')}
+        subtitle={t('pages:payslips.subtitle')}
       />
 
       {/* Filters */}
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-56">
           <Select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-            <option value="">All Employees</option>
+            <option value="">{t('pages:payslips.allEmployees')}</option>
             {employees.map((e) => (
               <option key={e.id} value={String(e.id)}>{e.full_name}</option>
             ))}
@@ -96,7 +98,7 @@ export default function PayslipsPage() {
         <div className="w-40">
           <Select value={month} onChange={(e) => setMonth(e.target.value)}>
             {MONTHS.map((m) => (
-              <option key={m.value || 'all'} value={m.value}>{m.label}</option>
+              <option key={m.value || 'all'} value={m.value}>{m.value === '' ? t('pages:payslips.allMonths') : m.label}</option>
             ))}
           </Select>
         </div>
@@ -113,7 +115,7 @@ export default function PayslipsPage() {
       {canUpload && (
         <BulkUploadSection
           employees={employees}
-          onSuccess={() => { load(); toast.success('Payslips uploaded'); }}
+          onSuccess={() => { load(); toast.success(t('pages:payslips.payslipsUploaded')); }}
           toast={toast}
         />
       )}
@@ -128,17 +130,17 @@ export default function PayslipsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Employee</TH>
-                <TH>Period</TH>
-                <TH>Created</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:payslips.employee')}</TH>
+                <TH>{t('pages:payslips.period')}</TH>
+                <TH>{t('pages:payslips.created')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No payslips found.
+                    {t('pages:payslips.noPayslipsFound')}
                   </TD>
                 </TR>
               ) : (
@@ -156,7 +158,7 @@ export default function PayslipsPage() {
                         type="button"
                         onClick={() => handleDownload(p)}
                         className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title="Download"
+                        title={t('pages:payslips.download')}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -183,6 +185,7 @@ function BulkUploadSection({
   onSuccess: () => void;
   toast: ReturnType<typeof useToast>;
 }) {
+  const { t } = useTranslation(['pages', 'common']);
   const [rows, setRows] = useState<BulkRow[]>([
     { file: null, employee_id: '', year: String(currentYear), month: '1' },
   ]);
@@ -219,7 +222,7 @@ function BulkUploadSection({
       files.push(row.file);
     }
     if (entries.length === 0) {
-      toast.error('Add at least one row with file, employee, and period');
+      toast.error(t('pages:payslips.addRowError'));
       return;
     }
     setUploading(true);
@@ -228,12 +231,12 @@ function BulkUploadSection({
       if (res.failed?.length) {
         toast.error(`${res.count} uploaded; ${res.failed.length} failed: ${res.failed.join(', ')}`);
       } else {
-        toast.success(`${res.count} payslip(s) uploaded`);
+        toast.success(t('pages:payslips.payslipsUploaded'));
       }
       onSuccess();
       setRows([{ file: null, employee_id: '', year: String(currentYear), month: '1' }]);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : t('pages:payslips.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -243,17 +246,17 @@ function BulkUploadSection({
     <Card>
       <div className="p-6">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline mb-4">
-          Bulk upload payslips
+          {t('pages:payslips.bulkUploadTitle')}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 font-bold text-slate-500">File</th>
-                  <th className="text-left py-2 font-bold text-slate-500">Employee</th>
-                  <th className="text-left py-2 font-bold text-slate-500">Year</th>
-                  <th className="text-left py-2 font-bold text-slate-500">Month</th>
+                  <th className="text-left py-2 font-bold text-slate-500">{t('pages:payslips.file')}</th>
+                  <th className="text-left py-2 font-bold text-slate-500">{t('pages:payslips.employee')}</th>
+                  <th className="text-left py-2 font-bold text-slate-500">{t('pages:payslips.year')}</th>
+                  <th className="text-left py-2 font-bold text-slate-500">{t('pages:payslips.month')}</th>
                   <th className="w-20" />
                 </tr>
               </thead>
@@ -273,7 +276,7 @@ function BulkUploadSection({
                         value={row.employee_id}
                         onChange={(e) => updateRow(i, 'employee_id', e.target.value)}
                       >
-                        <option value="">Select employee</option>
+                        <option value="">{t('pages:payslips.selectEmployee')}</option>
                         {employees.map((emp) => (
                           <option key={emp.id} value={String(emp.id)}>{emp.full_name}</option>
                         ))}
@@ -300,7 +303,7 @@ function BulkUploadSection({
                         className="text-slate-400 hover:text-red-500 text-sm"
                         disabled={rows.length <= 1}
                       >
-                        Remove
+                        {t('pages:payslips.remove')}
                       </button>
                     </td>
                   </tr>
@@ -310,10 +313,10 @@ function BulkUploadSection({
           </div>
           <div className="flex gap-3">
             <button type="button" onClick={addRow} className="text-sm font-bold text-brand hover:underline">
-              + Add row
+              {t('pages:payslips.addRow')}
             </button>
             <Button type="submit" disabled={uploading}>
-              {uploading ? 'Uploading...' : 'Upload payslips'}
+              {uploading ? t('pages:payslips.uploading') : t('pages:payslips.uploadPayslips')}
             </Button>
           </div>
         </form>

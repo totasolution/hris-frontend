@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/Card';
@@ -11,6 +12,7 @@ import type { Employee } from '../services/api';
 import * as api from '../services/api';
 
 export default function EmployeesPage() {
+  const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
   const canEditEmployee = permissions.includes('employee:update');
   const [list, setList] = useState<Employee[]>([]);
@@ -37,7 +39,7 @@ export default function EmployeesPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load employees');
+      setError(e instanceof Error ? e.message : t('employees.loadError'));
     } finally {
       setLoading(false);
     }
@@ -50,11 +52,11 @@ export default function EmployeesPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Employees"
-        subtitle="Manage your workforce directory"
+        title={t('employees.title')}
+        subtitle={t('employees.subtitle')}
         actions={
           permissions.includes('employee:create') ? (
-            <ButtonLink to="/employees/new">Add Employee</ButtonLink>
+            <ButtonLink to="/employees/new">{t('employees.addEmployee')}</ButtonLink>
           ) : undefined
         }
       />
@@ -63,7 +65,7 @@ export default function EmployeesPage() {
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('employees.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -77,11 +79,11 @@ export default function EmployeesPage() {
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="terminated">Terminated</option>
-            <option value="resigned">Resigned</option>
-            <option value="contract_ended">Contract Ended</option>
+            <option value="">{t('employees.allStatuses')}</option>
+            <option value="active">{t('employees.statusActive')}</option>
+            <option value="terminated">{t('employees.statusTerminated')}</option>
+            <option value="resigned">{t('employees.statusResigned')}</option>
+            <option value="contract_ended">{t('employees.statusContractEnded')}</option>
           </Select>
         </div>
       </div>
@@ -102,17 +104,17 @@ export default function EmployeesPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Full Name</TH>
-                <TH>Email Address</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('employees.fullName')}</TH>
+                <TH>{t('employees.emailAddress')}</TH>
+                <TH>{t('common:status')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No employees found.
+                    {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
               ) : (
@@ -136,7 +138,7 @@ export default function EmployeesPage() {
                         <Link
                           to={`/employees/${e.id}`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors inline-block"
-                          title="View Employee"
+                          title={t('employees.viewEmployee')}
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -147,7 +149,7 @@ export default function EmployeesPage() {
                           <Link
                             to={`/employees/${e.id}/edit`}
                             className="p-2 text-slate-400 hover:text-blue-500 transition-colors inline-block"
-                            title="Edit Employee"
+                            title={t('employees.editEmployee')}
                           >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

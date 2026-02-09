@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -6,6 +7,7 @@ import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
 
 export default function MyWarningsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<api.WarningLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,15 +15,15 @@ export default function MyWarningsPage() {
   useEffect(() => {
     api.getMyWarnings()
       .then(setList)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load warnings'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('pages:myWarnings.loadError')))
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title="My Warnings"
-        subtitle="Review issued warning letters and notices"
+        title={t('pages:myWarnings.title')}
+        subtitle={t('pages:myWarnings.subtitle')}
       />
 
       {error && (
@@ -40,16 +42,16 @@ export default function MyWarningsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Warning Type</TH>
-                <TH>Issued Date</TH>
-                <TH>Description</TH>
+                <TH>{t('pages:myWarnings.warningType')}</TH>
+                <TH>{t('pages:myWarnings.issuedDate')}</TH>
+                <TH>{t('pages:warnings.description')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={3} className="py-12 text-center text-slate-400">
-                    You have no warning letters.
+                    {t('pages:myWarnings.noWarnings')}
                   </TD>
                 </TR>
               ) : (

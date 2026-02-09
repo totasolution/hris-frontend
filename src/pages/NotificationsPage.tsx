@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -8,6 +9,7 @@ import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
 
 export default function NotificationsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -19,7 +21,7 @@ export default function NotificationsPage() {
       const list = await api.getNotifications({ unread: unreadOnly });
       setNotifications(list);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to load notifications');
+      toast.error(err instanceof Error ? err.message : t('pages:notifications.loadError'));
     } finally {
       setLoading(false);
     }
@@ -34,7 +36,7 @@ export default function NotificationsPage() {
       await api.markNotificationAsRead(id);
       await loadNotifications();
     } catch (err) {
-      toast.error('Failed to mark notification as read');
+      toast.error(t('pages:notifications.markAsReadFailed'));
     }
   };
 
@@ -42,9 +44,9 @@ export default function NotificationsPage() {
     try {
       await api.markAllNotificationsAsRead();
       await loadNotifications();
-      toast.success('All notifications marked as read');
+      toast.success(t('pages:notifications.markAllAsReadSuccess'));
     } catch (err) {
-      toast.error('Failed to mark all as read');
+      toast.error(t('pages:notifications.markAllAsReadFailed'));
     }
   };
 
@@ -52,9 +54,9 @@ export default function NotificationsPage() {
     try {
       await api.deleteNotification(id);
       await loadNotifications();
-      toast.success('Notification deleted');
+      toast.success(t('pages:notifications.deletedSuccess'));
     } catch (err) {
-      toast.error('Failed to delete notification');
+      toast.error(t('pages:notifications.deleteFailed'));
     }
   };
 
@@ -66,10 +68,10 @@ export default function NotificationsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minutes ago`;
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffMins < 1) return t('pages:notifications.justNow');
+    if (diffMins < 60) return t('pages:notifications.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('pages:notifications.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('pages:notifications.daysAgo', { count: diffDays });
     return formatDate(date);
   };
 
@@ -78,12 +80,12 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-8 font-body">
       <PageHeader
-        title="Notifications"
-        subtitle="Stay updated with your activities"
+        title={t('pages:notifications.title')}
+        subtitle={t('pages:notifications.subtitleAlt')}
         actions={
           unreadCount > 0 ? (
             <Button onClick={handleMarkAllAsRead} variant="secondary">
-              Mark all as read
+              {t('pages:notifications.markAllAsRead')}
             </Button>
           ) : null
         }
@@ -98,7 +100,7 @@ export default function NotificationsPage() {
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200'
           }`}
         >
-          Unread Only
+          {t('pages:notifications.unreadOnly')}
         </button>
       </div>
 
@@ -112,7 +114,7 @@ export default function NotificationsPage() {
             <svg className="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <p className="text-slate-400 font-medium">No notifications found</p>
+            <p className="text-slate-400 font-medium">{t('pages:notifications.noNotificationsFound')}</p>
           </CardBody>
         </Card>
       ) : (
@@ -141,7 +143,7 @@ export default function NotificationsPage() {
                             onClick={() => handleMarkAsRead(notif.id)}
                             className="px-3 py-1 text-xs font-bold text-brand hover:bg-brand-lighter rounded-lg transition-colors"
                           >
-                            Mark as read
+                            {t('pages:notifications.markAsRead')}
                           </button>
                         )}
                         {notif.link_url && (
@@ -149,7 +151,7 @@ export default function NotificationsPage() {
                             to={notif.link_url}
                             className="px-3 py-1 text-xs font-bold text-brand hover:bg-brand-lighter rounded-lg transition-colors"
                           >
-                            View
+                            {t('pages:notifications.view')}
                           </Link>
                         )}
                         <button

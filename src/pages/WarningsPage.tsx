@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -11,6 +12,7 @@ import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
 
 export default function WarningsPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<WarningLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export default function WarningsPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load warnings');
+      setError(e instanceof Error ? e.message : t('pages:warnings.loadError'));
     } finally {
       setLoading(false);
     }
@@ -53,16 +55,16 @@ export default function WarningsPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Warning Letters"
-        subtitle="Track employee performance and conduct"
-        actions={<ButtonLink to="/warnings/new">New Warning</ButtonLink>}
+        title={t('pages:warnings.title')}
+        subtitle={t('pages:warnings.subtitle')}
+        actions={<ButtonLink to="/warnings/new">{t('pages:warnings.addWarning')}</ButtonLink>}
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('pages:warnings.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -76,7 +78,7 @@ export default function WarningsPage() {
             value={employeeId}
             onChange={(e) => setEmployeeId(e.target.value)}
           >
-            <option value="">All Employees</option>
+            <option value="">{t('pages:warnings.allEmployees')}</option>
             {employees.map((e) => (
               <option key={e.id} value={String(e.id)}>{e.full_name}</option>
             ))}
@@ -100,17 +102,17 @@ export default function WarningsPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Employee</TH>
-                <TH>Type</TH>
-                <TH>Date</TH>
-                <TH>Description</TH>
+                <TH>{t('pages:warnings.employee')}</TH>
+                <TH>{t('pages:warnings.type')}</TH>
+                <TH>{t('common:date')}</TH>
+                <TH>{t('pages:warnings.description')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No warnings found.
+                    {t('pages:warnings.noWarningsFound')}
                   </TD>
                 </TR>
               ) : (

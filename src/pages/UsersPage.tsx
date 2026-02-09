@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -9,6 +10,7 @@ import type { User } from '../services/api';
 import * as api from '../services/api';
 
 export default function UsersPage() {
+  const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export default function UsersPage() {
       setTotal(res.total);
       setTotalPages(res.total_pages);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load users');
+      setError(e instanceof Error ? e.message : t('pages:users.loadError'));
     } finally {
       setLoading(false);
     }
@@ -44,16 +46,16 @@ export default function UsersPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Users"
-        subtitle="Manage system access and accounts"
-        actions={<ButtonLink to="/users/new">Add User</ButtonLink>}
+        title={t('pages:users.title')}
+        subtitle={t('pages:users.subtitle')}
+        actions={<ButtonLink to="/users/new">{t('pages:users.addUser')}</ButtonLink>}
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="w-64">
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('pages:users.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -80,17 +82,17 @@ export default function UsersPage() {
           <Table>
             <THead>
               <TR>
-                <TH>Full Name</TH>
-                <TH>Email Address</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
+                <TH>{t('pages:users.fullName')}</TH>
+                <TH>{t('pages:users.email')}</TH>
+                <TH>{t('common:status')}</TH>
+                <TH className="text-right">{t('common:actions')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
-                    No users found.
+                    {t('pages:users.noUsersFound')}
                   </TD>
                 </TR>
               ) : (
@@ -109,7 +111,7 @@ export default function UsersPage() {
                       <Link
                         to={`/users/${u.id}/edit`}
                         className="p-2 text-slate-400 hover:text-blue-500 transition-colors inline-block"
-                        title="Edit User"
+                        title={t('pages:users.editUser')}
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
