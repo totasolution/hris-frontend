@@ -122,28 +122,28 @@ export default function ContractTemplatesPage() {
                   </TD>
                 </TR>
               ) : (
-                list.map((t) => (
-                  <TR key={t.id}>
-                    <TD className="font-bold text-[#0f172a]">{t.name}</TD>
+                list.map((template) => (
+                  <TR key={template.id}>
+                    <TD className="font-bold text-[#0f172a]">{template.name}</TD>
                     <TD>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                        {t('pages:' + CONTRACT_TYPE_KEYS[t.contract_type])}
+                        {t('pages:' + CONTRACT_TYPE_KEYS[template.contract_type])}
                       </span>
                     </TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        t.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                        template.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {t.is_active ? t('pages:contractTemplates.statusActive') : t('pages:contractTemplates.statusInactive')}
+                        {template.is_active ? t('pages:contractTemplates.statusActive') : t('pages:contractTemplates.statusInactive')}
                       </span>
                     </TD>
                     <TD className="text-slate-500 max-w-xs truncate">
-                      {t.description || '—'}
+                      {template.description || '—'}
                     </TD>
                     <TD className="text-right">
                       <div className="flex justify-end gap-2">
                         <Link
-                          to={`/contract-templates/${t.id}/edit`}
+                          to={`/contract-templates/${template.id}/edit`}
                           className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
                           title={t('pages:contractTemplates.editTemplate')}
                         >
@@ -152,7 +152,7 @@ export default function ContractTemplatesPage() {
                           </svg>
                         </Link>
                         <button
-                          onClick={() => handleDelete(t.id)}
+                          onClick={() => handleDelete(template.id)}
                           className="p-2 text-slate-400 hover:text-red-500 transition-colors"
                           title={t('pages:contractTemplates.deleteTemplate')}
                         >
