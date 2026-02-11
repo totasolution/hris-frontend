@@ -1132,7 +1132,7 @@ export async function deleteEmployeeDocument(employeeId: number, documentId: num
 }
 
 // Contract Templates
-export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'internship' | 'freelance' | 'other';
+export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'internship' | 'freelance' | 'other' | 'payslip';
 
 export type ContractTemplate = {
   id: number;
@@ -1630,6 +1630,38 @@ export async function bulkUploadPayslips(
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Bulk upload failed');
   return { data: data.data ?? [], count: data.count ?? 0, failed: data.failed ?? [] };
+}
+
+/** Upload a CSV file containing multiple payslips (matched by employee NIK). */
+export async function bulkUploadPayslipsFromCSV(
+  file: File
+): Promise<{ data: Payslip[]; count: number; failed: string[] }> {
+  const form = new FormData();
+  form.append('file', file);
+  const token = getAccessToken();
+  const headers: HeadersInit = {};
+  if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+  const res = await authFetch(`${API_BASE}/payslips/bulk-csv`, {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Bulk upload failed');
+  return { data: data.data ?? [], count: data.count ?? 0, failed: data.failed ?? [] };
+}
+
+/** Download the standard payslip CSV template. */
+export async function downloadPayslipCSVTemplate(): Promise<Blob> {
+  const res = await authFetch(`${API_BASE}/payslips/template-csv`, {
+    method: 'GET',
+  });
+  if (!res.ok) {
+    const data = await res.text();
+    throw new Error(data || 'Failed to download template');
+  }
+  return await res.blob();
 }
 
 export async function getPayslipPresignedUrl(id: number): Promise<string> {

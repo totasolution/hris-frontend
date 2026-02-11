@@ -185,17 +185,18 @@ export default function ContractTemplateFormPage() {
                 />
               </FormGroup>
               <FormGroup>
-                <Label>Contract Type *</Label>
+                <Label>Template Type *</Label>
                 <Select
                   value={contractType}
                   onChange={(e) => setContractType(e.target.value as ContractTemplateType)}
                   required
                 >
-                  <option value="pkwt">PKWT (Fixed-Term Employment)</option>
-                  <option value="pkwtt">PKWTT (Permanent Employment)</option>
-                  <option value="internship">Internship</option>
-                  <option value="freelance">Freelance</option>
-                  <option value="other">Other</option>
+                  <option value="pkwt">Contract – PKWT (Fixed-Term Employment)</option>
+                  <option value="pkwtt">Contract – PKWTT (Permanent Employment)</option>
+                  <option value="internship">Contract – Internship</option>
+                  <option value="freelance">Contract – Freelance</option>
+                  <option value="other">Contract – Other</option>
+                  <option value="payslip">Payslip</option>
                 </Select>
               </FormGroup>
             </div>

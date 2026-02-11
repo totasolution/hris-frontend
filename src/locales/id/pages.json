@@ -234,8 +234,8 @@
     "failedToOpenDocument": "Gagal membuka dokumen"
   },
   "contractTemplates": {
-    "title": "Template Kontrak",
-    "subtitle": "Kelola template kontrak dengan klausul hukum",
+    "title": "Template Dokumen",
+    "subtitle": "Kelola template dokumen yang dapat digunakan ulang",
     "newTemplate": "Template Baru",
     "addTemplate": "Tambah Template",
     "templateName": "Nama Template",
@@ -246,9 +246,10 @@
     "typeInternship": "Magang",
     "typeFreelance": "Freelance",
     "typeOther": "Lainnya",
+    "typePayslip": "Slip Gaji",
     "activeOnly": "Hanya aktif",
     "noTemplatesFound": "Tidak ada template ditemukan.",
-    "noTemplatesCreateFirst": "Tidak ada template. Buat template kontrak pertama Anda untuk memulai.",
+    "noTemplatesCreateFirst": "Tidak ada template. Buat template dokumen pertama Anda untuk memulai.",
     "loadError": "Gagal memuat template",
     "editTemplate": "Ubah Template",
     "deleteTemplate": "Hapus Template",
@@ -257,8 +258,8 @@
     "deleteFailed": "Gagal menghapus",
     "statusActive": "Aktif",
     "statusInactive": "Nonaktif",
-    "aboutTitle": "Tentang Template Kontrak",
-    "aboutIntro": "Template kontrak memungkinkan Anda membuat dokumen hukum yang dapat digunakan kembali dengan placeholder yang otomatis diisi dengan informasi kandidat/karyawan.",
+    "aboutTitle": "Tentang Template Dokumen",
+    "aboutIntro": "Template dokumen memungkinkan Anda membuat dokumen HTML yang dapat digunakan kembali dengan placeholder yang otomatis diisi dengan informasi kandidat/karyawan atau perusahaan.",
     "aboutPlaceholders": "Placeholder tersedia: Gunakan kurung kurawal ganda, mis. {{full_name}}, {{position}}, {{salary}}.",
     "aboutCommon": "Placeholder umum: contract_number, full_name, id_number, address, position, salary, start_date, end_date, dan lainnya."
   },

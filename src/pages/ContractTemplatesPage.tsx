@@ -16,6 +16,7 @@ const CONTRACT_TYPE_KEYS: Record<ContractTemplateType, string> = {
   internship: 'contractTemplates.typeInternship',
   freelance: 'contractTemplates.typeFreelance',
   other: 'contractTemplates.typeOther',
+  payslip: 'contractTemplates.typePayslip',
 };
 
 export default function ContractTemplatesPage() {
@@ -78,6 +79,7 @@ export default function ContractTemplatesPage() {
             <option value="internship">{t('pages:contractTemplates.typeInternship')}</option>
             <option value="freelance">{t('pages:contractTemplates.typeFreelance')}</option>
             <option value="other">{t('pages:contractTemplates.typeOther')}</option>
+            <option value="payslip">{t('pages:contractTemplates.typePayslip', 'Payslip')}</option>
           </Select>
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">

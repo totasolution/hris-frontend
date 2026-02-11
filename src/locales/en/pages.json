@@ -234,8 +234,8 @@
     "failedToOpenDocument": "Failed to open document"
   },
   "contractTemplates": {
-    "title": "Contract Templates",
-    "subtitle": "Manage reusable contract templates with legal clauses",
+    "title": "Document Templates",
+    "subtitle": "Manage reusable document templates with placeholders",
     "newTemplate": "New Template",
     "addTemplate": "Add Template",
     "templateName": "Template Name",
@@ -246,9 +246,10 @@
     "typeInternship": "Internship",
     "typeFreelance": "Freelance",
     "typeOther": "Other",
+    "typePayslip": "Payslip",
     "activeOnly": "Active only",
     "noTemplatesFound": "No templates found.",
-    "noTemplatesCreateFirst": "No templates found. Create your first contract template to get started.",
+    "noTemplatesCreateFirst": "No templates found. Create your first document template to get started.",
     "loadError": "Failed to load templates",
     "editTemplate": "Edit Template",
     "deleteTemplate": "Delete Template",
@@ -257,8 +258,8 @@
     "deleteFailed": "Delete failed",
     "statusActive": "Active",
     "statusInactive": "Inactive",
-    "aboutTitle": "About Contract Templates",
-    "aboutIntro": "Contract templates allow you to create reusable legal document templates with placeholders that are automatically filled with candidate/employee information.",
+    "aboutTitle": "About Document Templates",
+    "aboutIntro": "Document templates allow you to create reusable HTML documents with placeholders that are automatically filled with candidate/employee or company information.",
     "aboutPlaceholders": "Available placeholders: Use double curly braces to insert placeholders, e.g. {{full_name}}, {{position}}, {{salary}}.",
     "aboutCommon": "Common placeholders include: contract_number, full_name, id_number, address, position, salary, start_date, end_date, and more."
   },

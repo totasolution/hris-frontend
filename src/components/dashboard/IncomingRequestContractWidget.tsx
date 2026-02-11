@@ -90,7 +90,7 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
         ) : (
           <div className="space-y-3">
             {pending.slice(0, 10).map((item) => {
-              const urgent = isUrgent(item.submitted_for_hrd_at);
+              const urgent = isUrgent(item.submitted_for_hrd_at ?? null);
               
               return (
                 <div
@@ -133,7 +133,6 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="primary"
-                        size="sm"
                         onClick={(e) => handleReview(item.candidate_id, e)}
                         className="!px-3 !py-1.5 !text-xs whitespace-nowrap"
                       >

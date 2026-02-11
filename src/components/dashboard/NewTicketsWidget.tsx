@@ -152,7 +152,6 @@ export function NewTicketsWidget({ permissions }: NewTicketsWidgetProps) {
                       {canTakeOver && (
                         <Button
                           variant="primary"
-                          size="sm"
                           onClick={(e) => handleTakeOver(t.id, e)}
                           disabled={assigning === t.id}
                           className="!px-3 !py-1.5 !text-xs whitespace-nowrap"
