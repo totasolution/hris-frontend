@@ -305,6 +305,32 @@
     "subtitle": "Tambah dan edit entri FAQ",
     "addFaq": "Tambah FAQ"
   },
+  "announcements": {
+    "title": "Pengumuman",
+    "subtitle": "Pengumuman dan pembaruan perusahaan",
+    "newAnnouncement": "Pengumuman baru",
+    "noAnnouncements": "Tidak ada pengumuman.",
+    "loadError": "Gagal memuat pengumuman.",
+    "publishedFrom": "Terbit dari",
+    "publishedUntil": "Terbit hingga",
+    "edit": "Edit",
+    "delete": "Hapus",
+    "deleteConfirm": "Hapus pengumuman ini?",
+    "deletedSuccess": "Pengumuman dihapus."
+  },
+  "announcementForm": {
+    "newTitle": "Pengumuman baru",
+    "editTitle": "Edit pengumuman",
+    "newSubtitle": "Buat pengumuman baru",
+    "editSubtitle": "Perbarui konten dan jadwal pengumuman",
+    "title": "Judul",
+    "body": "Isi",
+    "publishedFrom": "Terbit dari (opsional)",
+    "publishedUntil": "Terbit hingga (opsional)",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "saveError": "Gagal menyimpan pengumuman."
+  },
   "mySpace": {
     "title": "Ruang Saya",
     "subtitle": "Profil dan dokumen Anda",

@@ -226,7 +226,11 @@ export default function CandidateDetailPage() {
     : null;
 
   const showGenerateLink = candidate.screening_status === 'interview_passed';
-  const showRequestContract = candidate.screening_status === 'onboarding_completed';
+  const showRequestContract =
+    candidate.screening_status === 'onboarding_completed' ||
+    (candidate.screening_status === 'contract_requested' && !!onboardingData?.hrd_rejected_at);
+  const contractRequestedWaitingHrd =
+    candidate.screening_status === 'contract_requested' && !onboardingData?.hrd_rejected_at;
 
   const isOnboardingRelevant = [
     'interview_passed',
@@ -286,6 +290,7 @@ export default function CandidateDetailPage() {
             onboardingData={onboardingData}
             showGenerateLink={showGenerateLink}
             showRequestContract={showRequestContract}
+            contractRequestedWaitingHrd={contractRequestedWaitingHrd}
             formLinkUrl={formLinkUrl}
             handleSubmitToClient={handleSubmitToClient}
             handleStatusUpdate={handleStatusUpdate}
@@ -373,6 +378,7 @@ function OverviewTab({
   onboardingData,
   showGenerateLink,
   showRequestContract,
+  contractRequestedWaitingHrd,
   formLinkUrl,
   handleSubmitToClient,
   handleStatusUpdate,
@@ -402,6 +408,7 @@ function OverviewTab({
   onboardingData: api.OnboardingFormData | null;
   showGenerateLink: boolean;
   showRequestContract: boolean;
+  contractRequestedWaitingHrd: boolean;
   formLinkUrl: string | null;
   handleSubmitToClient: () => Promise<void>;
   handleStatusUpdate: (s: string) => Promise<void>;
@@ -646,10 +653,24 @@ function OverviewTab({
 
                 {showRequestContract && (
                   <div className="space-y-4 text-center py-4">
-                    <div className="p-4 bg-green-50 rounded-xl border border-green-100 mb-4">
-                      <p className="text-xs text-green-700 font-bold">✓ Onboarding Form Submitted</p>
-                    </div>
-                    <p className="text-sm text-slate-500 leading-relaxed">Candidate has provided all required information. You can now request a contract from HRD.</p>
+                    {onboardingData?.hrd_rejected_at ? (
+                      <>
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 mb-4">
+                          <p className="text-xs text-amber-700 font-bold">HRD rejected the previous request</p>
+                          {onboardingData.hrd_comment && (
+                            <p className="text-xs text-amber-600 mt-2">{onboardingData.hrd_comment}</p>
+                          )}
+                        </div>
+                        <p className="text-sm text-slate-500 leading-relaxed">You can fix any issues and request a contract from HRD again.</p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="p-4 bg-green-50 rounded-xl border border-green-100 mb-4">
+                          <p className="text-xs text-green-700 font-bold">✓ Onboarding Form Submitted</p>
+                        </div>
+                        <p className="text-sm text-slate-500 leading-relaxed">Candidate has provided all required information. You can now request a contract from HRD.</p>
+                      </>
+                    )}
                     <Button
                       onClick={() => setShowConfirmHrd(true)}
                       disabled={submitHrdLoading}
@@ -660,7 +681,7 @@ function OverviewTab({
                   </div>
                 )}
 
-                {candidate.screening_status === 'contract_requested' && (
+                {contractRequestedWaitingHrd && (
                   <div className="space-y-4 text-center py-8">
                     <div className="h-12 w-12 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

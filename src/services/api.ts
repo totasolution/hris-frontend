@@ -806,15 +806,34 @@ export async function submitOnboardingForm(token: string, formData: Record<strin
 }
 
 export type KTPExtractedData = {
-  full_name?: string;
-  id_number?: string;
-  birth_place?: string;
-  birth_date?: string;
-  address?: string;
+  province?: string;
+  district?: string;
+  nik?: string;
+  name?: string;
+  place_dob?: string;
   gender?: string;
+  address_1?: string;
+  address_2?: string;
+  address_3?: string;
+  address_4?: string;
   religion?: string;
-  marital_status?: string;
+  married_status?: string;
+  occupation?: string;
+  nationality?: string;
+  valid_until?: string;
   confidence?: number;
+  /** @deprecated use nik */
+  id_number?: string;
+  /** @deprecated use name */
+  full_name?: string;
+  /** @deprecated use place_dob */
+  birth_place?: string;
+  /** @deprecated use place_dob */
+  birth_date?: string;
+  /** @deprecated use address_1..address_4 */
+  address?: string;
+  /** @deprecated use married_status */
+  marital_status?: string;
 };
 
 export type UploadDocumentResponse = {
@@ -1931,6 +1950,84 @@ export async function deleteFAQ(id: number): Promise<void> {
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data?.error?.message ?? 'Failed to delete FAQ');
+  }
+}
+
+// Announcements
+export type Announcement = {
+  id: number;
+  tenant_id: number;
+  title: string;
+  body: string;
+  published_from?: string | null;
+  published_until?: string | null;
+  created_by?: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnnouncementCreate = {
+  title: string;
+  body: string;
+  published_from?: string | null;
+  published_until?: string | null;
+};
+
+export type AnnouncementUpdate = {
+  title?: string;
+  body?: string;
+  published_from?: string | null;
+  published_until?: string | null;
+};
+
+export async function getAnnouncements(params?: { publishedOnly?: boolean }): Promise<Announcement[]> {
+  const q = params?.publishedOnly ? '?published_only=true' : '';
+  const res = await authFetch(`${API_BASE}/announcements${q}`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch announcements');
+  return data.data ?? [];
+}
+
+export async function getAnnouncement(id: number): Promise<Announcement> {
+  const res = await authFetch(`${API_BASE}/announcements/${id}`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch announcement');
+  return data;
+}
+
+export async function createAnnouncement(body: AnnouncementCreate): Promise<Announcement> {
+  const res = await authFetch(`${API_BASE}/announcements`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create announcement');
+  return data;
+}
+
+export async function updateAnnouncement(id: number, body: AnnouncementUpdate): Promise<Announcement> {
+  const res = await authFetch(`${API_BASE}/announcements/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update announcement');
+  return data;
+}
+
+export async function deleteAnnouncement(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/announcements/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data?.error?.message ?? 'Failed to delete announcement');
   }
 }
 

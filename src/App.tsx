@@ -42,6 +42,8 @@ import MyTicketsPage from './pages/MyTicketsPage';
 import FAQPage from './pages/FAQPage';
 import FAQAdminPage from './pages/FAQAdminPage';
 import FAQFormPage from './pages/FAQFormPage';
+import AnnouncementsPage from './pages/AnnouncementsPage';
+import AnnouncementFormPage from './pages/AnnouncementFormPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import PayslipsPage from './pages/PayslipsPage';
@@ -120,6 +122,9 @@ function AppRoutes() {
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/new" element={<NewTicketPage />} />
         <Route path="tickets/:id" element={<TicketDetailPage />} />
+        <Route path="announcements" element={<AnnouncementsPage />} />
+        <Route path="announcements/new" element={<AnnouncementFormPage />} />
+        <Route path="announcements/:id/edit" element={<AnnouncementFormPage />} />
         <Route path="faq" element={<FAQPage />} />
         <Route path="faq/admin" element={<FAQAdminPage />} />
         <Route path="faq/new" element={<FAQFormPage />} />

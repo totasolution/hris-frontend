@@ -48,6 +48,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'companySettings', path: '/company-settings', permission: 'tenant:read', group: 'setup', icon: 'clients' },
   { label: 'warnings', path: '/warnings', permission: 'warning:read', group: 'people', icon: 'warnings' },
   { label: 'tickets', path: '/tickets', permission: 'ticket:read', group: 'support', icon: 'tickets' },
+  { label: 'announcements', path: '/announcements', permission: 'announcement:read', group: 'support', icon: 'megaphone', exact: true },
   { label: 'faq', path: '/faq', permission: 'faq:read', group: 'support', icon: 'faq', exact: true },
   { label: 'manageFaq', path: '/faq/admin', permission: 'faq:manage', group: 'support', icon: 'faq' },
   { label: 'departments', path: '/departments', permission: 'department:manage', group: 'setup', icon: 'departments' },

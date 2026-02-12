@@ -305,6 +305,32 @@
     "subtitle": "Add and edit FAQ entries",
     "addFaq": "Add FAQ"
   },
+  "announcements": {
+    "title": "Announcements",
+    "subtitle": "Company announcements and updates",
+    "newAnnouncement": "New announcement",
+    "noAnnouncements": "No announcements.",
+    "loadError": "Failed to load announcements.",
+    "publishedFrom": "Published from",
+    "publishedUntil": "Published until",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this announcement?",
+    "deletedSuccess": "Announcement deleted."
+  },
+  "announcementForm": {
+    "newTitle": "New announcement",
+    "editTitle": "Edit announcement",
+    "newSubtitle": "Create a new announcement",
+    "editSubtitle": "Update announcement content and schedule",
+    "title": "Title",
+    "body": "Body",
+    "publishedFrom": "Published from (optional)",
+    "publishedUntil": "Published until (optional)",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saveError": "Failed to save announcement."
+  },
   "mySpace": {
     "title": "My Space",
     "subtitle": "Your profile and documents",

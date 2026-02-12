@@ -5,6 +5,7 @@ import { TenantAdminWidgets } from '../components/dashboard/TenantAdminWidgets';
 import { HRDWidgets } from '../components/dashboard/HRDWidgets';
 import { NewTicketsWidget } from '../components/dashboard/NewTicketsWidget';
 import { IncomingRequestContractWidget } from '../components/dashboard/IncomingRequestContractWidget';
+import { LatestAnnouncementsWidget } from '../components/dashboard/LatestAnnouncementsWidget';
 import { RecruiterWidgets } from '../components/dashboard/RecruiterWidgets';
 import { InternalEmployeeWidgets } from '../components/dashboard/InternalEmployeeWidgets';
 import { ExternalEmployeeWidgets } from '../components/dashboard/ExternalEmployeeWidgets';
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const hasEmployeeSection = permissions.includes(DASHBOARD_EMPLOYEE);
   const hasTicketWidget = permissions.includes(DASHBOARD_TICKET);
   const hasRequestContractWidget = permissions.includes(DASHBOARD_REQUEST_CONTRACT);
+  const hasAnnouncementRead = permissions.includes('announcement:read');
 
   // For employee section we need employee type (internal vs external) to show the right view
   useEffect(() => {
@@ -47,7 +49,7 @@ export default function DashboardPage() {
       .finally(() => setLoadingEmployeeSection(false));
   }, [hasEmployeeSection]);
 
-  const hasAnySection = hasAdminSection || hasRecruitmentSection || hasEmployeeSection || hasTicketWidget || hasRequestContractWidget;
+  const hasAnySection = hasAdminSection || hasRecruitmentSection || hasEmployeeSection || hasTicketWidget || hasRequestContractWidget || hasAnnouncementRead;
 
   if (!hasAnySection) {
     return (
@@ -61,12 +63,13 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-10 font-body">
-      {/* New tickets & Incoming request contract — visible when user has dashboard:ticket and/or dashboard:requestContract */}
-      {(hasTicketWidget || hasRequestContractWidget) && (
+      {/* New tickets, Incoming request contract, Latest announcements */}
+      {(hasTicketWidget || hasRequestContractWidget || hasAnnouncementRead) && (
         <section aria-label="Dashboard - Notifications">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {hasTicketWidget && <NewTicketsWidget permissions={permissions} />}
             {hasRequestContractWidget && <IncomingRequestContractWidget permissions={permissions} />}
+            {hasAnnouncementRead && <LatestAnnouncementsWidget permissions={permissions} />}
           </div>
         </section>
       )}

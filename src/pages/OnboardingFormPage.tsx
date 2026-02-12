@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
@@ -17,6 +16,7 @@ export default function OnboardingFormPage() {
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [uploadingKtp, setUploadingKtp] = useState(false);
   const [ktpUploaded, setKtpUploaded] = useState(false);
+  const ktpInputRef = useRef<HTMLInputElement>(null);
 
   // Form Fields - Auto-filled with default values for testing
   const [formData, setFormData] = useState({
@@ -63,9 +63,9 @@ export default function OnboardingFormPage() {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Please upload an image (JPEG, PNG, WebP) or PDF file');
+        setError('Please upload an image (JPEG or PNG). Tesseract OCR works best with images.');
         return;
       }
       // Validate file size (max 5MB)
@@ -85,30 +85,42 @@ export default function OnboardingFormPage() {
     setError(null);
     try {
       const response = await api.uploadOnboardingDocument(token, ktpFile);
-      
-      // Check if OCR extracted data is available
+      const confidence = response.ocr_confidence ?? 0;
+
+      // OCR confidence below 50% - ask user to re-upload with better quality
+      if (confidence < 0.5) {
+        setError('KTP could not be read clearly (low confidence). Please upload a higher resolution image. Ensure good lighting and the full KTP is visible.');
+        setKtpFile(null);
+        setKtpUploaded(false);
+        if (ktpInputRef.current) ktpInputRef.current.value = '';
+        return;
+      }
+
+      // Populate form with extracted data (backend returns KTP struct: nik, name, place_dob, address_1..4, gender as LAKI-LAKI/PEREMPUAN, married_status, etc.)
       if (response.extracted_data) {
         const extracted = response.extracted_data;
-        
-        // Auto-populate form fields with extracted data
+        const genderForForm =
+          extracted.gender === 'LAKI-LAKI' ? 'male' : extracted.gender === 'PEREMPUAN' ? 'female' : (extracted.gender || '');
+        const address =
+          extracted.address ||
+          [extracted.address_1, extracted.address_2, extracted.address_3, extracted.address_4].filter(Boolean).join(', ') ||
+          '';
+        const placeDob = extracted.place_dob || '';
+        const [placeFromDob, dateFromDob] = placeDob ? (placeDob.includes(',') ? placeDob.split(',').map((s: string) => s.trim()) : [placeDob, '']) : ['', ''];
         setFormData(prev => ({
           ...prev,
-          id_number: extracted.id_number || prev.id_number,
-          address: extracted.address || prev.address,
-          place_of_birth: extracted.birth_place || prev.place_of_birth,
-          date_of_birth: extracted.birth_date ? extracted.birth_date.split('T')[0] : prev.date_of_birth,
-          gender: extracted.gender || prev.gender,
+          id_number: extracted.nik || extracted.id_number || prev.id_number,
+          address: address || prev.address,
+          place_of_birth: extracted.birth_place || placeFromDob || prev.place_of_birth,
+          date_of_birth: extracted.birth_date ? extracted.birth_date.split('T')[0] : (dateFromDob && dateFromDob.match(/\d{2}-\d{2}-\d{4}/) ? dateFromDob.split('-').reverse().join('-') : prev.date_of_birth),
+          gender: genderForForm || prev.gender,
           religion: extracted.religion || prev.religion,
-          marital_status: extracted.marital_status || prev.marital_status,
+          marital_status: extracted.married_status || extracted.marital_status || prev.marital_status,
         }));
-        
-        // Show success message with confidence indicator
-        const confidence = response.ocr_confidence || 0;
         if (confidence < 0.6) {
           setError(`Data extracted with low confidence (${Math.round(confidence * 100)}%). Please review and correct if needed.`);
         }
       }
-      
       setKtpUploaded(true);
       setKtpFile(null);
     } catch (e) {
@@ -133,9 +145,13 @@ export default function OnboardingFormPage() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand"></div>
+  // Full-page loading: initial load or KTP processing
+  if (loading || uploadingKtp) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6">
+      <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-brand"></div>
+      <p className="text-slate-500 font-medium">
+        {uploadingKtp ? 'Processing KTP... Extracting data, please wait.' : 'Loading...'}
+      </p>
     </div>
   );
 
@@ -207,13 +223,14 @@ export default function OnboardingFormPage() {
                 <div className="flex gap-3 items-start">
                   <div className="flex-1">
                     <input
+                      ref={ktpInputRef}
                       type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                      accept="image/jpeg,image/jpg,image/png"
                       onChange={handleKtpFileChange}
                       className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
                       disabled={uploadingKtp || ktpUploaded}
                     />
-                    <p className="mt-1 text-xs text-slate-500">Accepted formats: JPEG, PNG, WebP, PDF (Max 5MB)</p>
+                    <p className="mt-1 text-xs text-slate-500">Accepted formats: JPEG, PNG only (Max 5MB). Images work best for OCR.</p>
                   </div>
                   {ktpFile && !ktpUploaded && (
                     <Button
