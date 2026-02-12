@@ -8,6 +8,7 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
 import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument, Payslip } from '../services/api';
 import * as api from '../services/api';
+import { downloadFromUrl } from '../utils/download';
 import { formatDate, formatDateLong } from '../utils/formatDate';
 import MyTicketsPage from './MyTicketsPage';
 
@@ -479,7 +480,7 @@ function MySpaceContractsTab({
                         onClick={async () => {
                           try {
                             const url = await api.getContractPresignedUrl(contract.id);
-                            window.open(url, '_blank');
+                            await downloadFromUrl(url, `contract-${contract.id}.pdf`);
                           } catch {
                             toast.error('Failed to open document');
                           }
@@ -513,7 +514,7 @@ function MySpacePayslipsTab({
   const handleDownload = async (p: Payslip) => {
     try {
       const url = await api.getPayslipPresignedUrl(p.id);
-      window.open(url, '_blank');
+      await downloadFromUrl(url, `payslip-${p.period_label || p.id}.pdf`);
     } catch {
       toast.error('Failed to open payslip');
     }
@@ -640,7 +641,7 @@ function MySpaceDocumentsTab({
                         onClick={async () => {
                           try {
                             const url = await api.getEmployeeDocumentUrl(employeeId, doc.id);
-                            window.open(url, '_blank');
+                            await downloadFromUrl(url, `document-${doc.id}.pdf`);
                           } catch {
                             toast.error('Failed to open document');
                           }
@@ -704,7 +705,7 @@ function MySpaceDocumentsTab({
                       onClick={async () => {
                         try {
                           const url = await api.getPaklaringPresignedUrl(doc.id);
-                          window.open(url, '_blank');
+                          await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
                         } catch {
                           toast.error('Failed to open document');
                         }

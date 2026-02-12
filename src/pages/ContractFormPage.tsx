@@ -7,6 +7,7 @@ import { Select } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
+import { downloadFromUrl } from '../utils/download';
 import { formatDateLong } from '../utils/formatDate';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
@@ -394,13 +395,13 @@ export default function ContractFormPage() {
                   onClick={async () => {
                     try {
                       const url = await api.getContractPresignedUrl(parseInt(id, 10));
-                      window.open(url, '_blank');
+                      await downloadFromUrl(url, `contract-${id}.pdf`);
                     } catch (err) {
                       toast.error('Failed to open document');
                     }
                   }}
                 >
-                  Open / Download document
+                  Download document
                 </Button>
               )}
             </div>

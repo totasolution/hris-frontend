@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Candidate, CandidateDocument } from '../services/api';
 import * as api from '../services/api';
+import { downloadFromUrl } from '../utils/download';
 import { formatDate } from '../utils/formatDate';
 
 type TabType = 'overview' | 'onboarding' | 'documents' | 'contracts';
@@ -142,7 +143,7 @@ export default function CandidateDetailPage() {
   const handleDownload = async (docId: number) => {
     try {
       const url = await api.getCandidateDocumentUrl(candidateId, docId);
-      window.open(url, '_blank');
+      await downloadFromUrl(url, `document-${docId}.pdf`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to get download URL');
     }
@@ -1082,7 +1083,7 @@ function ContractsTab({
                           onClick={async () => {
                             try {
                               const url = await api.getContractPresignedUrl(contract.id);
-                              window.open(url, '_blank');
+                              await downloadFromUrl(url, `contract-${contract.id}.pdf`);
                             } catch (err) {
                               toast.error('Failed to open document');
                             }

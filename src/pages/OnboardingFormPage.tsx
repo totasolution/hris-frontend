@@ -20,20 +20,20 @@ export default function OnboardingFormPage() {
 
   // Form Fields - Auto-filled with default values for testing
   const [formData, setFormData] = useState({
-    id_number: '3201012345678901',
-    address: 'Jl. Sudirman No. 123, RT 05/RW 02, Kelurahan Menteng, Kecamatan Menteng, Jakarta Pusat 10310',
-    place_of_birth: 'Jakarta',
-    date_of_birth: '1995-05-15',
-    gender: 'male',
-    religion: 'Islam',
-    marital_status: 'single',
-    bank_name: 'BCA',
-    bank_account_number: '1234567890',
+    id_number: '',
+    address: '',
+    place_of_birth: '',
+    date_of_birth: '',
+    gender: '',
+    religion: '',
+    marital_status: '',
+    bank_name: '',
+    bank_account_number: '',
     bank_account_holder: '',
-    npwp_number: '12.345.678.9-012.000',
-    emergency_contact_name: 'Budi Santoso',
-    emergency_contact_relationship: 'Parent',
-    emergency_contact_phone: '+6281234567890',
+    npwp_number: '',
+    emergency_contact_name: '',
+    emergency_contact_relationship: '',
+    emergency_contact_phone: '',
   });
 
   useEffect(() => {

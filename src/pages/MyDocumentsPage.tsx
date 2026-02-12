@@ -5,6 +5,7 @@ import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import * as api from '../services/api';
+import { downloadFromUrl } from '../utils/download';
 
 export default function MyDocumentsPage() {
   const { t } = useTranslation(['pages', 'common']);
@@ -23,7 +24,7 @@ export default function MyDocumentsPage() {
   const download = async (id: number) => {
     try {
       const url = await api.getPaklaringPresignedUrl(id);
-      window.open(url, '_blank');
+      await downloadFromUrl(url, `document-${id}.pdf`);
     } catch {
       toast.error(t('pages:myDocuments.downloadFailed'));
     }

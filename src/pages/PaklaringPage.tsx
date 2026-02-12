@@ -11,6 +11,7 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
 import type { Employee, PaklaringDocument } from '../services/api';
 import * as api from '../services/api';
+import { downloadFromUrl } from '../utils/download';
 import { formatDateLong } from '../utils/formatDate';
 
 const DEBOUNCE_MS = 350;
@@ -100,7 +101,7 @@ export default function PaklaringPage() {
   const handleDownload = async (doc: PaklaringDocument) => {
     try {
       const url = await api.getPaklaringPresignedUrl(doc.id);
-      window.open(url, '_blank');
+      await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
     } catch {
       toast.error(t('pages:paklaring.failedToOpenDocument'));
     }
