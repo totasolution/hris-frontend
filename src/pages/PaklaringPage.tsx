@@ -11,7 +11,7 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
 import type { Employee, PaklaringDocument } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 import { formatDateLong } from '../utils/formatDate';
 
 const DEBOUNCE_MS = 350;

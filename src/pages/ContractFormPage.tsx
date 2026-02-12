@@ -7,7 +7,7 @@ import { Select } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 import { formatDateLong } from '../utils/formatDate';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */

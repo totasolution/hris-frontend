@@ -10,7 +10,7 @@ import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
 import type { Payslip } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 
 const MONTHS = [

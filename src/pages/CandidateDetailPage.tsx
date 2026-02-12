@@ -10,7 +10,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Candidate, CandidateDocument } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 
 type TabType = 'overview' | 'onboarding' | 'documents' | 'contracts';

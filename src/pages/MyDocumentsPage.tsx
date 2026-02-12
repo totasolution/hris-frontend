@@ -5,7 +5,7 @@ import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 
 export default function MyDocumentsPage() {
   const { t } = useTranslation(['pages', 'common']);

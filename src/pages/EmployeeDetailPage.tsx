@@ -8,7 +8,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download';
+import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate, formatDateLong } from '../utils/formatDate';
 
 type TabType = 'overview' | 'contracts' | 'documents' | 'history';
