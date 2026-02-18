@@ -101,6 +101,10 @@ export default function RolePermissionsPage() {
     return acc;
   }, {});
 
+  const resourceDisplayName: Record<string, string> = {
+    rc: 'Request Contract',
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <PageHeader
@@ -143,7 +147,7 @@ export default function RolePermissionsPage() {
                   className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/20"
                 />
                 <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] capitalize group-hover:text-brand-dark transition-colors">
-                  {resource.replace(/:/g, ' ')}
+                  {resourceDisplayName[resource] ?? resource.replace(/:/g, ' ')}
                 </h3>
               </label>
               <div className="space-y-2">

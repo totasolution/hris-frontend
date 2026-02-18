@@ -16,6 +16,13 @@ export default function OnboardingFormPage() {
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [uploadingKtp, setUploadingKtp] = useState(false);
   const [ktpUploaded, setKtpUploaded] = useState(false);
+  const [kkFile, setKkFile] = useState<File | null>(null);
+  const [uploadingKk, setUploadingKk] = useState(false);
+  const [kkUploaded, setKkUploaded] = useState(false);
+  const [skckFile, setSkckFile] = useState<File | null>(null);
+  const [uploadingSkck, setUploadingSkck] = useState(false);
+  const [skckUploaded, setSkckUploaded] = useState(false);
+  const [dataReviewed, setDataReviewed] = useState(false);
   const ktpInputRef = useRef<HTMLInputElement>(null);
 
   // Form Fields - Auto-filled with default values for testing
@@ -38,20 +45,55 @@ export default function OnboardingFormPage() {
 
   useEffect(() => {
     if (!token) {
-      setError('Invalid link');
+      setError('Tautan tidak valid');
       setLoading(false);
       return;
     }
-    api.getOnboardingByToken(token)
-      .then(({ candidate: c }) => {
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { candidate: c } = await api.getOnboardingByToken(token);
         setCandidate(c);
         // Auto-fill bank account holder with candidate name if available
         if (c) {
           setFormData(prev => ({ ...prev, bank_account_holder: c.full_name }));
         }
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Link not found or expired'))
-      .finally(() => setLoading(false));
+
+        // Try to load existing onboarding form data (if candidate re-opens the link)
+        try {
+          const existing = await api.getOnboardingFormByToken(token);
+          setFormData(prev => ({
+            ...prev,
+            id_number: existing.id_number ?? prev.id_number,
+            address: existing.address ?? prev.address,
+            place_of_birth: existing.place_of_birth ?? prev.place_of_birth,
+            date_of_birth: existing.date_of_birth
+              ? existing.date_of_birth.split('T')[0]
+              : prev.date_of_birth,
+            gender: existing.gender ?? prev.gender,
+            religion: existing.religion ?? prev.religion,
+            marital_status: existing.marital_status ?? prev.marital_status,
+            bank_name: existing.bank_name ?? prev.bank_name,
+            bank_account_number: existing.bank_account_number ?? prev.bank_account_number,
+            bank_account_holder: existing.bank_account_holder ?? prev.bank_account_holder,
+            npwp_number: existing.npwp_number ?? prev.npwp_number,
+            emergency_contact_name: existing.emergency_contact_name ?? prev.emergency_contact_name,
+            emergency_contact_relationship: existing.emergency_contact_relationship ?? prev.emergency_contact_relationship,
+            emergency_contact_phone: existing.emergency_contact_phone ?? prev.emergency_contact_phone,
+          }));
+        } catch {
+          // No existing form yet; ignore
+        }
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Tautan tidak ditemukan atau sudah kedaluwarsa');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
   }, [token]);
 
   const handleInputChange = (e: any) => {
@@ -65,16 +107,52 @@ export default function OnboardingFormPage() {
       // Validate file type
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Please upload an image (JPEG or PNG). Tesseract OCR works best with images.');
+        setError('Silakan unggah gambar (JPEG atau PNG). OCR bekerja paling baik dengan gambar.');
         return;
       }
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
+        setError('Ukuran file maksimal 5MB');
         return;
       }
       setKtpFile(file);
       setKtpUploaded(false);
+      setError(null);
+    }
+  };
+
+  const handleKkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Ukuran file maksimal 5MB');
+        return;
+      }
+      setKkFile(file);
+      setKkUploaded(false);
+      setError(null);
+    }
+  };
+
+  const handleSkckFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Ukuran file maksimal 5MB');
+        return;
+      }
+      setSkckFile(file);
+      setSkckUploaded(false);
       setError(null);
     }
   };
@@ -84,12 +162,12 @@ export default function OnboardingFormPage() {
     setUploadingKtp(true);
     setError(null);
     try {
-      const response = await api.uploadOnboardingDocument(token, ktpFile);
+      const response = await api.uploadOnboardingDocument(token, ktpFile, 'ktp');
       const confidence = response.ocr_confidence ?? 0;
 
       // OCR confidence below 50% - ask user to re-upload with better quality
       if (confidence < 0.5) {
-        setError('KTP could not be read clearly (low confidence). Please upload a higher resolution image. Ensure good lighting and the full KTP is visible.');
+        setError('KTP tidak terbaca dengan jelas. Silakan unggah gambar beresolusi lebih tinggi. Pastikan pencahayaan baik dan seluruh KTP terlihat.');
         setKtpFile(null);
         setKtpUploaded(false);
         if (ktpInputRef.current) ktpInputRef.current.value = '';
@@ -118,39 +196,77 @@ export default function OnboardingFormPage() {
           marital_status: extracted.married_status || extracted.marital_status || prev.marital_status,
         }));
         if (confidence < 0.6) {
-          setError(`Data extracted with low confidence (${Math.round(confidence * 100)}%). Please review and correct if needed.`);
+          setError(`Data terbaca dengan keyakinan rendah (${Math.round(confidence * 100)}%). Silakan periksa dan perbaiki jika perlu.`);
         }
       }
       setKtpUploaded(true);
       setKtpFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      setError(e instanceof Error ? e.message : 'Unggah gagal');
     } finally {
       setUploadingKtp(false);
+    }
+  };
+
+  const handleKkUpload = async () => {
+    if (!token || !kkFile) return;
+    setUploadingKk(true);
+    setError(null);
+    try {
+      await api.uploadOnboardingDocument(token, kkFile, 'kk');
+      setKkUploaded(true);
+      setKkFile(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unggah gagal');
+    } finally {
+      setUploadingKk(false);
+    }
+  };
+
+  const handleSkckUpload = async () => {
+    if (!token || !skckFile) return;
+    setUploadingSkck(true);
+    setError(null);
+    try {
+      await api.uploadOnboardingDocument(token, skckFile, 'skck');
+      setSkckUploaded(true);
+      setSkckFile(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unggah gagal');
+    } finally {
+      setUploadingSkck(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
+    if (!ktpUploaded || !kkUploaded) {
+      setError('Silakan unggah KTP dan Kartu Keluarga (KK) sebelum mengirim formulir.');
+      return;
+    }
+    if (!dataReviewed) {
+      setError('Silakan centang pernyataan bahwa Anda telah memeriksa semua data sebelum mengirim.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      await api.submitOnboardingForm(token, formData);
+      await api.submitOnboardingForm(token, { ...formData, data_reviewed: true });
       setSubmitted(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Submit failed');
+      setError(e instanceof Error ? e.message : 'Pengiriman gagal');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Full-page loading: initial load or KTP processing
-  if (loading || uploadingKtp) return (
+  // Full-page loading: initial load or any document processing
+  if (loading || uploadingKtp || uploadingKk || uploadingSkck) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6">
       <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-brand"></div>
       <p className="text-slate-500 font-medium">
-        {uploadingKtp ? 'Processing KTP... Extracting data, please wait.' : 'Loading...'}
+        {uploadingKtp ? 'Memproses KTP... Mengekstrak data, harap tunggu.' : 'Memuat...'}
       </p>
     </div>
   );
@@ -165,10 +281,10 @@ export default function OnboardingFormPage() {
             </svg>
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-brand-dark font-headline">Link Expired or Invalid</h1>
+            <h1 className="text-xl font-bold text-brand-dark font-headline">Tautan Kedaluwarsa atau Tidak Valid</h1>
             <p className="text-slate-500 text-sm">{error}</p>
           </div>
-          <p className="text-xs text-slate-400">Please contact your recruiter for a new onboarding link.</p>
+          <p className="text-xs text-slate-400">Silakan hubungi recruiter Anda untuk mendapatkan tautan onboarding baru.</p>
         </Card>
       </div>
     );
@@ -184,10 +300,10 @@ export default function OnboardingFormPage() {
             </svg>
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-bold text-brand-dark font-headline tracking-tight">Submission Successful</h1>
-            <p className="text-slate-500 text-sm leading-relaxed">Thank you for providing your information, <span className="font-bold text-brand-dark">{candidate?.full_name}</span>. Our HR team will review it shortly.</p>
+            <h1 className="text-xl font-bold text-brand-dark font-headline tracking-tight">Pengiriman Berhasil</h1>
+            <p className="text-slate-500 text-sm leading-relaxed">Terima kasih telah mengisi data, <span className="font-bold text-brand-dark">{candidate?.full_name}</span>. Tim HR kami akan meninjau dalam waktu dekat.</p>
           </div>
-          <p className="text-xs text-slate-400">You can now close this window.</p>
+          <p className="text-xs text-slate-400">Anda dapat menutup jendela ini.</p>
         </Card>
       </div>
     );
@@ -198,9 +314,9 @@ export default function OnboardingFormPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <img src="/logo-sigma.png" alt="Sigma Solusi" className="h-12 mx-auto mb-6" />
-          <h1 className="text-3xl font-black text-brand-dark font-headline tracking-tight">Personal Information</h1>
+          <h1 className="text-3xl font-black text-brand-dark font-headline tracking-tight">Data Pribadi</h1>
           <p className="text-slate-500 font-medium leading-relaxed max-w-lg mx-auto">
-            Welcome, <span className="text-brand-dark font-bold">{candidate?.full_name}</span>. Please complete the form below to proceed with your onboarding.
+            Selamat datang, <span className="text-brand-dark font-bold">{candidate?.full_name}</span>. Silakan lengkapi formulir di bawah untuk melanjutkan onboarding.
           </p>
         </div>
 
@@ -212,44 +328,120 @@ export default function OnboardingFormPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* KTP Upload Section - First */}
+          {/* Dokumen Upload Section - KTP, KK, SKCK */}
           <Card>
             <CardBody className="space-y-8">
-              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">1. Upload KTP Document</h3>
+              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">1. Unggah Dokumen</h3>
               <div className="space-y-4">
                 <p className="text-sm text-slate-600">
-                  Upload your KTP (Indonesian ID Card) to automatically fill in your personal information below.
+                  Unggah dokumen berikut. KTP dan Kartu Keluarga (KK) wajib, SKCK bersifat opsional.
                 </p>
-                <div className="flex gap-3 items-start">
-                  <div className="flex-1">
-                    <input
-                      ref={ktpInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png"
-                      onChange={handleKtpFileChange}
-                      className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
-                      disabled={uploadingKtp || ktpUploaded}
-                    />
-                    <p className="mt-1 text-xs text-slate-500">Accepted formats: JPEG, PNG only (Max 5MB). Images work best for OCR.</p>
-                  </div>
-                  {ktpFile && !ktpUploaded && (
-                    <Button
-                      type="button"
-                      onClick={handleKtpUpload}
-                      disabled={uploadingKtp}
-                      className="px-4 py-2"
-                    >
-                      {uploadingKtp ? 'Processing...' : 'Upload & Extract'}
-                    </Button>
-                  )}
-                  {ktpUploaded && (
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>Uploaded & Extracted</span>
+                <div className="space-y-4">
+                  {/* KTP */}
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-slate-700">KTP (wajib)</p>
+                    <div className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <input
+                          ref={ktpInputRef}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png"
+                          onChange={handleKtpFileChange}
+                          className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
+                          disabled={uploadingKtp || ktpUploaded}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Format: JPEG, PNG (maks. 5MB). Gambar memberikan hasil OCR terbaik.</p>
+                      </div>
+                      {ktpFile && !ktpUploaded && (
+                        <Button
+                          type="button"
+                          onClick={handleKtpUpload}
+                          disabled={uploadingKtp}
+                          className="px-4 py-2"
+                        >
+                          {uploadingKtp ? 'Memproses...' : 'Unggah & Ekstrak'}
+                        </Button>
+                      )}
+                      {ktpUploaded && (
+                        <div className="flex items-center gap-2 text-green-600 text-xs">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>KTP berhasil diunggah</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* KK */}
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-slate-700">Kartu Keluarga (KK) - wajib</p>
+                    <div className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,application/pdf"
+                          onChange={handleKkFileChange}
+                          className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
+                          disabled={uploadingKk || kkUploaded}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Format: JPEG, PNG, atau PDF (maks. 5MB).</p>
+                      </div>
+                      {kkFile && !kkUploaded && (
+                        <Button
+                          type="button"
+                          onClick={handleKkUpload}
+                          disabled={uploadingKk}
+                          className="px-4 py-2"
+                        >
+                          {uploadingKk ? 'Memproses...' : 'Unggah'}
+                        </Button>
+                      )}
+                      {kkUploaded && (
+                        <div className="flex items-center gap-2 text-green-600 text-xs">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>KK berhasil diunggah</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SKCK */}
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold text-slate-700">SKCK (opsional)</p>
+                    <div className="flex gap-3 items-start">
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,application/pdf"
+                          onChange={handleSkckFileChange}
+                          className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
+                          disabled={uploadingSkck || skckUploaded}
+                        />
+                        <p className="mt-1 text-xs text-slate-500">Format: JPEG, PNG, atau PDF (maks. 5MB).</p>
+                      </div>
+                      {skckFile && !skckUploaded && (
+                        <Button
+                          type="button"
+                          onClick={handleSkckUpload}
+                          disabled={uploadingSkck}
+                          className="px-4 py-2"
+                        >
+                          {uploadingSkck ? 'Memproses...' : 'Unggah'}
+                        </Button>
+                      )}
+                      {skckUploaded && (
+                        <div className="flex items-center gap-2 text-green-600 text-xs">
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          <span>SKCK berhasil diunggah</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardBody>
@@ -258,26 +450,26 @@ export default function OnboardingFormPage() {
           {/* Personal Section */}
           <Card>
             <CardBody className="space-y-8">
-              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">2. Personal Details</h3>
+              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">2. Data Pribadi</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="ID Number (KTP)" name="id_number" value={formData.id_number} onChange={handleInputChange} required placeholder="16-digit ID number" />
+                <Input label="NIK (KTP)" name="id_number" value={formData.id_number} onChange={handleInputChange} required placeholder="NIK 16 digit" />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input label="Place of Birth" name="place_of_birth" value={formData.place_of_birth} onChange={handleInputChange} required placeholder="City" />
-                  <Input label="Date of Birth" name="date_of_birth" type="date" value={formData.date_of_birth} onChange={handleInputChange} required />
+                  <Input label="Tempat Lahir" name="place_of_birth" value={formData.place_of_birth} onChange={handleInputChange} required placeholder="Kota" />
+                  <Input label="Tanggal Lahir" name="date_of_birth" type="date" value={formData.date_of_birth} onChange={handleInputChange} required />
                 </div>
-                <Select label="Gender" name="gender" value={formData.gender} onChange={handleInputChange} required>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
+                <Select label="Jenis Kelamin" name="gender" value={formData.gender} onChange={handleInputChange} required>
+                  <option value="male">Laki-laki</option>
+                  <option value="female">Perempuan</option>
                 </Select>
-                <Input label="Religion" name="religion" value={formData.religion} onChange={handleInputChange} required placeholder="e.g. Islam, Christian" />
-                <Select label="Marital Status" name="marital_status" value={formData.marital_status} onChange={handleInputChange} required>
-                  <option value="single">Single</option>
-                  <option value="married">Married</option>
-                  <option value="divorced">Divorced</option>
+                <Input label="Agama" name="religion" value={formData.religion} onChange={handleInputChange} required placeholder="mis. Islam, Kristen" />
+                <Select label="Status Pernikahan" name="marital_status" value={formData.marital_status} onChange={handleInputChange} required>
+                  <option value="single">Lajang</option>
+                  <option value="married">Menikah</option>
+                  <option value="divorced">Cerai</option>
                 </Select>
-                <Input label="NPWP Number" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Tax ID (optional)" />
+                <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
                 <div className="md:col-span-2">
-                  <Textarea label="Current Address" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Full residential address..." />
+                  <Textarea label="Alamat Sekarang" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Alamat lengkap tempat tinggal..." />
                 </div>
               </div>
             </CardBody>
@@ -286,12 +478,12 @@ export default function OnboardingFormPage() {
           {/* Financial Section */}
           <Card>
             <CardBody className="space-y-8">
-              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">3. Bank Account Information</h3>
+              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">3. Informasi Rekening Bank</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Bank Name" name="bank_name" value={formData.bank_name} onChange={handleInputChange} required placeholder="e.g. BCA, Mandiri" />
-                  <Input label="Account Number" name="bank_account_number" value={formData.bank_account_number} onChange={handleInputChange} required placeholder="0000000000" />
+                  <Input label="Nama Bank" name="bank_name" value={formData.bank_name} onChange={handleInputChange} required placeholder="mis. BCA, Mandiri" />
+                  <Input label="Nomor Rekening" name="bank_account_number" value={formData.bank_account_number} onChange={handleInputChange} required placeholder="0000000000" />
                   <div className="md:col-span-2">
-                  <Input label="Account Holder Name" name="bank_account_holder" value={formData.bank_account_holder} onChange={handleInputChange} required placeholder="Name as shown in bank book" />
+                  <Input label="Nama Pemilik Rekening" name="bank_account_holder" value={formData.bank_account_holder} onChange={handleInputChange} required placeholder="Nama sesuai buku tabungan" />
                 </div>
               </div>
             </CardBody>
@@ -300,23 +492,41 @@ export default function OnboardingFormPage() {
           {/* Emergency Contact */}
           <Card>
             <CardBody className="space-y-8">
-              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">4. Emergency Contact</h3>
+              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">4. Kontak Darurat</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input label="Contact Name" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleInputChange} required placeholder="Full name" />
-                <Input label="Relationship" name="emergency_contact_relationship" value={formData.emergency_contact_relationship} onChange={handleInputChange} required placeholder="e.g. Spouse, Parent" />
+                <Input label="Nama Kontak" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleInputChange} required placeholder="Nama lengkap" />
+                <Input label="Hubungan" name="emergency_contact_relationship" value={formData.emergency_contact_relationship} onChange={handleInputChange} required placeholder="mis. Suami/Istri, Orang Tua" />
                 <div className="md:col-span-2">
-                  <Input label="Contact Phone" name="emergency_contact_phone" value={formData.emergency_contact_phone} onChange={handleInputChange} required placeholder="+62..." />
+                  <Input label="Nomor Telepon Kontak" name="emergency_contact_phone" value={formData.emergency_contact_phone} onChange={handleInputChange} required placeholder="+62..." />
                 </div>
               </div>
             </CardBody>
           </Card>
+
+          {/* Declaration: candidate confirms they have reviewed all data */}
+          <Card>
+            <CardBody className="space-y-4">
+              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">5. Pernyataan</h3>
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={dataReviewed}
+                  onChange={(e) => setDataReviewed(e.target.checked)}
+                  className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand"
+                />
+                <span className="text-sm text-slate-600 leading-relaxed">
+                  Saya menyatakan telah memeriksa semua informasi dan data yang diisi dalam formulir ini serta menyatakan bahwa data tersebut benar dan lengkap sesuai pengetahuan saya.
+                </span>
+              </label>
+            </CardBody>
+          </Card>
           
           <div className="pt-6">
-            <Button type="submit" disabled={submitting} className="w-full py-5 text-lg shadow-2xl shadow-brand/20">
-              {submitting ? 'Submitting Information...' : 'Complete Onboarding Submission'}
+            <Button type="submit" disabled={submitting || !dataReviewed} className="w-full py-5 text-lg shadow-2xl shadow-brand/20">
+              {submitting ? 'Mengirim...' : 'Kirim Formulir Onboarding'}
             </Button>
             <p className="mt-6 text-center text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black">
-              Secure Submission • Sigma Solusi Servis
+              Pengiriman Aman • Sigma Solusi Servis
             </p>
           </div>
         </form>

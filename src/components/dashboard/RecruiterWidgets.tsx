@@ -23,7 +23,7 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
     async function loadData() {
       try {
         const [candidates, projs] = await Promise.all([
-          api.getCandidates({ my_active_only: true, per_page: 1000 }).then((r) => r.data),
+          api.getCandidates({ per_page: 1000 }).then((r) => r.data),
           api.getProjects(),
         ]);
 

@@ -1,4 +1,6 @@
 // In production (e.g. Vercel), set VITE_API_BASE to API host (e.g. https://ponot.sigmasolusiservis.com). Local dev uses relative /api/v1 + Vite proxy.
+import { downloadBlob, parseFilenameFromDisposition } from '../utils/download';
+
 const API_BASE = (() => {
   const base = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
   return base ? `${base}/api/v1` : '/api/v1';
@@ -528,6 +530,9 @@ export async function updateUser(
 }
 
 // Candidates
+/** Employment type: pkwt (PKWT) or partnership (Mitra Kerja) */
+export type CandidateEmploymentType = 'pkwt' | 'partnership';
+
 export type Candidate = {
   id: number;
   tenant_id: number;
@@ -536,6 +541,8 @@ export type Candidate = {
   full_name: string;
   email: string;
   phone?: string;
+  employment_type?: CandidateEmploymentType | null;
+  ojt_option?: boolean;
   screening_status: string;
   screening_notes?: string;
   screening_rating?: number;
@@ -567,7 +574,6 @@ export async function getCandidates(params?: {
   status?: string;
   search?: string;
   created_by?: number;
-  my_active_only?: boolean;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Candidate>> {
@@ -577,7 +583,6 @@ export async function getCandidates(params?: {
   if (params?.status) q.set('status', params.status);
   if (params?.created_by) q.set('created_by', String(params.created_by));
   if (params?.search?.trim()) q.set('search', params.search.trim());
-  if (params?.my_active_only) q.set('my_active_only', 'true');
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/candidates?${q}` : `${API_BASE}/candidates`;
@@ -601,10 +606,13 @@ export async function getCandidate(id: number): Promise<Candidate> {
 }
 
 export async function createCandidate(body: {
+  client_id?: number;
   project_id?: number;
   full_name: string;
   email: string;
   phone?: string;
+  employment_type?: CandidateEmploymentType;
+  ojt_option?: boolean;
 }): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates`, {
     method: 'POST',
@@ -620,10 +628,13 @@ export async function createCandidate(body: {
 export async function updateCandidate(
   id: number,
   body: Partial<{
+    client_id: number;
     project_id: number;
     full_name: string;
     email: string;
     phone: string;
+    employment_type: CandidateEmploymentType | null;
+    ojt_option: boolean;
     screening_status: string;
     screening_notes: string;
     screening_rating: number;
@@ -696,10 +707,12 @@ export async function getCandidateDocuments(candidateId: number): Promise<Candid
   return data.data ?? [];
 }
 
-export async function uploadCandidateDocument(candidateId: number, file: File, type?: 'cv' | 'other'): Promise<CandidateDocument> {
+export type CandidateDocumentType = 'cv' | 'ktp' | 'kk' | 'skck' | 'other';
+
+export async function uploadCandidateDocument(candidateId: number, file: File, type: CandidateDocumentType): Promise<CandidateDocument> {
   const form = new FormData();
   form.append('file', file);
-  if (type) form.append('type', type);
+  form.append('type', type);
   const token = getAccessToken();
   const h: HeadersInit = {};
   if (token) (h as Record<string, string>)['Authorization'] = `Bearer ${token}`;
@@ -722,6 +735,17 @@ export async function getCandidateDocumentUrl(candidateId: number, documentId: n
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get document URL');
   return data.url ?? '';
+}
+
+export async function deleteCandidateDocument(candidateId: number, documentId: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/documents/${documentId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (res.status === 204) return;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data?.error as { message?: string })?.message ?? 'Failed to delete document');
 }
 
 // Onboarding
@@ -767,6 +791,7 @@ export type OnboardingFormData = {
   employment_salary?: string;
 
   submitted_at?: string;
+  data_reviewed_at?: string;
   locked_at?: string;
   submitted_for_hrd_at?: string;
   hrd_approved_at?: string;
@@ -793,7 +818,14 @@ export async function getOnboardingByToken(token: string): Promise<{ link: Onboa
   if (!res.ok) throw new Error(data?.error?.message ?? 'Link not found or expired');
   return data;
 }
-
+export async function getOnboardingFormByToken(token: string): Promise<OnboardingFormData> {
+  const res = await authFetch(`${API_BASE}/public/onboarding/${token}/form`, {
+    credentials: 'include',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch onboarding form');
+  return data;
+}
 export async function submitOnboardingForm(token: string, formData: Record<string, unknown>): Promise<void> {
   const res = await authFetch(`${API_BASE}/public/onboarding/${token}/submit`, {
     method: 'POST',
@@ -842,9 +874,10 @@ export type UploadDocumentResponse = {
   ocr_confidence?: number;
 };
 
-export async function uploadOnboardingDocument(token: string, file: File): Promise<UploadDocumentResponse> {
+export async function uploadOnboardingDocument(token: string, file: File, type: 'ktp' | 'kk' | 'skck' = 'ktp'): Promise<UploadDocumentResponse> {
   const formData = new FormData();
   formData.append('file', file);
+  formData.append('type', type);
   
   const res = await authFetch(`${API_BASE}/public/onboarding/${token}/upload-document`, {
     method: 'POST',
@@ -1401,6 +1434,19 @@ export async function getContractPresignedUrl(id: number): Promise<string> {
   return data.url ?? '';
 }
 
+/** Download contract document via backend (streams from MinIO). Uses auth; triggers file save in browser. */
+export async function downloadContractDocument(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/contracts/${id}/download`, { credentials: 'include', headers: authHeaders() });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? `contract-${id}.html`;
+  downloadBlob(blob, filename);
+}
+
 /** Generate document from contract draft (HTML, viewable in browser; you can Print to PDF). Only for draft contracts. */
 export async function generateContractDocument(contractId: number): Promise<Contract> {
   const res = await authFetch(`${API_BASE}/contracts/${contractId}/generate-pdf`, {
@@ -1530,8 +1576,11 @@ export type WarningLetter = {
   employee_id: number;
   type: string;
   warning_date: string;
+  duration_months?: number;
   description?: string;
   file_path?: string;
+  company_policy_file_path?: string;
+  additional_reference_file_path?: string;
   created_by?: number;
   created_at: string;
 };
@@ -1571,13 +1620,28 @@ export async function createWarning(body: {
   employee_id: number;
   type: string;
   warning_date: string;
+  duration_months: number;
   description?: string;
+  company_policy_file_path?: string;
+  additional_reference_file_path?: string;
 }): Promise<WarningLetter> {
   const res = await authFetch(`${API_BASE}/warnings`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
     body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create warning');
+  return data;
+}
+
+/** Create warning with optional file uploads (Company Policy Reference, Additional Reference). Use FormData with fields: employee_id, type, warning_date, duration_months, description?, company_policy (file), additional_reference (file). */
+export async function createWarningWithFiles(formData: FormData): Promise<WarningLetter> {
+  const res = await authFetch(`${API_BASE}/warnings`, {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create warning');

@@ -118,6 +118,7 @@
     "allClients": "All Clients",
     "allProjects": "All Projects",
     "clientProject": "Client / Project",
+    "employmentType": "Employment Type",
     "picRecruiter": "PIC / Recruiter",
     "fullName": "Full Name",
     "email": "Email",
@@ -392,8 +393,8 @@
     "view": "View"
   },
   "pendingHrd": {
-    "title": "Pending HRD",
-    "subtitle": "Onboarding requests awaiting HRD approval"
+    "title": "Request Contract",
+    "subtitle": "Review and approve contract requests"
   },
   "recruitmentBoard": {
     "title": "Recruitment Board",

@@ -547,8 +547,7 @@ function ContractsTab({
                         type="button"
                         onClick={async () => {
                           try {
-                            const url = await api.getContractPresignedUrl(contract.id);
-                            await downloadFromUrl(url, `contract-${contract.id}.pdf`);
+                            await api.downloadContractDocument(contract.id);
                           } catch {
                             toast.error('Failed to open document');
                           }

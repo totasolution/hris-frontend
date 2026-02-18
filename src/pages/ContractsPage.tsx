@@ -10,7 +10,6 @@ import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Contract } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 
 export default function ContractsPage() {
@@ -52,8 +51,7 @@ export default function ContractsPage() {
 
   const handleDownload = async (c: Contract) => {
     try {
-      const url = await api.getContractPresignedUrl(c.id);
-      await downloadFromUrl(url, `contract-${c.id}.pdf`);
+      await api.downloadContractDocument(c.id);
     } catch (e) {
       toast.error(t('pages:contracts.downloadFailed'));
     }

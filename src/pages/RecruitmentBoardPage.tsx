@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import Select from 'react-select';
 import { ButtonLink } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
@@ -18,6 +17,54 @@ type Stage = {
   color: string;
 };
 
+// Board columns: Screening, Rejected, OJT, Requested Contract, Hired
+type BoardColumn = {
+  id: string;
+  label: string;
+  color: string;
+  statuses: string[];
+  defaultStatus: string;
+};
+
+const BOARD_COLUMNS: BoardColumn[] = [
+  {
+    id: 'screening',
+    label: 'Screening',
+    color: 'bg-slate-100 text-slate-600',
+    statuses: ['new', 'screening', 'screened_pass', 'submitted', 'interview_scheduled', 'interview_passed', 'onboarding', 'onboarding_completed'],
+    defaultStatus: 'new',
+  },
+  {
+    id: 'rejected',
+    label: 'Rejected',
+    color: 'bg-red-50 text-red-700',
+    statuses: ['screened_fail', 'interview_failed', 'rejected'],
+    defaultStatus: 'rejected',
+  },
+  {
+    id: 'ojt',
+    label: 'OJT (On Job Training)',
+    color: 'bg-teal-50 text-teal-700',
+    statuses: ['ojt'],
+    defaultStatus: 'ojt',
+  },
+  {
+    id: 'contract_requested',
+    label: 'Requested Contract',
+    color: 'bg-orange-50 text-orange-700',
+    statuses: ['contract_requested'],
+    defaultStatus: 'contract_requested',
+  },
+  {
+    id: 'hired',
+    label: 'Hired',
+    color: 'bg-brand text-white',
+    statuses: ['hired'],
+    defaultStatus: 'hired',
+  },
+];
+
+// All stages for list view dropdown
 const STAGES: Stage[] = [
   { id: 'new', label: 'New', color: 'bg-slate-100 text-slate-600' },
   { id: 'screening', label: 'Screening', color: 'bg-brand-lighter text-brand' },
@@ -29,6 +76,7 @@ const STAGES: Stage[] = [
   { id: 'interview_failed', label: 'Interview Failed', color: 'bg-rose-50 text-rose-700' },
   { id: 'onboarding', label: 'Onboarding', color: 'bg-teal-50 text-teal-700' },
   { id: 'onboarding_completed', label: 'Onboarding Done', color: 'bg-cyan-50 text-cyan-700' },
+  { id: 'ojt', label: 'OJT', color: 'bg-teal-50 text-teal-700' },
   { id: 'contract_requested', label: 'Contract Requested', color: 'bg-orange-50 text-orange-700' },
   { id: 'hired', label: 'Hired', color: 'bg-brand text-white' },
   { id: 'rejected', label: 'Rejected', color: 'bg-slate-200 text-slate-500' },
@@ -71,7 +119,6 @@ export default function RecruitmentBoardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [myActiveOnly, setMyActiveOnly] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       const saved = localStorage.getItem('recruitment-board-view');
@@ -115,7 +162,6 @@ export default function RecruitmentBoardPage() {
         const params: any = {};
         if (selectedProjectId) params.project_id = parseInt(selectedProjectId, 10);
         if (selectedClientId) params.client_id = parseInt(selectedClientId, 10);
-        if (myActiveOnly) params.my_active_only = true;
         const res = await api.getCandidates({ ...params, per_page: 1000 });
         setCandidates(res.data);
       } catch (err) {
@@ -125,15 +171,17 @@ export default function RecruitmentBoardPage() {
       }
     }
     loadCandidates();
-  }, [selectedProjectId, selectedClientId, myActiveOnly]);
+  }, [selectedProjectId, selectedClientId]);
 
   const filteredProjects = projects.filter(p => !selectedClientId || String(p.client_id) === selectedClientId);
   const selectedProject = projects.find(p => String(p.id) === selectedProjectId);
   const selectedClient = clients.find(c => String(c.id) === selectedClientId);
 
-  const getCandidatesByStage = (stageId: string) => {
-    return candidates.filter(c => c.screening_status === stageId);
+  const getCandidatesByColumn = (column: BoardColumn) => {
+    return candidates.filter(c => column.statuses.includes(c.screening_status));
   };
+
+  const getStatusColor = (status: string) => STAGES.find(s => s.id === status)?.color ?? 'bg-slate-100 text-slate-600';
 
   const handleStatusChange = async (candidateId: number, newStatus: string) => {
     try {
@@ -142,37 +190,6 @@ export default function RecruitmentBoardPage() {
       toast.success(`Candidate moved to ${newStatus.replace(/_/g, ' ')}`);
     } catch (err) {
       toast.error('Failed to update status');
-    }
-  };
-
-  const onDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-
-    if (!destination) return;
-
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
-
-    const candidateId = parseInt(draggableId, 10);
-    const newStatus = destination.droppableId;
-
-    setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, screening_status: newStatus } : c));
-
-    try {
-      await api.updateCandidate(candidateId, { screening_status: newStatus });
-      toast.success(`Candidate moved to ${newStatus.replace(/_/g, ' ')}`);
-    } catch (err) {
-      const params: any = {};
-      if (selectedProjectId) params.project_id = parseInt(selectedProjectId, 10);
-      if (selectedClientId) params.client_id = parseInt(selectedClientId, 10);
-      if (myActiveOnly) params.my_active_only = true;
-      const res = await api.getCandidates({ ...params, per_page: 1000 });
-      setCandidates(res.data);
-      toast.error('Failed to update candidate status');
     }
   };
 
@@ -220,15 +237,6 @@ export default function RecruitmentBoardPage() {
               />
             </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={myActiveOnly}
-              onChange={(e) => setMyActiveOnly(e.target.checked)}
-              className="rounded border-slate-300 text-brand focus:ring-brand"
-            />
-            <span className="text-sm font-semibold text-slate-600">My active candidates only</span>
-          </label>
           <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200/60">
             <button
               type="button"
@@ -347,127 +355,89 @@ export default function RecruitmentBoardPage() {
           </Table>
         </Card>
       ) : (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
-            {STAGES.map((stage) => {
-              const stageCandidates = getCandidatesByStage(stage.id);
-              return (
-                <div key={stage.id} className="flex-shrink-0 w-80 space-y-6">
-                  <div className="flex items-center justify-between px-4">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-black text-brand-dark text-xs uppercase tracking-[0.2em] font-headline">{stage.label}</h3>
-                      <span className="bg-brand-lighter text-brand text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm">
-                        {stageCandidates.length}
-                      </span>
-                    </div>
+        <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
+          {BOARD_COLUMNS.map((column) => {
+            const stageCandidates = getCandidatesByColumn(column);
+            return (
+              <div key={column.id} className="flex-shrink-0 w-80 space-y-6">
+                <div className="flex items-center justify-between px-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="font-black text-brand-dark text-xs uppercase tracking-[0.2em] font-headline">{column.label}</h3>
+                    <span className="bg-brand-lighter text-brand text-[10px] font-black px-2.5 py-1 rounded-lg shadow-sm">
+                      {stageCandidates.length}
+                    </span>
                   </div>
+                </div>
 
-                  <Droppable droppableId={stage.id}>
-                    {(provided, snapshot) => (
-                      <div
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                        className={`space-y-4 min-h-[600px] p-4 rounded-[2rem] border-2 transition-all duration-300 ${
-                          snapshot.isDraggingOver 
-                            ? 'bg-brand-lighter/50 border-brand/30 shadow-inner' 
-                            : 'bg-white/50 border-slate-100 shadow-sm'
-                        }`}
-                      >
-                        {stageCandidates.length === 0 && !snapshot.isDraggingOver ? (
-                          <div className="py-12 text-center flex flex-col items-center justify-center space-y-3">
-                            <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
-                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                              </svg>
-                            </div>
-                            <p className="text-[10px] text-slate-300 uppercase font-black tracking-[0.2em]">Empty</p>
-                          </div>
-                        ) : (
-                          stageCandidates.map((c, index) => (
-                            <Draggable key={c.id} draggableId={String(c.id)} index={index}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className="outline-none"
-                                >
-                                  <Card className={`group transition-all duration-300 ${
-                                    snapshot.isDragging 
-                                      ? 'shadow-2xl ring-4 ring-brand/20 rotate-3 scale-105 z-50' 
-                                      : 'hover:shadow-xl hover:-translate-y-1 border-slate-100'
-                                  }`}>
-                                    <CardBody className="!p-5 space-y-4">
-                                      <div className="flex justify-between items-start">
-                                        <Link 
-                                          to={`/candidates/${c.id}`} 
-                                          className="font-bold text-brand-dark hover:text-brand transition-colors text-sm leading-tight font-headline"
-                                          onClick={(e) => snapshot.isDragging && e.preventDefault()}
-                                        >
-                                          {c.full_name}
-                                        </Link>
-                                        {c.screening_rating && (
-                                          <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg text-amber-500">
-                                            <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                            <span className="text-[10px] font-black">{c.screening_rating}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      
-                                      <div className="flex flex-col gap-1">
-                                        <p className="text-[10px] text-slate-400 font-bold truncate tracking-wider">{c.email}</p>
-                                        <div className="flex flex-col gap-0.5 mt-1">
-                                          <span className="text-[9px] font-black text-brand uppercase tracking-tight">{c.client_name || 'No Client'}</span>
-                                          <span className="text-[9px] text-slate-400 font-bold tracking-tight">{c.project_name || 'No Project'}</span>
-                                        </div>
-                                        {c.pic_name && (
-                                          <div className="flex items-center gap-1.5 mt-1">
-                                            <div className="h-4 w-4 rounded-full bg-brand/10 flex items-center justify-center text-[8px] font-black text-brand">
-                                              {c.pic_name.charAt(0)}
-                                            </div>
-                                            <p className="text-[10px] text-slate-400 font-bold tracking-tight">PIC: {c.pic_name}</p>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                                        <div className="flex gap-2">
-                                          {STAGES.findIndex(s => s.id === stage.id) < STAGES.length - 1 && (
-                                            <button
-                                              onClick={() => handleStatusChange(c.id, STAGES[STAGES.findIndex(s => s.id === stage.id) + 1].id)}
-                                              className="p-2 text-slate-300 hover:text-brand hover:bg-brand-lighter rounded-xl transition-all"
-                                              title="Move to next stage"
-                                            >
-                                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                              </svg>
-                                            </button>
-                                          )}
-                                        </div>
-                                        <Link
-                                          to={`/candidates/${c.id}`}
-                                          className="text-[10px] font-black text-slate-400 hover:text-brand uppercase tracking-[0.2em] transition-colors"
-                                          onClick={(e) => snapshot.isDragging && e.preventDefault()}
-                                        >
-                                          Details
-                                        </Link>
-                                      </div>
-                                    </CardBody>
-                                  </Card>
+                <div className="space-y-4 min-h-[600px] p-4 rounded-[2rem] border-2 bg-white/50 border-slate-100 shadow-sm">
+                  {stageCandidates.length === 0 ? (
+                    <div className="py-12 text-center flex flex-col items-center justify-center space-y-3">
+                      <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <p className="text-[10px] text-slate-300 uppercase font-black tracking-[0.2em]">Empty</p>
+                    </div>
+                  ) : (
+                    stageCandidates.map((c) => (
+                      <div key={c.id} className="outline-none">
+                        <Card className="group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-slate-100">
+                          <CardBody className="!p-5 space-y-4">
+                            <div className="flex justify-between items-start">
+                              <Link
+                                to={`/candidates/${c.id}`}
+                                className="font-bold text-brand-dark hover:text-brand transition-colors text-sm leading-tight font-headline"
+                              >
+                                {c.full_name}
+                              </Link>
+                              {c.screening_rating && (
+                                <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg text-amber-500">
+                                  <svg className="w-3 h-3 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                  <span className="text-[10px] font-black">{c.screening_rating}</span>
                                 </div>
                               )}
-                            </Draggable>
-                          ))
-                        )}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
-              );
-            })}
-          </div>
-        </DragDropContext>
+                            </div>
+
+                            <div className="flex flex-col gap-1">
+                              <p className="text-[10px] text-slate-400 font-bold truncate tracking-wider">{c.email}</p>
+                              <div className="flex flex-col gap-0.5 mt-1">
+                                <span className="text-[9px] font-black text-brand uppercase tracking-tight">{c.client_name || 'No Client'}</span>
+                                <span className="text-[9px] text-slate-400 font-bold tracking-tight">{c.project_name || 'No Project'}</span>
+                              </div>
+                              {c.pic_name && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="h-4 w-4 rounded-full bg-brand/10 flex items-center justify-center text-[8px] font-black text-brand">
+                                    {c.pic_name.charAt(0)}
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 font-bold tracking-tight">PIC: {c.pic_name}</p>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-lg ${getStatusColor(c.screening_status)}`}>
+                                  {c.screening_status.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                              <Link
+                                to={`/candidates/${c.id}`}
+                                className="text-[10px] font-black text-slate-400 hover:text-brand uppercase tracking-[0.2em] transition-colors"
+                              >
+                                Details
+                              </Link>
+                            </div>
+                          </CardBody>
+                      </Card>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
       )}
     </div>
   );

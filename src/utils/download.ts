@@ -12,16 +12,28 @@ export async function downloadFromUrl(url: string, filename: string = 'download'
   const res = await fetch(url, { mode: 'cors' });
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   const blob = await res.blob();
+  downloadBlob(blob, filename);
+}
+
+/** Trigger a download of a Blob with the given filename. */
+export function downloadBlob(blob: Blob, filename: string = 'download'): void {
+  const safe = safeFilename(filename) || 'download';
   const objectUrl = URL.createObjectURL(blob);
-  const safe = safeFilename(filename);
   try {
     const a = document.createElement('a');
     a.href = objectUrl;
-    a.download = safe || 'download';
+    a.download = safe;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
+}
+
+/** Parse filename from Content-Disposition header (e.g. attachment; filename="contract-1.html"). */
+export function parseFilenameFromDisposition(disposition: string | null): string | null {
+  if (!disposition) return null;
+  const match = disposition.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+  return match ? match[1].trim() : null;
 }

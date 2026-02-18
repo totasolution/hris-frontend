@@ -118,6 +118,7 @@
     "allClients": "Semua Klien",
     "allProjects": "Semua Proyek",
     "clientProject": "Klien / Proyek",
+    "employmentType": "Tipe Pekerjaan",
     "picRecruiter": "PIC / Rekruter",
     "fullName": "Nama Lengkap",
     "email": "Email",
@@ -392,8 +393,8 @@
     "view": "Lihat"
   },
   "pendingHrd": {
-    "title": "Pending HRD",
-    "subtitle": "Permintaan onboarding menunggu persetujuan HRD"
+    "title": "Permintaan Kontrak",
+    "subtitle": "Tinjau dan setujui permintaan kontrak"
   },
   "recruitmentBoard": {
     "title": "Papan Rekrutmen",

@@ -7,6 +7,7 @@ import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
+import { useAuth } from '../contexts/AuthContext';
 import type { Candidate, Client } from '../services/api';
 import * as api from '../services/api';
 
@@ -44,6 +45,9 @@ const customSelectStyles = {
 
 export default function CandidatesPage() {
   const { t } = useTranslation(['pages', 'common']);
+  const { permissions = [] } = useAuth();
+  const canCreateCandidate = permissions.includes('candidate:create');
+  const canEditCandidate = permissions.includes('candidate:update');
   const [searchParams] = useSearchParams();
   const [list, setList] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,6 +113,7 @@ export default function CandidatesPage() {
     { value: 'interview_failed', label: 'Interview Failed' },
     { value: 'onboarding', label: 'Onboarding' },
     { value: 'onboarding_completed', label: 'Onboarding Done (form submitted)' },
+    { value: 'ojt', label: 'OJT (On Job Training)' },
     { value: 'contract_requested', label: 'Contract Requested' },
     { value: 'hired', label: 'Hired' },
     { value: 'rejected', label: 'Rejected' },
@@ -119,7 +124,11 @@ export default function CandidatesPage() {
       <PageHeader
         title={t('pages:candidates.title')}
         subtitle={t('pages:candidates.subtitle')}
-        actions={<ButtonLink to="/candidates/new">{t('pages:candidates.addCandidate')}</ButtonLink>}
+        actions={
+          canCreateCandidate ? (
+            <ButtonLink to="/candidates/new">{t('pages:candidates.addCandidate')}</ButtonLink>
+          ) : undefined
+        }
       />
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
@@ -189,6 +198,7 @@ export default function CandidatesPage() {
               <TR>
                 <TH>{t('pages:candidates.fullName')}</TH>
                 <TH>{t('pages:candidates.clientProject')}</TH>
+                <TH>{t('pages:candidates.employmentType')}</TH>
                 <TH>{t('pages:candidates.picRecruiter')}</TH>
                 <TH>{t('pages:candidates.status')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -197,7 +207,7 @@ export default function CandidatesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-12 text-center text-slate-400">
+                  <TD colSpan={6} className="py-12 text-center text-slate-400">
                     {t('pages:candidates.noCandidatesMatching')}
                   </TD>
                 </TR>
@@ -214,6 +224,11 @@ export default function CandidatesPage() {
                       </div>
                     </TD>
                     <TD>
+                      <span className="text-sm font-medium text-slate-600">
+                        {c.employment_type === 'pkwt' ? 'PKWT' : c.employment_type === 'partnership' ? 'Mitra Kerja' : '—'}
+                      </span>
+                    </TD>
+                    <TD>
                       <div className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-brand/10 flex items-center justify-center text-[10px] font-black text-brand">
                           {c.pic_name?.charAt(0) ?? '?'}
@@ -226,13 +241,14 @@ export default function CandidatesPage() {
                         c.screening_status === 'hired' ? 'bg-green-100 text-green-700' :
                         c.screening_status === 'rejected' ? 'bg-red-100 text-red-700' :
                         c.screening_status === 'onboarding_completed' ? 'bg-cyan-100 text-cyan-700' :
+                        c.screening_status === 'ojt' ? 'bg-teal-100 text-teal-700' :
                         c.screening_status === 'contract_requested' ? 'bg-amber-100 text-amber-700' :
                         c.screening_status === 'onboarding' ? 'bg-teal-100 text-teal-700' :
                         'bg-slate-100 text-slate-600'
                       }`}>
                         {c.screening_status.replace(/_/g, ' ')}
                       </span>
-                      {c.screening_status === 'onboarding_completed' && (
+                      {(c.screening_status === 'onboarding_completed' || c.screening_status === 'ojt') && (
                         <span className="ml-1.5 text-[10px] text-cyan-600 font-medium normal-case" title={t('pages:candidates.formSubmitted')}>
                           {t('pages:candidates.formSubmitted')}
                         </span>
@@ -250,15 +266,17 @@ export default function CandidatesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </Link>
-                        <Link
-                          to={`/candidates/${c.id}/edit`}
-                          className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
-                          title={t('common:edit')}
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </Link>
+                        {canEditCandidate && (
+                          <Link
+                            to={`/candidates/${c.id}/edit`}
+                            className="p-2 text-slate-400 hover:text-blue-500 transition-colors"
+                            title={t('common:edit')}
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </Link>
+                        )}
                       </div>
                     </TD>
                   </TR>

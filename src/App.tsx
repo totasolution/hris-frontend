@@ -23,6 +23,7 @@ import CandidateDetailPage from './pages/CandidateDetailPage';
 import OnboardingFormPage from './pages/OnboardingFormPage';
 import ContractSigningPage from './pages/ContractSigningPage';
 import PendingHRDPage from './pages/PendingHRDPage';
+import PendingHRDContractCreatePage from './pages/PendingHRDContractCreatePage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeFormPage from './pages/EmployeeFormPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
@@ -104,6 +105,7 @@ function AppRoutes() {
         <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="candidates/:id/edit" element={<CandidateFormPage />} />
         <Route path="onboarding/pending-hrd" element={<PendingHRDPage />} />
+        <Route path="onboarding/pending-hrd/create-contract" element={<PendingHRDContractCreatePage />} />
         <Route path="employees" element={<EmployeesPage />} />
         <Route path="employees/new" element={<EmployeeFormPage />} />
         <Route path="employees/:id" element={<EmployeeDetailPage />} />

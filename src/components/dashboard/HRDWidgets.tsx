@@ -70,7 +70,7 @@ export function HRDWidgets({ permissions }: HRDWidgetsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <QuickActions
           actions={[
-            { label: 'Review Approvals', path: '/onboarding/pending-hrd', variant: 'primary', permission: 'onboarding:approve' },
+            { label: 'Request Contract', path: '/onboarding/pending-hrd', variant: 'primary', permission: 'rc:view' },
             { label: 'Create Warning', path: '/warnings/new', variant: 'secondary', permission: 'warning:create' },
             { label: 'View Contracts', path: '/contracts', variant: 'secondary', permission: 'contract:read' },
             { label: 'Manage Employees', path: '/employees', variant: 'secondary', permission: 'employee:read' },

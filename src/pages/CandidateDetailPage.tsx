@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
@@ -10,6 +10,7 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Candidate, CandidateDocument } from '../services/api';
 import * as api from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 
@@ -40,9 +41,12 @@ export default function CandidateDetailPage() {
   const [hiring, setHiring] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const toast = useToast();
+  const { permissions = [] } = useAuth();
 
   const candidateId = id ? parseInt(id, 10) : 0;
   const candidateReturnTo = id ? `/candidates/${id}` : '';
+  const canUploadCandidateDoc = permissions.includes('candidate:upload_doc');
+  const canDeleteCandidateDoc = permissions.includes('candidate:delete_doc');
 
   const load = async () => {
     if (!candidateId) return;
@@ -57,7 +61,7 @@ export default function CandidateDetailPage() {
       setDocuments(docs);
 
       // Fetch onboarding data if status is relevant
-      if (['onboarding', 'onboarding_completed', 'contract_requested', 'hired'].includes(c.screening_status)) {
+      if (['onboarding', 'onboarding_completed', 'ojt', 'contract_requested', 'hired'].includes(c.screening_status)) {
         try {
           const data = await api.getOnboardingFormByCandidate(candidateId);
           setOnboardingData(data);
@@ -110,19 +114,17 @@ export default function CandidateDetailPage() {
     load();
   }, [candidateId]);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleUpload = async (file: File, documentType: api.CandidateDocumentType) => {
     if (!file || !candidateId) return;
     setUploading(true);
     try {
-      await api.uploadCandidateDocument(candidateId, file);
+      await api.uploadCandidateDocument(candidateId, file, documentType);
       toast.success('File uploaded successfully');
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   };
 
@@ -132,6 +134,8 @@ export default function CandidateDetailPage() {
     try {
       const link = await api.createOnboardingLink(candidateId);
       setOnboardingLink(link);
+      // Update candidate status in state so the link block shows without refresh (backend sets status to 'onboarding')
+      setCandidate((prev) => (prev ? { ...prev, screening_status: 'onboarding' } : prev));
       toast.success('Onboarding link generated');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create link');
@@ -142,10 +146,23 @@ export default function CandidateDetailPage() {
 
   const handleDownload = async (docId: number) => {
     try {
+      const doc = documents.find((d) => d.id === docId);
+      const filename = doc?.file_name ?? `document-${docId}`;
       const url = await api.getCandidateDocumentUrl(candidateId, docId);
-      await downloadFromUrl(url, `document-${docId}.pdf`);
+      await downloadFromUrl(url, filename);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to get download URL');
+    }
+  };
+
+  const handleDeleteDocument = async (docId: number) => {
+    if (!candidateId) return;
+    try {
+      await api.deleteCandidateDocument(candidateId, docId);
+      toast.success('Document deleted');
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete document');
     }
   };
 
@@ -228,6 +245,7 @@ export default function CandidateDetailPage() {
   const showGenerateLink = candidate.screening_status === 'interview_passed';
   const showRequestContract =
     candidate.screening_status === 'onboarding_completed' ||
+    candidate.screening_status === 'ojt' ||
     (candidate.screening_status === 'contract_requested' && !!onboardingData?.hrd_rejected_at);
   const contractRequestedWaitingHrd =
     candidate.screening_status === 'contract_requested' && !onboardingData?.hrd_rejected_at;
@@ -236,6 +254,7 @@ export default function CandidateDetailPage() {
     'interview_passed',
     'onboarding',
     'onboarding_completed',
+    'ojt',
     'contract_requested',
     'hired',
   ].includes(candidate.screening_status);
@@ -331,10 +350,14 @@ export default function CandidateDetailPage() {
 
         {activeTab === 'documents' && (
           <DocumentsTab
+            candidateId={candidateId}
             documents={documents}
-            handleUpload={handleUpload}
-            handleDownload={handleDownload}
             uploading={uploading}
+            canUpload={canUploadCandidateDoc}
+            canDelete={canDeleteCandidateDoc}
+            onUpload={handleUpload}
+            onDownload={handleDownload}
+            onDelete={handleDeleteDocument}
           />
         )}
 
@@ -445,6 +468,7 @@ function OverviewTab({
                   candidate.screening_status === 'hired' ? 'bg-green-100 text-green-700' :
                   candidate.screening_status === 'rejected' ? 'bg-red-100 text-red-700' :
                   candidate.screening_status === 'contract_requested' ? 'bg-amber-100 text-amber-700' :
+                  candidate.screening_status === 'ojt' ? 'bg-teal-100 text-teal-700' :
                   'bg-slate-100 text-slate-600'
                 }`}>
                   {candidate.screening_status.replace(/_/g, ' ')}
@@ -453,6 +477,12 @@ function OverviewTab({
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Phone Number</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.phone ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Employment Type</p>
+                <p className="text-sm font-bold text-brand-dark">
+                  {candidate.employment_type === 'pkwt' ? 'PKWT' : candidate.employment_type === 'partnership' ? 'Mitra Kerja' : '—'}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">PIC / Recruiter</p>
@@ -488,7 +518,7 @@ function OverviewTab({
                     </Button>
                   </>
                 )}
-                {(candidate.screening_status === 'contract_requested' || candidate.screening_status === 'onboarding_completed') && (
+                {(candidate.screening_status === 'contract_requested' || candidate.screening_status === 'onboarding_completed' || candidate.screening_status === 'ojt') && (
                   <Button 
                     onClick={handleHire} 
                     className="!py-2 !text-xs !bg-green-600 hover:!bg-green-700"
@@ -638,7 +668,7 @@ function OverviewTab({
                   </div>
                 )}
 
-                {formLinkUrl && candidate.screening_status === 'onboarding' && (
+                {formLinkUrl && (
                   <div className="space-y-4">
                     <div className="p-4 bg-white rounded-xl border border-brand/10 shadow-sm text-center">
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 font-headline">Form Link Active</p>
@@ -891,61 +921,223 @@ function OnboardingTab({
   );
 }
 
+// Document type options for upload (matches backend CandidateDocumentType)
+const CANDIDATE_DOCUMENT_TYPES: { value: api.CandidateDocumentType; label: string }[] = [
+  { value: 'cv', label: 'CV / Resume' },
+  { value: 'ktp', label: 'KTP (ID Card)' },
+  { value: 'kk', label: 'Kartu Keluarga (KK)' },
+  { value: 'skck', label: 'SKCK' },
+  { value: 'other', label: 'Other' },
+];
+
+function formatDocumentType(t: string): string {
+  return CANDIDATE_DOCUMENT_TYPES.find((o) => o.value === t)?.label ?? t;
+}
+
 // Documents Tab Component
+const MAX_CANDIDATE_DOCUMENT_SIZE = 5 * 1024 * 1024; // 5MB
+
 function DocumentsTab({
+  candidateId,
   documents,
-  handleUpload,
-  handleDownload,
   uploading,
+  canUpload,
+  canDelete,
+  onUpload,
+  onDownload,
+  onDelete,
 }: {
+  candidateId: number;
   documents: CandidateDocument[];
-  handleUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleDownload: (docId: number) => void;
   uploading: boolean;
+  canUpload: boolean;
+  canDelete: boolean;
+  onUpload: (file: File, documentType: api.CandidateDocumentType) => void;
+  onDownload: (docId: number) => void;
+  onDelete: (docId: number) => void;
 }) {
+  const [uploadType, setUploadType] = useState<api.CandidateDocumentType>('cv');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [fileSizeError, setFileSizeError] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const toast = useToast();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    setFileSizeError(null);
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    if (file.size > MAX_CANDIDATE_DOCUMENT_SIZE) {
+      setSelectedFile(null);
+      setFileSizeError('File must be 5MB or less.');
+      toast.error('File must be 5MB or less.');
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleSubmitUpload = async () => {
+    if (!selectedFile) return;
+    if (selectedFile.size > MAX_CANDIDATE_DOCUMENT_SIZE) {
+      toast.error('File must be 5MB or less.');
+      return;
+    }
+    onUpload(selectedFile, uploadType);
+    setSelectedFile(null);
+    setFileSizeError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex justify-between items-center">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Documents</h3>
-        <label className="cursor-pointer group">
-          <span className="text-xs font-bold text-brand group-hover:text-brand-dark uppercase tracking-widest transition-colors">
-            {uploading ? 'Uploading...' : '+ Upload File'}
-          </span>
-          <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
-        </label>
-      </CardHeader>
-      <Table>
-        <THead>
-          <TR>
-            <TH>File Name</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {documents.length === 0 ? (
+    <div className="space-y-8">
+      {/* Upload section (only for users with candidate:upload_doc) */}
+      {canUpload ? (
+        <Card>
+          <CardHeader>
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
+              Upload document
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Choose the document type and file to upload for this candidate.
+            </p>
+          </CardHeader>
+          <CardBody className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Document type</label>
+                <Select
+                  value={uploadType}
+                  onChange={(e) => setUploadType((e.target.value || 'cv') as api.CandidateDocumentType)}
+                  className="w-full"
+                >
+                  {CANDIDATE_DOCUMENT_TYPES.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">File</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20"
+                    onChange={handleFileChange}
+                    disabled={uploading}
+                  />
+                  {selectedFile && (
+                    <span className="text-sm text-slate-600 font-medium truncate max-w-[200px]" title={selectedFile.name}>
+                      {selectedFile.name}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 mt-1.5">Max size: 5MB</p>
+                {fileSizeError && (
+                  <p className="text-xs text-red-600 font-medium mt-1">{fileSizeError}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+              <Button
+                onClick={handleSubmitUpload}
+                disabled={!selectedFile || uploading}
+              >
+                {uploading ? 'Uploading...' : 'Upload document'}
+              </Button>
+              {selectedFile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="text-sm font-medium text-slate-500 hover:text-slate-700"
+                >
+                  Clear selection
+                </button>
+              )}
+            </div>
+          </CardBody>
+        </Card>
+      ) : null}
+
+      {/* Uploaded documents list */}
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
+            Uploaded documents
+          </h3>
+        </CardHeader>
+        <Table>
+          <THead>
             <TR>
-              <TD colSpan={2} className="py-8 text-center text-slate-400">No documents uploaded yet.</TD>
+              <TH>Document type</TH>
+              <TH>File name</TH>
+              <TH className="text-right">Actions</TH>
             </TR>
-          ) : (
-            documents.map((doc) => (
-              <TR key={doc.id}>
-                <TD className="font-medium">{doc.file_name}</TD>
-                <TD className="text-right">
-                  <button
-                    onClick={() => handleDownload(doc.id)}
-                    className="p-2 text-slate-400 hover:text-brand transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
+          </THead>
+          <TBody>
+            {documents.length === 0 ? (
+              <TR>
+                <TD colSpan={3} className="py-8 text-center text-slate-400">
+                  No documents uploaded yet. Use the form above to add a document.
                 </TD>
               </TR>
-            ))
-          )}
-        </TBody>
-      </Table>
-    </Card>
+            ) : (
+              documents.map((doc) => (
+                <TR key={doc.id}>
+                  <TD className="font-medium text-slate-700">{formatDocumentType(doc.type)}</TD>
+                  <TD className="text-sm text-slate-600">{doc.file_name}</TD>
+                  <TD className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => onDownload(doc.id)}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Download"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                      {canDelete && (
+                        <button
+                          onClick={async () => {
+                            if (!window.confirm(`Delete "${doc.file_name}"? This cannot be undone.`)) return;
+                            setDeletingId(doc.id);
+                            try {
+                              await onDelete(doc.id);
+                            } finally {
+                              setDeletingId(null);
+                            }
+                          }}
+                          disabled={deletingId === doc.id}
+                          className="p-2 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          title="Delete"
+                        >
+                          {deletingId === doc.id ? (
+                            <span className="inline-block w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4m1 4h.01M12 4h.01M17 4v1a1 1 0 01-1 1H8a1 1 0 01-1-1V4" />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </TD>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+      </Card>
+    </div>
   );
 }
 
@@ -1015,7 +1207,7 @@ function ContractsTab({
                 <TD className="text-sm text-slate-500">{contract.created_at ? formatDate(contract.created_at) : '—'}</TD>
                 <TD className="text-right">
                   <div className="flex flex-col items-end gap-2">
-                    {contract.status === 'draft' && (
+                    {/* {contract.status === 'draft' && (
                       <button
                         type="button"
                         onClick={async () => {
@@ -1039,7 +1231,7 @@ function ContractsTab({
                       >
                         {sendingContract === contract.id ? 'Sending...' : 'Send for Signature'}
                       </button>
-                    )}
+                    )} */}
                     {contract.status === 'sent_for_signature' && (
                       contractSigningUrls[contract.id] ? (
                         <div className="flex items-center gap-2 mb-2">
@@ -1103,8 +1295,7 @@ function ContractsTab({
                           type="button"
                           onClick={async () => {
                             try {
-                              const url = await api.getContractPresignedUrl(contract.id);
-                              await downloadFromUrl(url, `contract-${contract.id}.pdf`);
+                              await api.downloadContractDocument(contract.id);
                             } catch (err) {
                               toast.error('Failed to open document');
                             }

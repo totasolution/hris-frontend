@@ -13,6 +13,9 @@ export default function WarningFormPage() {
   const [type, setType] = useState('SP1');
   const [warningDate, setWarningDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
+  const [durationMonths, setDurationMonths] = useState('1');
+  const [companyPolicyFile, setCompanyPolicyFile] = useState<File | null>(null);
+  const [additionalRefFile, setAdditionalRefFile] = useState<File | null>(null);
   const [employees, setEmployees] = useState<api.Employee[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,17 +24,29 @@ export default function WarningFormPage() {
     api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
   }, []);
 
+  const MAX_FILE_MB = 5;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (companyPolicyFile && companyPolicyFile.size > MAX_FILE_MB * 1024 * 1024) {
+      setError(`Company Policy Reference must be ${MAX_FILE_MB}MB or less`);
+      return;
+    }
+    if (additionalRefFile && additionalRefFile.size > MAX_FILE_MB * 1024 * 1024) {
+      setError(`Additional Reference must be ${MAX_FILE_MB}MB or less`);
+      return;
+    }
     setSubmitting(true);
     try {
-      await api.createWarning({
-        employee_id: parseInt(employeeId, 10),
-        type,
-        warning_date: warningDate,
-        description: description.trim() || undefined,
-      });
+      const formData = new FormData();
+      formData.set('employee_id', employeeId);
+      formData.set('type', type);
+      formData.set('warning_date', warningDate);
+      formData.set('duration_months', durationMonths);
+      if (description.trim()) formData.set('description', description.trim());
+      if (companyPolicyFile) formData.set('company_policy', companyPolicyFile);
+      if (additionalRefFile) formData.set('additional_reference', additionalRefFile);
+      await api.createWarningWithFiles(formData);
       navigate('/warnings');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
@@ -86,6 +101,20 @@ export default function WarningFormPage() {
                 onChange={(e) => setWarningDate(e.target.value)}
                 required
               />
+              <Select
+                label="Duration (months)"
+                value={durationMonths}
+                onChange={(e) => setDurationMonths(e.target.value)}
+                required
+              >
+                <option value="">Select duration</option>
+                <option value="1">1 month</option>
+                <option value="2">2 months</option>
+                <option value="3">3 months</option>
+                <option value="4">4 months</option>
+                <option value="5">5 months</option>
+                <option value="6">6 months</option>
+              </Select>
             </div>
 
             <div className="pt-6 border-t border-slate-50">
@@ -96,6 +125,43 @@ export default function WarningFormPage() {
                 rows={4}
                 placeholder="Provide a detailed description of the incident or reason for the warning..."
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-slate-700">
+                  Company Policy Reference (optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  onChange={(e) => setCompanyPolicyFile(e.target.files?.[0] ?? null)}
+                />
+                {companyPolicyFile && (
+                  <p className="text-xs text-slate-600 truncate" title={companyPolicyFile.name}>
+                    {companyPolicyFile.name}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500">PDF, Word, or image. Max 5MB.</p>
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-slate-700">
+                  Additional Reference (optional)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+                  onChange={(e) => setAdditionalRefFile(e.target.files?.[0] ?? null)}
+                />
+                {additionalRefFile && (
+                  <p className="text-xs text-slate-600 truncate" title={additionalRefFile.name}>
+                    {additionalRefFile.name}
+                  </p>
+                )}
+                <p className="text-xs text-slate-500">PDF, Word, or image. Max 5MB.</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 pt-4">

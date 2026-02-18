@@ -15,7 +15,9 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const canSee = permissions.includes('dashboard:requestContract');
+  const canSee =
+    permissions.includes('dashboard:requestContract') &&
+    (permissions.includes('rc:view') || permissions.includes('rc:approve'));
 
   const loadPending = () => {
     if (!canSee) {
@@ -68,7 +70,7 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
       <CardHeader>
         <h3 className="text-lg font-bold text-brand-dark font-headline">Incoming Request Contract</h3>
         <p className="text-xs text-slate-400 font-medium uppercase tracking-widest mt-1">
-          Pending HRD approvals
+          Request Contract approvals
         </p>
       </CardHeader>
       <CardBody className="flex-1 overflow-y-auto">
@@ -131,13 +133,13 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <Button
+                      {/* <Button
                         variant="primary"
                         onClick={(e) => handleReview(item.candidate_id, e)}
                         className="!px-3 !py-1.5 !text-xs whitespace-nowrap"
                       >
                         Review
-                      </Button>
+                      </Button> */}
                       <Link
                         to={`/candidates/${item.candidate_id}`}
                         className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 hover:bg-brand-lighter hover:text-brand transition-all text-xs font-bold uppercase tracking-wider whitespace-nowrap"
@@ -158,7 +160,7 @@ export function IncomingRequestContractWidget({ permissions }: IncomingRequestCo
             to="/onboarding/pending-hrd"
             className="flex items-center justify-center w-full py-4 rounded-2xl bg-slate-50 text-slate-600 font-bold text-xs uppercase tracking-widest hover:bg-brand-lighter hover:text-brand transition-all"
           >
-            View all pending HRD
+            View all request contracts
           </Link>
         </div>
       )}

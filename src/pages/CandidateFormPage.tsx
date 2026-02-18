@@ -5,6 +5,7 @@ import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
+import { useAuth } from '../contexts/AuthContext';
 import * as api from '../services/api';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
@@ -21,12 +22,17 @@ export default function CandidateFormPage() {
   const location = useLocation();
   const returnTo = getReturnPath(location.search);
   const isEdit = id !== 'new' && id != null;
+  const { permissions = [] } = useAuth();
+  const canCreateCandidate = permissions.includes('candidate:create');
+  const canEditCandidate = permissions.includes('candidate:update');
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [clientId, setClientId] = useState<string>('');
   const [projectId, setProjectId] = useState<string>('');
+  const [employmentType, setEmploymentType] = useState<api.CandidateEmploymentType | ''>('');
+  const [ojtOption, setOjtOption] = useState(false);
   const [screeningStatus, setScreeningStatus] = useState('new');
   const [screeningNotes, setScreeningNotes] = useState('');
   const [screeningRating, setScreeningRating] = useState<string>('');
@@ -52,6 +58,8 @@ export default function CandidateFormPage() {
           setPhone(c.phone ?? '');
           setClientId(c.client_id ? String(c.client_id) : '');
           setProjectId(c.project_id ? String(c.project_id) : '');
+          setEmploymentType((c.employment_type as api.CandidateEmploymentType) ?? '');
+          setOjtOption(c.ojt_option ?? false);
           setScreeningStatus(c.screening_status ?? 'new');
           setScreeningNotes(c.screening_notes ?? '');
           setScreeningRating(c.screening_rating != null ? String(c.screening_rating) : '');
@@ -82,11 +90,15 @@ export default function CandidateFormPage() {
         phone: phone.trim() || undefined,
         client_id: clientId ? parseInt(clientId, 10) : undefined,
         project_id: projectId ? parseInt(projectId, 10) : undefined,
+        ojt_option: ojtOption,
+        // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
+          employment_type: employmentType || null,
           screening_status: screeningStatus,
           screening_notes: screeningNotes.trim() || undefined,
           screening_rating: screeningRating ? parseInt(screeningRating, 10) : undefined,
         }),
+        ...(!isEdit && { employment_type: employmentType || undefined }),
       };
       if (isEdit && id) {
         await api.updateCandidate(parseInt(id, 10), body);
@@ -115,11 +127,54 @@ export default function CandidateFormPage() {
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center py-12">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+      </div>
+    );
+  }
+
+  // Basic permission guard on the form route itself
+  if (!isEdit && !canCreateCandidate) {
+    return (
+      <div className="max-w-xl mx-auto py-12">
+        <Card>
+          <CardBody className="space-y-3">
+            <h2 className="text-lg font-bold text-slate-800">Access denied</h2>
+            <p className="text-sm text-slate-600">
+              You do not have permission to create candidates.
+            </p>
+            <div>
+              <Button asChild>
+                <Link to={returnTo ?? '/candidates'}>Back to candidates</Link>
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isEdit && !canEditCandidate) {
+    return (
+      <div className="max-w-xl mx-auto py-12">
+        <Card>
+          <CardBody className="space-y-3">
+            <h2 className="text-lg font-bold text-slate-800">Access denied</h2>
+            <p className="text-sm text-slate-600">
+              You do not have permission to edit candidates.
+            </p>
+            <div>
+              <Button asChild>
+                <Link to={returnTo ?? '/candidates'}>Back to candidates</Link>
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -186,6 +241,28 @@ export default function CandidateFormPage() {
                   ))}
                 </Select>
               </div>
+              <Select
+                label="Employment Type"
+                value={employmentType}
+                onChange={(e) => setEmploymentType((e.target.value || '') as api.CandidateEmploymentType | '')}
+              >
+                <option value="">Select type</option>
+                <option value="pkwt">PKWT</option>
+                <option value="partnership">Mitra Kerja</option>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="ojt_option"
+                checked={ojtOption}
+                onChange={(e) => setOjtOption(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+              />
+              <label htmlFor="ojt_option" className="text-sm font-medium text-slate-700">
+                This candidate is open for OJT (On Job Training) option
+              </label>
             </div>
 
             {!isEdit && (
@@ -228,7 +305,13 @@ export default function CandidateFormPage() {
                     <option value="screened_pass">Screened Pass</option>
                     <option value="screened_fail">Screened Fail</option>
                     <option value="submitted">Submitted</option>
+                    <option value="interview_scheduled">Interviewing</option>
+                    <option value="interview_passed">Interview Passed</option>
+                    <option value="interview_failed">Interview Failed</option>
                     <option value="onboarding">Onboarding</option>
+                    <option value="onboarding_completed">Onboarding Done</option>
+                    <option value="ojt">OJT</option>
+                    <option value="contract_requested">Contract Requested</option>
                     <option value="hired">Hired</option>
                     <option value="rejected">Rejected</option>
                   </Select>
