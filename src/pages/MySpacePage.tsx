@@ -512,8 +512,7 @@ function MySpacePayslipsTab({
 }) {
   const handleDownload = async (p: Payslip) => {
     try {
-      const url = await api.getPayslipPresignedUrl(p.id);
-      await downloadFromUrl(url, `payslip-${p.period_label || p.id}.pdf`);
+      await api.downloadPayslipDocument(p.id, `payslip-${p.period_label || p.id}.pdf`);
     } catch {
       toast.error('Failed to open payslip');
     }

@@ -1443,7 +1443,7 @@ export async function downloadContractDocument(id: number): Promise<void> {
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition');
-  const filename = parseFilenameFromDisposition(disposition) ?? `contract-${id}.html`;
+  const filename = parseFilenameFromDisposition(disposition) ?? `contract-${id}.pdf`;
   downloadBlob(blob, filename);
 }
 
@@ -1752,6 +1752,19 @@ export async function getPayslipPresignedUrl(id: number): Promise<string> {
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get download URL');
   return data.url;
+}
+
+/** Download payslip PDF via backend (streams with application/pdf and .pdf filename so browser saves as PDF). */
+export async function downloadPayslipDocument(id: number, fallbackFilename?: string): Promise<void> {
+  const res = await authFetch(`${API_BASE}/payslips/${id}/download`, { credentials: 'include', headers: authHeaders() });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? fallbackFilename ?? `payslip-${id}.pdf`;
+  downloadBlob(blob, filename);
 }
 
 // Tickets

@@ -10,7 +10,6 @@ import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
 import type { Payslip } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 
 const MONTHS = [
@@ -60,8 +59,7 @@ export default function PayslipsPage() {
 
   const handleDownload = async (p: Payslip) => {
     try {
-      const url = await api.getPayslipPresignedUrl(p.id);
-      await downloadFromUrl(url, `payslip-${p.period_label || p.id}.pdf`);
+      await api.downloadPayslipDocument(p.id, `payslip-${p.period_label || p.id}.pdf`);
     } catch {
       toast.error(t('pages:payslips.failedToOpenPayslip'));
     }

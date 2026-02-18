@@ -1,13 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import Select from 'react-select';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
-import { Select } from '../components/Select';
+import { Select as NativeSelect } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 import { formatDateLong } from '../utils/formatDate';
+
+const searchableSelectStyles = {
+  control: (base: object) => ({
+    ...base,
+    borderRadius: '0.5rem',
+    border: '1px solid #e2e8f0',
+    minHeight: 42,
+    '&:hover': { borderColor: '#107BC7' },
+  }),
+  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+  }),
+};
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -49,6 +65,17 @@ export default function ContractFormPage() {
     api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
     api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
   }, []);
+
+  const candidateOptions = useMemo(
+    () => candidates.map((c) => ({ value: String(c.id), label: `${c.full_name} (${c.email})` })),
+    [candidates]
+  );
+  const employeeOptions = useMemo(
+    () => employees.map((e) => ({ value: String(e.id), label: `${e.full_name} (${e.email})` })),
+    [employees]
+  );
+  const selectedCandidate = candidateOptions.find((o) => o.value === candidateId) ?? null;
+  const selectedEmployee = employeeOptions.find((o) => o.value === employeeId) ?? null;
 
   useEffect(() => {
     if (!isEdit || !id) {
@@ -272,7 +299,7 @@ export default function ContractFormPage() {
               <FormGroup>
                 <Label>Contract Template</Label>
                 <div className="flex gap-2">
-                  <Select
+                  <NativeSelect
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
                     className="flex-1"
@@ -283,7 +310,7 @@ export default function ContractFormPage() {
                         {t.name} ({t.contract_type.toUpperCase()})
                       </option>
                     ))}
-                  </Select>
+                  </NativeSelect>
                   {templateId && (
                     <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
                       Preview
@@ -309,27 +336,33 @@ export default function ContractFormPage() {
                   Unique identifier for this contract
                 </p>
               </FormGroup>
-              <Select
-                label="Related Candidate"
-                value={candidateId}
-                onChange={(e) => setCandidateId(e.target.value)}
-              >
-                <option value="">— Select Candidate —</option>
-                {candidates.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.full_name} ({c.email})</option>
-                ))}
-              </Select>
-              <Select
-                label="Related Employee"
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-              >
-                <option value="">— Select Employee —</option>
-                {employees.map((e) => (
-                  <option key={e.id} value={String(e.id)}>{e.full_name} ({e.email})</option>
-                ))}
-              </Select>
-              <Select
+              <FormGroup>
+                <Label>Related Candidate</Label>
+                <Select
+                  placeholder="— Search candidate —"
+                  isClearable
+                  isSearchable
+                  options={candidateOptions}
+                  value={selectedCandidate}
+                  onChange={(opt) => setCandidateId(opt?.value ?? '')}
+                  styles={searchableSelectStyles}
+                  noOptionsMessage={() => 'No candidates found'}
+                />
+              </FormGroup>
+              <FormGroup>
+                <Label>Related Employee</Label>
+                <Select
+                  placeholder="— Search employee —"
+                  isClearable
+                  isSearchable
+                  options={employeeOptions}
+                  value={selectedEmployee}
+                  onChange={(opt) => setEmployeeId(opt?.value ?? '')}
+                  styles={searchableSelectStyles}
+                  noOptionsMessage={() => 'No employees found'}
+                />
+              </FormGroup>
+              <NativeSelect
                 label="Contract Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
@@ -339,7 +372,7 @@ export default function ContractFormPage() {
                 <option value="signed">Signed</option>
                 <option value="expired">Expired</option>
                 <option value="cancelled">Cancelled</option>
-              </Select>
+              </NativeSelect>
             </div>
 
             <div className="flex items-center gap-4 pt-4">
