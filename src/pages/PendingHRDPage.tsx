@@ -224,7 +224,7 @@ export default function PendingHRDPage() {
           label="Reason for rejection"
           placeholder="e.g. Missing documents, information incomplete..."
           value={rejectComment}
-          onChange={(e) => setRejectComment(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectComment(e.target.value)}
           className="w-full min-h-[120px] resize-y"
           rows={5}
           required

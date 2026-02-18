@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Button } from '../components/Button';
+import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
@@ -103,7 +103,8 @@ export default function CandidateFormPage() {
       if (isEdit && id) {
         await api.updateCandidate(parseInt(id, 10), body);
       } else {
-        const created = await api.createCandidate(body);
+        const createBody = { ...body, employment_type: body.employment_type ?? undefined };
+        const created = await api.createCandidate(createBody);
         if (cvFile) {
           await api.uploadCandidateDocument(created.id, cvFile, 'cv');
         }
@@ -146,9 +147,7 @@ export default function CandidateFormPage() {
               You do not have permission to create candidates.
             </p>
             <div>
-              <Button asChild>
-                <Link to={returnTo ?? '/candidates'}>Back to candidates</Link>
-              </Button>
+              <ButtonLink to={returnTo ?? '/candidates'}>Back to candidates</ButtonLink>
             </div>
           </CardBody>
         </Card>
@@ -166,9 +165,7 @@ export default function CandidateFormPage() {
               You do not have permission to edit candidates.
             </p>
             <div>
-              <Button asChild>
-                <Link to={returnTo ?? '/candidates'}>Back to candidates</Link>
-              </Button>
+              <ButtonLink to={returnTo ?? '/candidates'}>Back to candidates</ButtonLink>
             </div>
           </CardBody>
         </Card>

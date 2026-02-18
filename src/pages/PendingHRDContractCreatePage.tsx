@@ -66,7 +66,7 @@ export default function PendingHRDContractCreatePage() {
       setUploading(true);
       try {
         await api.uploadManualContract(uploadFile, {
-          candidate_id: cid,
+          candidate_id: String(cid),
           contract_number: contractNumber || undefined,
           status,
         });
