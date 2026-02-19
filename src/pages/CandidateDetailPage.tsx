@@ -437,7 +437,25 @@ function OverviewTab({
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Candidate Information</h3>
             </CardHeader>
-            <CardBody className={`grid gap-8 ${isOnboardingRelevant ? 'grid-cols-2' : 'grid-cols-3'}`}>
+            <CardBody className={`grid gap-6 ${isOnboardingRelevant ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Full Name</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.full_name ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Email</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.email ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Phone Number</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.phone ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Employment Type</p>
+                <p className="text-sm font-bold text-brand-dark">
+                  {candidate.employment_type === 'pkwt' ? 'PKWT' : candidate.employment_type === 'partnership' ? 'Mitra Kerja' : candidate.employment_type ?? '—'}
+                </p>
+              </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Current Status</p>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
@@ -451,18 +469,28 @@ function OverviewTab({
                 </span>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Phone Number</p>
-                <p className="text-sm font-bold text-brand-dark">{candidate.phone ?? '—'}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">OJT Option</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.ojt_option === true ? 'Yes' : candidate.ojt_option === false ? 'No' : '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Employment Type</p>
-                <p className="text-sm font-bold text-brand-dark">
-                  {candidate.employment_type === 'pkwt' ? 'PKWT' : candidate.employment_type === 'partnership' ? 'Mitra Kerja' : '—'}
-                </p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Client</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.client_name ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Project</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.project_name ?? '—'}</p>
               </div>
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">PIC / Recruiter</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.pic_name ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Created At</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.created_at ? formatDate(candidate.created_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Updated At</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.updated_at ? formatDate(candidate.updated_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
               </div>
               <div className={isOnboardingRelevant ? 'col-span-2 flex gap-3 pt-4 border-t border-slate-50' : 'col-span-3 flex gap-3 pt-4 border-t border-slate-50'}>
                 {candidate.screening_status === 'screened_pass' && (
