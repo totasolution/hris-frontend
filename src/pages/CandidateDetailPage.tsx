@@ -38,7 +38,6 @@ export default function CandidateDetailPage() {
   const [employmentTermsForm, setEmploymentTermsForm] = useState<{ start_date?: string; duration_months?: number; salary?: string }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
   const [sendingContract, setSendingContract] = useState<number | null>(null);
-  const [hiring, setHiring] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const toast = useToast();
   const { permissions = [] } = useAuth();
@@ -213,23 +212,6 @@ export default function CandidateDetailPage() {
     }
   };
 
-  const handleHire = async () => {
-    if (!candidateId) return;
-    if (!confirm('Are you sure you want to complete the hiring process? This will create an employee record and user account with default password "S1gm@".')) {
-      return;
-    }
-    setHiring(true);
-    try {
-      const result = await api.hireCandidate(candidateId);
-      toast.success(result.message || 'Candidate successfully hired!');
-      load(); // Refresh to show updated status
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to hire candidate');
-    } finally {
-      setHiring(false);
-    }
-  };
-
   if (loading || !candidate) {
     return (
       <div className="flex justify-center py-12">
@@ -315,12 +297,10 @@ export default function CandidateDetailPage() {
             handleStatusUpdate={handleStatusUpdate}
             handleCreateLink={handleCreateLink}
             copyLink={copyLink}
-            handleHire={handleHire}
             setShowConfirmHrd={setShowConfirmHrd}
             submitToClientLoading={submitToClientLoading}
             linkLoading={linkLoading}
             submitHrdLoading={submitHrdLoading}
-            hiring={hiring}
             candidateContracts={candidateContracts}
             editingEmploymentTerms={editingEmploymentTerms}
             setEditingEmploymentTerms={setEditingEmploymentTerms}
@@ -407,12 +387,10 @@ function OverviewTab({
   handleStatusUpdate,
   handleCreateLink,
   copyLink,
-  handleHire,
   setShowConfirmHrd,
   submitToClientLoading,
   linkLoading,
   submitHrdLoading,
-  hiring,
   candidateContracts,
   editingEmploymentTerms,
   setEditingEmploymentTerms,
@@ -437,12 +415,10 @@ function OverviewTab({
   handleStatusUpdate: (s: string) => Promise<void>;
   handleCreateLink: () => Promise<void>;
   copyLink: () => void;
-  handleHire: () => Promise<void>;
   setShowConfirmHrd: (v: boolean) => void;
   submitToClientLoading: boolean;
   linkLoading: boolean;
   submitHrdLoading: boolean;
-  hiring: boolean;
   candidateContracts: api.Contract[];
   editingEmploymentTerms: boolean;
   setEditingEmploymentTerms: (v: boolean) => void;
@@ -517,15 +493,6 @@ function OverviewTab({
                       Fail Screening
                     </Button>
                   </>
-                )}
-                {(candidate.screening_status === 'contract_requested' || candidate.screening_status === 'onboarding_completed' || candidate.screening_status === 'ojt') && (
-                  <Button 
-                    onClick={handleHire} 
-                    className="!py-2 !text-xs !bg-green-600 hover:!bg-green-700"
-                    disabled={hiring}
-                  >
-                    {hiring ? 'Completing...' : 'Complete Hiring'}
-                  </Button>
                 )}
               </div>
               {candidate.screening_notes && (

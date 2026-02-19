@@ -995,17 +995,6 @@ export async function rejectCandidate(candidateId: number, comment: string): Pro
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to reject');
 }
 
-export async function hireCandidate(candidateId: number): Promise<{ employee: any; message: string }> {
-  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/hire`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders(),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to hire candidate');
-  return data;
-}
-
 export async function getPendingHRDList(): Promise<OnboardingFormData[]> {
   const res = await authFetch(`${API_BASE}/onboarding/pending-hrd`, {
     credentials: 'include',
