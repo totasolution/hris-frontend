@@ -134,7 +134,7 @@ export default function PendingHRDPage() {
                 list.map((d) => {
                   const c = candidates[d.candidate_id];
                   return (
-                    <TR key={d.id}>
+                    <TR key={d.candidate_id}>
                       <TD>
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center justify-between gap-2">
