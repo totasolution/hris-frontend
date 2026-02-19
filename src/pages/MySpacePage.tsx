@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ButtonLink } from '../components/Button';
+import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
+import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
@@ -12,7 +13,7 @@ import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate, formatDateLong } from '../utils/formatDate';
 import MyTicketsPage from './MyTicketsPage';
 
-type TabType = 'profile' | 'contracts' | 'documents' | 'payslips' | 'tickets';
+type TabType = 'profile' | 'contracts' | 'documents' | 'payslips' | 'tickets' | 'account';
 
 export default function MySpacePage() {
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -85,6 +86,7 @@ export default function MySpacePage() {
             </div>
           </CardBody>
         </Card>
+        <AccountTab toast={toast} />
       </div>
     );
   }
@@ -95,6 +97,7 @@ export default function MySpacePage() {
     { id: 'documents', label: 'Documents' },
     { id: 'payslips', label: 'Payslips' },
     { id: 'tickets', label: 'My Tickets' },
+    { id: 'account', label: 'Account' },
   ];
 
   return (
@@ -151,6 +154,7 @@ export default function MySpacePage() {
         )}
         {activeTab === 'payslips' && <MySpacePayslipsTab payslips={payslips} toast={toast} />}
         {activeTab === 'tickets' && <MyTicketsPage embedded />}
+        {activeTab === 'account' && <AccountTab toast={toast} />}
       </div>
     </div>
   );
@@ -398,6 +402,145 @@ function ProfileTab({ employee }: { employee: Employee }) {
             </CardBody>
           </Card>
         )}
+    </div>
+  );
+}
+
+function AccountTab({ toast }: { toast: ReturnType<typeof useToast> }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error('New password and confirmation do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.changeMyPassword(currentPassword, newPassword);
+      toast.success('Password updated successfully');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to change password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const eyeIcon = (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+    </svg>
+  );
+  const eyeOffIcon = (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+    </svg>
+  );
+
+  return (
+    <div className="space-y-8">
+      <Card className="max-w-md">
+        <CardHeader>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
+            Change Password
+          </h3>
+        </CardHeader>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Current password
+              </label>
+              <div className="relative">
+                <input
+                  type={showCurrent ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-12 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  title={showCurrent ? 'Hide password' : 'Show password'}
+                  aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrent ? eyeOffIcon : eyeIcon}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                New password
+              </label>
+              <div className="relative">
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-12 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  title={showNew ? 'Hide password' : 'Show password'}
+                  aria-label={showNew ? 'Hide password' : 'Show password'}
+                >
+                  {showNew ? eyeOffIcon : eyeIcon}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Confirm new password
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-12 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  title={showConfirm ? 'Hide password' : 'Show password'}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirm ? eyeOffIcon : eyeIcon}
+                </button>
+              </div>
+            </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update password'}
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
     </div>
   );
 }

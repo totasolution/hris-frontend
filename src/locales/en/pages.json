@@ -86,7 +86,13 @@
     "noUsersFound": "No users found.",
     "loadError": "Failed to load users.",
     "viewUser": "View",
-    "editUser": "Edit"
+    "editUser": "Edit",
+    "resetPassword": "Reset password",
+    "resetPasswordTitle": "Reset password",
+    "resetPasswordDescription": "Set a new password for this user. They will need to use it on next login.",
+    "newPassword": "New password",
+    "confirmNewPassword": "Confirm new password",
+    "resetPasswordSuccess": "Password has been reset."
   },
   "roles": {
     "title": "Roles",

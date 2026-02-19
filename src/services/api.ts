@@ -102,6 +102,17 @@ export async function refresh(refreshToken: string): Promise<LoginResponse> {
   return data;
 }
 
+export async function changeMyPassword(currentPassword: string, newPassword: string): Promise<void> {
+  const res = await authFetch(`${API_BASE}/users/me/password`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to change password');
+}
+
 export function getAccessToken(): string | null {
   return localStorage.getItem('access_token');
 }
@@ -527,6 +538,17 @@ export async function updateUser(
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update user');
   return data;
+}
+
+export async function resetUserPassword(userId: number, newPassword: string): Promise<void> {
+  const res = await authFetch(`${API_BASE}/users/${userId}/password`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to reset password');
 }
 
 // Candidates

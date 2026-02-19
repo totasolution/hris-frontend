@@ -86,7 +86,13 @@
     "noUsersFound": "Tidak ada pengguna ditemukan.",
     "loadError": "Gagal memuat pengguna.",
     "viewUser": "Lihat",
-    "editUser": "Ubah"
+    "editUser": "Ubah",
+    "resetPassword": "Reset kata sandi",
+    "resetPasswordTitle": "Reset kata sandi",
+    "resetPasswordDescription": "Atur kata sandi baru untuk pengguna ini. Mereka harus menggunakannya saat login berikutnya.",
+    "newPassword": "Kata sandi baru",
+    "confirmNewPassword": "Konfirmasi kata sandi baru",
+    "resetPasswordSuccess": "Kata sandi telah direset."
   },
   "roles": {
     "title": "Peran",
