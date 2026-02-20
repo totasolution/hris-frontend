@@ -129,12 +129,12 @@ export default function ContractsPage() {
                       <div className="font-bold text-[#0f172a]">
                         {c.contract_number || `#${c.id}`}
                       </div>
-                      {(c.candidate_name || c.employee_name) && (
+                      {c.employee_name && (
                         <div className="text-sm text-slate-600 mt-1">
-                          {c.employee_name || c.candidate_name}
+                          {c.employee_name}
                         </div>
                       )}
-                      {!c.contract_number && !c.candidate_name && !c.employee_name && (
+                      {!c.contract_number && !c.employee_name && (
                         <div className="text-xs text-slate-400">ID: {c.id}</div>
                       )}
                     </TD>

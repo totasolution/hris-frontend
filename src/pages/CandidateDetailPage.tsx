@@ -69,9 +69,9 @@ export default function CandidateDetailPage() {
         }
       }
 
-      // Always fetch contracts for this candidate (for display in Contracts section)
+      // Fetch contracts (contracts are no longer linked to candidate; we show recent contracts and allow creating signing link for this candidate)
       try {
-        const contractsRes = await api.getContracts({ candidate_id: candidateId, per_page: 100 });
+        const contractsRes = await api.getContracts({ per_page: 100 });
         const contracts = contractsRes.data;
         setCandidateContracts(contracts);
         // Fetch signing links for contracts in "sent_for_signature" status
@@ -1209,7 +1209,7 @@ function ContractsTab({
                           if (!candidateId) return;
                           setSendingContract(contract.id);
                           try {
-                            const { url } = await api.createContractSigningLink(contract.id);
+                            const { url } = await api.createContractSigningLink(contract.id, candidateId);
                             setContractSigningUrls(prev => ({ ...prev, [contract.id]: url }));
                             toast.success('Signing link created! URL copied to clipboard.');
                             navigator.clipboard.writeText(url);
@@ -1256,7 +1256,7 @@ function ContractsTab({
                             if (!candidateId) return;
                             setSendingContract(contract.id);
                             try {
-                              const { url } = await api.createContractSigningLink(contract.id);
+                              const { url } = await api.createContractSigningLink(contract.id, candidateId);
                               setContractSigningUrls(prev => ({ ...prev, [contract.id]: url }));
                               toast.success('Signing link created! URL copied to clipboard.');
                               navigator.clipboard.writeText(url);

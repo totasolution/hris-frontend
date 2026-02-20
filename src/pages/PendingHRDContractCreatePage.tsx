@@ -40,6 +40,9 @@ export default function PendingHRDContractCreatePage() {
     api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
   }, []);
 
+  // Only show contract templates (exclude payslip) when creating a contract
+  const contractTemplates = templates.filter((t) => t.contract_type !== 'payslip');
+
   useEffect(() => {
     if (!candidateIdParam || !candidateIdNum) {
       setLoading(false);
@@ -66,7 +69,6 @@ export default function PendingHRDContractCreatePage() {
       setUploading(true);
       try {
         await api.uploadManualContract(uploadFile, {
-          candidate_id: String(cid),
           contract_number: contractNumber || undefined,
           status,
         });
@@ -81,10 +83,14 @@ export default function PendingHRDContractCreatePage() {
       return;
     }
 
+    if (creationMode === 'template' && !templateId) {
+      toast.error('Please select a contract template');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.createContract({
-        candidate_id: cid,
         template_id: templateId ? parseInt(templateId, 10) : undefined,
         contract_number: contractNumber || undefined,
         status,
@@ -251,15 +257,16 @@ export default function PendingHRDContractCreatePage() {
 
             {creationMode === 'template' && (
               <FormGroup>
-                <Label>Contract Template</Label>
+                <Label>Contract Template <span className="text-red-500">*</span></Label>
                 <div className="flex gap-2">
                   <Select
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
                     className="flex-1"
+                    required
                   >
                     <option value="">— Select Template —</option>
-                    {templates.map((t) => (
+                    {contractTemplates.map((t) => (
                       <option key={t.id} value={String(t.id)}>
                         {t.name} ({t.contract_type.toUpperCase()})
                       </option>
@@ -272,7 +279,8 @@ export default function PendingHRDContractCreatePage() {
                   )}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Select a template. <Link to="/contract-templates" className="text-brand hover:underline">Manage templates</Link>
+                  Select a template for this contract. Manage templates in{' '}
+                  <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
                 </p>
               </FormGroup>
             )}
@@ -312,7 +320,12 @@ export default function PendingHRDContractCreatePage() {
             <div className="flex items-center gap-4 pt-4">
               <Button
                 type="submit"
-                disabled={submitting || uploading || (creationMode === 'manual' && !uploadFile)}
+                disabled={
+                  submitting ||
+                  uploading ||
+                  (creationMode === 'manual' && !uploadFile) ||
+                  (creationMode === 'template' && !templateId)
+                }
               >
                 {uploading ? 'Uploading...' : submitting ? 'Saving...' : creationMode === 'manual' ? 'Create Contract & Approve Request' : 'Create Contract & Approve Request'}
               </Button>

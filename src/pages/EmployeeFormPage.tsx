@@ -55,6 +55,7 @@ export default function EmployeeFormPage() {
 
   // Financial
   const [npwp, setNpwp] = useState('');
+  const [bankName, setBankName] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [bankAccountHolder, setBankAccountHolder] = useState('');
 
@@ -120,6 +121,7 @@ export default function EmployeeFormPage() {
         setMaritalStatus(e.marital_status ?? '');
         setReligion(e.religion ?? '');
         setNpwp(e.npwp ?? '');
+        setBankName(e.bank_name ?? '');
         setBankAccount(e.bank_account ?? '');
         setBankAccountHolder(e.bank_account_holder ?? '');
         setEmergencyContact(e.emergency_contact ?? '');
@@ -167,6 +169,7 @@ export default function EmployeeFormPage() {
         marital_status: maritalStatus.trim() || undefined,
         religion: religion.trim() || undefined,
         npwp: npwp.trim() || undefined,
+        bank_name: bankName.trim() || undefined,
         bank_account: bankAccount.trim() || undefined,
         bank_account_holder: bankAccountHolder.trim() || undefined,
         emergency_contact: emergencyContact.trim() || undefined,
@@ -444,6 +447,12 @@ export default function EmployeeFormPage() {
                 value={npwp}
                 onChange={(e) => setNpwp(e.target.value)}
                 placeholder="Tax ID Number"
+              />
+              <Input
+                label="Bank Name"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                placeholder="e.g. BCA, Mandiri"
               />
               <Input
                 label="Bank Account Number"

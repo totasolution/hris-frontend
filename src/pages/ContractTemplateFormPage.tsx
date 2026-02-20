@@ -193,6 +193,7 @@ export default function ContractTemplateFormPage() {
                 >
                   <option value="pkwt">Contract – PKWT (Fixed-Term Employment)</option>
                   <option value="pkwtt">Contract – PKWTT (Permanent Employment)</option>
+                  <option value="partnership">Contract – Partnership (Mitra)</option>
                   <option value="internship">Contract – Internship</option>
                   <option value="freelance">Contract – Freelance</option>
                   <option value="other">Contract – Other</option>

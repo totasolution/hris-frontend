@@ -1058,6 +1058,7 @@ export type Employee = {
   religion?: string;
   // Financial & Tax
   npwp?: string;
+  bank_name?: string;
   bank_account?: string;
   bank_account_holder?: string;
   bank_id?: number;
@@ -1195,7 +1196,7 @@ export async function deleteEmployeeDocument(employeeId: number, documentId: num
 }
 
 // Contract Templates
-export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'internship' | 'freelance' | 'other' | 'payslip';
+export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'partnership' | 'internship' | 'freelance' | 'other' | 'payslip';
 
 export type ContractTemplate = {
   id: number;
@@ -1311,9 +1312,7 @@ export async function previewContractTemplate(id: number, values: Record<string,
 export type Contract = {
   id: number;
   tenant_id: number;
-  candidate_id?: number;
   employee_id?: number;
-  candidate_name?: string;
   employee_name?: string;
   template_id?: number;
   contract_number?: string;
@@ -1328,7 +1327,6 @@ export type Contract = {
 };
 
 export async function getContracts(params?: {
-  candidate_id?: number;
   employee_id?: number;
   status?: string;
   search?: string;
@@ -1336,7 +1334,6 @@ export async function getContracts(params?: {
   per_page?: number;
 }): Promise<PaginatedResponse<Contract>> {
   const q = new URLSearchParams();
-  if (params?.candidate_id) q.set('candidate_id', String(params.candidate_id));
   if (params?.employee_id) q.set('employee_id', String(params.employee_id));
   if (params?.status) q.set('status', params.status);
   if (params?.search?.trim()) q.set('search', params.search.trim());
@@ -1377,7 +1374,6 @@ export async function createContract(body: Partial<Contract>): Promise<Contract>
 export async function uploadManualContract(
   file: File,
   options: {
-    candidate_id?: string;
     employee_id?: string;
     contract_number?: string;
     status?: string;
@@ -1385,7 +1381,6 @@ export async function uploadManualContract(
 ): Promise<Contract> {
   const formData = new FormData();
   formData.append('file', file);
-  if (options.candidate_id) formData.append('candidate_id', options.candidate_id);
   if (options.employee_id) formData.append('employee_id', options.employee_id);
   if (options.contract_number) formData.append('contract_number', options.contract_number);
   if (options.status) formData.append('status', options.status);
@@ -1481,12 +1476,13 @@ export async function getContractSigningLink(contractId: number): Promise<{ link
   return data;
 }
 
-/** Create a signing link for a contract and return the signing URL */
-export async function createContractSigningLink(contractId: number): Promise<{ link: any; url: string }> {
+/** Create a signing link for a contract and return the signing URL (candidateId is the signer) */
+export async function createContractSigningLink(contractId: number, candidateId: number): Promise<{ link: any; url: string }> {
   const res = await authFetch(`${API_BASE}/contracts/${contractId}/signing-link`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
+    body: JSON.stringify({ candidate_id: candidateId }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create signing link');

@@ -41,13 +41,11 @@ export default function ContractFormPage() {
   const isEdit = id !== 'new' && id != null;
   const navigate = useNavigate();
   const toast = useToast();
-  const [candidateId, setCandidateId] = useState<string>('');
   const [employeeId, setEmployeeId] = useState<string>('');
   const [templateId, setTemplateId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [contract, setContract] = useState<api.Contract | null>(null);
-  const [candidates, setCandidates] = useState<api.Candidate[]>([]);
   const [employees, setEmployees] = useState<api.Employee[]>([]);
   const [templates, setTemplates] = useState<api.ContractTemplate[]>([]);
   const [loading, setLoading] = useState(isEdit);
@@ -61,21 +59,21 @@ export default function ContractFormPage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    api.getCandidates({ per_page: 1000 }).then((r) => setCandidates(r.data)).catch(() => {});
     api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
     api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
   }, []);
 
-  const candidateOptions = useMemo(
-    () => candidates.map((c) => ({ value: String(c.id), label: `${c.full_name} (${c.email})` })),
-    [candidates]
-  );
   const employeeOptions = useMemo(
     () => employees.map((e) => ({ value: String(e.id), label: `${e.full_name} (${e.email})` })),
     [employees]
   );
-  const selectedCandidate = candidateOptions.find((o) => o.value === candidateId) ?? null;
   const selectedEmployee = employeeOptions.find((o) => o.value === employeeId) ?? null;
+
+  // For contract create/edit: only show contract templates (exclude payslip)
+  const contractTemplates = useMemo(
+    () => templates.filter((t) => t.contract_type !== 'payslip'),
+    [templates]
+  );
 
   useEffect(() => {
     if (!isEdit || !id) {
@@ -86,7 +84,6 @@ export default function ContractFormPage() {
       try {
         const c = await api.getContract(parseInt(id, 10));
         setContract(c);
-        setCandidateId(c.candidate_id ? String(c.candidate_id) : '');
         setEmployeeId(c.employee_id ? String(c.employee_id) : '');
         setTemplateId(c.template_id ? String(c.template_id) : '');
         setContractNumber(c.contract_number ?? '');
@@ -117,7 +114,6 @@ export default function ContractFormPage() {
           // Update contract file and metadata
           await api.updateContractFile(parseInt(id, 10), uploadFile);
           await api.updateContract(parseInt(id, 10), {
-            candidate_id: candidateId ? parseInt(candidateId, 10) : undefined,
             employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
             contract_number: contractNumber || undefined,
             status,
@@ -126,7 +122,6 @@ export default function ContractFormPage() {
           navigate(returnTo ?? '/contracts', { replace: true });
         } else {
           await api.uploadManualContract(uploadFile, {
-            candidate_id: candidateId || undefined,
             employee_id: employeeId || undefined,
             contract_number: contractNumber || undefined,
             status: status,
@@ -141,11 +136,16 @@ export default function ContractFormPage() {
       return;
     }
     
+    // Template mode: require template when creating
+    if (creationMode === 'template' && !isEdit && !templateId) {
+      toast.error('Please select a contract template');
+      return;
+    }
+
     // Otherwise, use regular create/update
     setSubmitting(true);
     try {
       const body: Partial<api.Contract> = {
-        candidate_id: candidateId ? parseInt(candidateId, 10) : undefined,
         employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
         template_id: templateId ? parseInt(templateId, 10) : undefined,
         contract_number: contractNumber || undefined,
@@ -297,15 +297,16 @@ export default function ContractFormPage() {
             
             {creationMode === 'template' && (
               <FormGroup>
-                <Label>Contract Template</Label>
+                <Label>Contract Template <span className="text-red-500">*</span></Label>
                 <div className="flex gap-2">
                   <NativeSelect
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
                     className="flex-1"
+                    required={creationMode === 'template' && !isEdit}
                   >
                     <option value="">— Select Template —</option>
-                    {templates.map((t) => (
+                    {contractTemplates.map((t) => (
                       <option key={t.id} value={String(t.id)}>
                         {t.name} ({t.contract_type.toUpperCase()})
                       </option>
@@ -318,8 +319,8 @@ export default function ContractFormPage() {
                   )}
                 </div>
                 <p className="text-xs text-slate-400 mt-1">
-                  Select a template to use for this contract.{' '}
-                  <Link to="/contract-templates" className="text-brand hover:underline">Manage templates</Link>
+                  Select a template to use for this contract. You can manage templates in{' '}
+                  <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
                 </p>
               </FormGroup>
             )}
@@ -335,19 +336,6 @@ export default function ContractFormPage() {
                 <p className="text-xs text-slate-400 mt-1">
                   Unique identifier for this contract
                 </p>
-              </FormGroup>
-              <FormGroup>
-                <Label>Related Candidate</Label>
-                <Select
-                  placeholder="— Search candidate —"
-                  isClearable
-                  isSearchable
-                  options={candidateOptions}
-                  value={selectedCandidate}
-                  onChange={(opt) => setCandidateId(opt?.value ?? '')}
-                  styles={searchableSelectStyles}
-                  noOptionsMessage={() => 'No candidates found'}
-                />
               </FormGroup>
               <FormGroup>
                 <Label>Related Employee</Label>
@@ -376,7 +364,15 @@ export default function ContractFormPage() {
             </div>
 
             <div className="flex items-center gap-4 pt-4">
-              <Button type="submit" disabled={submitting || uploading || (creationMode === 'manual' && !uploadFile && !isEdit)}>
+              <Button
+                type="submit"
+                disabled={
+                  submitting ||
+                  uploading ||
+                  (creationMode === 'manual' && !uploadFile && !isEdit) ||
+                  (creationMode === 'template' && !isEdit && !templateId)
+                }
+              >
                 {uploading ? 'Uploading...' : submitting ? 'Saving...' : isEdit ? 'Update Contract' : creationMode === 'manual' ? 'Upload Contract' : 'Create Contract'}
               </Button>
               <Link
@@ -397,7 +393,7 @@ export default function ContractFormPage() {
           <CardBody>
             <p className="text-sm text-slate-600 mb-4">
               Generate a viewable document (HTML) from the contract draft using the selected template. 
-              {templateId ? ' The document will be rendered with data from the candidate/employee.' : ' Please select a template to use for rendering.'}
+              {templateId ? ' The document will be rendered with data from the employee.' : ' Please select a template to use for rendering.'}
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Button
