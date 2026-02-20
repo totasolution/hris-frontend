@@ -189,7 +189,7 @@ export default function PaklaringCreatePage() {
                       </p>
                     )}
                   </div>
-                  <Button type="button" variant="secondary" size="sm" onClick={handleClearEmployee}>
+                  <Button type="button" variant="secondary" onClick={handleClearEmployee}>
                     Change
                   </Button>
                 </div>
