@@ -55,6 +55,7 @@ export default function EmployeeFormPage() {
 
   // Financial
   const [npwp, setNpwp] = useState('');
+  const [salary, setSalary] = useState('');
   const [bankName, setBankName] = useState('');
   const [bankAccount, setBankAccount] = useState('');
   const [bankAccountHolder, setBankAccountHolder] = useState('');
@@ -70,6 +71,10 @@ export default function EmployeeFormPage() {
   const [district, setDistrict] = useState('');
   const [province, setProvince] = useState('');
   const [zipCode, setZipCode] = useState('');
+
+  // Role & placement
+  const [position, setPosition] = useState('');
+  const [placementLocation, setPlacementLocation] = useState('');
 
   const [departments, setDepartments] = useState<api.Department[]>([]);
   const [projects, setProjects] = useState<api.Project[]>([]);
@@ -122,6 +127,7 @@ export default function EmployeeFormPage() {
         setReligion(e.religion ?? '');
         setNpwp(e.npwp ?? '');
         setBankName(e.bank_name ?? '');
+        setSalary(e.salary ?? '');
         setBankAccount(e.bank_account ?? '');
         setBankAccountHolder(e.bank_account_holder ?? '');
         setEmergencyContact(e.emergency_contact ?? '');
@@ -132,6 +138,8 @@ export default function EmployeeFormPage() {
         setDistrict(e.district ?? '');
         setProvince(e.province ?? '');
         setZipCode(e.zip_code ?? '');
+        setPosition(e.position ?? '');
+        setPlacementLocation(e.placement_location ?? '');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
       } finally {
@@ -169,6 +177,7 @@ export default function EmployeeFormPage() {
         marital_status: maritalStatus.trim() || undefined,
         religion: religion.trim() || undefined,
         npwp: npwp.trim() || undefined,
+        salary: salary.trim() || undefined,
         bank_name: bankName.trim() || undefined,
         bank_account: bankAccount.trim() || undefined,
         bank_account_holder: bankAccountHolder.trim() || undefined,
@@ -180,6 +189,8 @@ export default function EmployeeFormPage() {
         district: district.trim() || undefined,
         province: province.trim() || undefined,
         zip_code: zipCode.trim() || undefined,
+        position: position.trim() || undefined,
+        placement_location: placementLocation.trim() || undefined,
       };
       if (isEdit && id) {
         await api.updateEmployee(parseInt(id, 10), body);
@@ -308,6 +319,18 @@ export default function EmployeeFormPage() {
                 value={joinDate}
                 onChange={(e) => setJoinDate(e.target.value)}
                 placeholder="First working day"
+              />
+              <Input
+                label="Position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="e.g. Software Engineer"
+              />
+              <Input
+                label="Placement Location"
+                value={placementLocation}
+                onChange={(e) => setPlacementLocation(e.target.value)}
+                placeholder="e.g. Jakarta"
               />
               <Select
                 label="Department"
@@ -447,6 +470,12 @@ export default function EmployeeFormPage() {
                 value={npwp}
                 onChange={(e) => setNpwp(e.target.value)}
                 placeholder="Tax ID Number"
+              />
+              <Input
+                label="Salary"
+                value={salary}
+                onChange={(e) => setSalary(e.target.value)}
+                placeholder="e.g. 15.000.000"
               />
               <Input
                 label="Bank Name"

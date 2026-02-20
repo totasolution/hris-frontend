@@ -244,6 +244,22 @@ function OverviewTab({
                 {displayDate ? formatDate(displayDate) : '—'}
               </p>
             </div>
+            {employee.position && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                  Position
+                </p>
+                <p className="text-sm font-bold text-brand-dark">{employee.position}</p>
+              </div>
+            )}
+            {employee.placement_location && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                  Placement Location
+                </p>
+                <p className="text-sm font-bold text-brand-dark">{employee.placement_location}</p>
+              </div>
+            )}
             {employee.department_id && (
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
@@ -400,7 +416,7 @@ function OverviewTab({
         )}
 
         {/* Financial Information */}
-        {(employee.npwp || employee.bank_name || employee.bank_account || employee.bank_account_holder) && (
+        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -414,6 +430,14 @@ function OverviewTab({
                     NPWP Number
                   </p>
                   <p className="text-sm font-bold text-brand-dark">{employee.npwp}</p>
+                </div>
+              )}
+              {employee.salary && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Salary
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.salary}</p>
                 </div>
               )}
               {employee.bank_name && (

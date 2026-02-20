@@ -1058,6 +1058,7 @@ export type Employee = {
   religion?: string;
   // Financial & Tax
   npwp?: string;
+  salary?: string;
   bank_name?: string;
   bank_account?: string;
   bank_account_holder?: string;
@@ -1072,6 +1073,9 @@ export type Employee = {
   district?: string;
   province?: string;
   zip_code?: string;
+  // Role & placement
+  position?: string;
+  placement_location?: string;
   created_at: string;
   updated_at: string;
 };
