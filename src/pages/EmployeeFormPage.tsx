@@ -76,6 +76,10 @@ export default function EmployeeFormPage() {
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
 
+  // BPJS
+  const [bpjstkId, setBpjstkId] = useState('');
+  const [bpjsksId, setBpjsksId] = useState('');
+
   const [departments, setDepartments] = useState<api.Department[]>([]);
   const [projects, setProjects] = useState<api.Project[]>([]);
   const [clients, setClients] = useState<api.Client[]>([]);
@@ -140,6 +144,8 @@ export default function EmployeeFormPage() {
         setZipCode(e.zip_code ?? '');
         setPosition(e.position ?? '');
         setPlacementLocation(e.placement_location ?? '');
+        setBpjstkId(e.bpjstk_id ?? '');
+        setBpjsksId(e.bpjsks_id ?? '');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
       } finally {
@@ -191,6 +197,8 @@ export default function EmployeeFormPage() {
         zip_code: zipCode.trim() || undefined,
         position: position.trim() || undefined,
         placement_location: placementLocation.trim() || undefined,
+        bpjstk_id: bpjstkId.trim() || undefined,
+        bpjsks_id: bpjsksId.trim() || undefined,
       };
       if (isEdit && id) {
         await api.updateEmployee(parseInt(id, 10), body);
@@ -493,6 +501,18 @@ export default function EmployeeFormPage() {
                 value={bankAccountHolder}
                 onChange={(e) => setBankAccountHolder(e.target.value)}
                 className="md:col-span-2"
+              />
+              <Input
+                label="BPJS Tenaga Kerja ID"
+                value={bpjstkId}
+                onChange={(e) => setBpjstkId(e.target.value)}
+                placeholder="BPJS TK number"
+              />
+              <Input
+                label="BPJS Kesehatan ID"
+                value={bpjsksId}
+                onChange={(e) => setBpjsksId(e.target.value)}
+                placeholder="BPJS Kesehatan number"
               />
             </div>
           </CardBody>

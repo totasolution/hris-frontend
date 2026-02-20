@@ -32,6 +32,7 @@ import ContractFormPage from './pages/ContractFormPage';
 import ContractTemplatesPage from './pages/ContractTemplatesPage';
 import ContractTemplateFormPage from './pages/ContractTemplateFormPage';
 import WarningsPage from './pages/WarningsPage';
+import WarningDetailPage from './pages/WarningDetailPage';
 import WarningFormPage from './pages/WarningFormPage';
 import MyDocumentsPage from './pages/MyDocumentsPage';
 import MySpacePage from './pages/MySpacePage';
@@ -49,6 +50,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import PayslipsPage from './pages/PayslipsPage';
 import PaklaringPage from './pages/PaklaringPage';
+import PaklaringCreatePage from './pages/PaklaringCreatePage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -119,8 +121,10 @@ function AppRoutes() {
         <Route path="company-settings" element={<CompanySettingsPage />} />
         <Route path="warnings" element={<WarningsPage />} />
         <Route path="warnings/new" element={<WarningFormPage />} />
+        <Route path="warnings/:id" element={<WarningDetailPage />} />
         <Route path="payslips" element={<PayslipsPage />} />
         <Route path="paklaring" element={<PaklaringPage />} />
+        <Route path="paklaring/new" element={<PaklaringCreatePage />} />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/new" element={<NewTicketPage />} />
         <Route path="tickets/:id" element={<TicketDetailPage />} />

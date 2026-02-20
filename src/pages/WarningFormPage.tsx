@@ -36,6 +36,10 @@ export default function WarningFormPage() {
       setError(`Additional Reference must be ${MAX_FILE_MB}MB or less`);
       return;
     }
+    if (!description.trim()) {
+      setError('Description is required');
+      return;
+    }
     setSubmitting(true);
     try {
       const formData = new FormData();
@@ -43,7 +47,7 @@ export default function WarningFormPage() {
       formData.set('type', type);
       formData.set('warning_date', warningDate);
       formData.set('duration_months', durationMonths);
-      if (description.trim()) formData.set('description', description.trim());
+      formData.set('description', description.trim());
       if (companyPolicyFile) formData.set('company_policy', companyPolicyFile);
       if (additionalRefFile) formData.set('additional_reference', additionalRefFile);
       await api.createWarningWithFiles(formData);
@@ -123,6 +127,7 @@ export default function WarningFormPage() {
                 value={description}
                 onChange={(e: any) => setDescription(e.target.value)}
                 rows={4}
+                required
                 placeholder="Provide a detailed description of the incident or reason for the warning..."
               />
             </div>

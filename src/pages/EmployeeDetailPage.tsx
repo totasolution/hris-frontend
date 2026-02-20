@@ -416,7 +416,7 @@ function OverviewTab({
         )}
 
         {/* Financial Information */}
-        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder) && (
+        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder || employee.bpjstk_id || employee.bpjsks_id) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -462,6 +462,22 @@ function OverviewTab({
                     Bank Account Holder
                   </p>
                   <p className="text-sm font-bold text-brand-dark">{employee.bank_account_holder}</p>
+                </div>
+              )}
+              {employee.bpjstk_id && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    BPJS Tenaga Kerja ID
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.bpjstk_id}</p>
+                </div>
+              )}
+              {employee.bpjsks_id && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    BPJS Kesehatan ID
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.bpjsks_id}</p>
                 </div>
               )}
             </CardBody>
@@ -619,21 +635,23 @@ function DocumentsTab({
   toast: ReturnType<typeof useToast>;
   onPaklaringUploaded?: () => void;
 }) {
-  const [uploadingPaklaring, setUploadingPaklaring] = useState(false);
+  const [generatingPaklaring, setGeneratingPaklaring] = useState(false);
+  const [paklaringLastWorkingDate, setPaklaringLastWorkingDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const handlePaklaringUpload = async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingPaklaring(true);
+  const handlePaklaringGenerate = async () => {
+    if (!paklaringLastWorkingDate.trim()) {
+      toast.error('Last working date is required');
+      return;
+    }
+    setGeneratingPaklaring(true);
     try {
-      await api.uploadPaklaringForEmployee(employeeId, file);
+      await api.createPaklaringForEmployee(employeeId, paklaringLastWorkingDate.trim());
       toast.success('Paklaring generated and employee notified');
       onPaklaringUploaded?.();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Generate failed');
     } finally {
-      setUploadingPaklaring(false);
-      e.target.value = '';
+      setGeneratingPaklaring(false);
     }
   };
 
@@ -702,32 +720,35 @@ function DocumentsTab({
 
       {/* Paklaring Documents */}
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row justify-between items-center">
+        <CardHeader className="flex flex-row justify-between items-center flex-wrap gap-2">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
             Paklaring Documents
           </h3>
-          <div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Last working date:</label>
             <input
-              type="file"
-              accept=".pdf,application/pdf"
-              onChange={handlePaklaringUpload}
-              disabled={uploadingPaklaring}
-              className="hidden"
-              id="employee-paklaring-upload"
+              type="date"
+              value={paklaringLastWorkingDate}
+              onChange={(e) => setPaklaringLastWorkingDate(e.target.value)}
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30"
             />
-            <label
-              htmlFor="employee-paklaring-upload"
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-colors ${
-                uploadingPaklaring ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
+            <button
+              type="button"
+              onClick={handlePaklaringGenerate}
+              disabled={generatingPaklaring || !paklaringLastWorkingDate.trim()}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
+                generatingPaklaring || !paklaringLastWorkingDate.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
               }`}
             >
-              {uploadingPaklaring ? 'Uploading...' : 'Generate paklaring'}
-            </label>
+              {generatingPaklaring ? 'Generating...' : 'Generate paklaring'}
+            </button>
           </div>
         </CardHeader>
         <Table>
           <THead>
             <TR>
+              <TH>Document No.</TH>
+              <TH>Last working date</TH>
               <TH>Generated Date</TH>
               <TH className="text-right">Actions</TH>
             </TR>
@@ -735,13 +756,19 @@ function DocumentsTab({
           <TBody>
             {paklaringDocs.length === 0 ? (
               <TR>
-                <TD colSpan={2} className="py-8 text-center text-slate-400">
+                <TD colSpan={4} className="py-8 text-center text-slate-400">
                   No paklaring documents found.
                 </TD>
               </TR>
             ) : (
               paklaringDocs.map((doc) => (
                 <TR key={doc.id}>
+                  <TD className="text-sm font-medium text-slate-700">
+                    {doc.document_number || '—'}
+                  </TD>
+                  <TD className="text-sm text-slate-600">
+                    {doc.last_working_date ? formatDateLong(doc.last_working_date) : '—'}
+                  </TD>
                   <TD className="text-sm text-slate-600">
                     {formatDateLong(doc.generated_at)}
                   </TD>

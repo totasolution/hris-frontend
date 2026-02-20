@@ -1076,6 +1076,9 @@ export type Employee = {
   // Role & placement
   position?: string;
   placement_location?: string;
+  // BPJS (Indonesian social security)
+  bpjstk_id?: string;  // BPJS Tenaga Kerja ID
+  bpjsks_id?: string;  // BPJS Kesehatan ID
   created_at: string;
   updated_at: string;
 };
@@ -1499,6 +1502,8 @@ export type PaklaringDocument = {
   tenant_id: number;
   employee_id: number;
   file_path: string;
+  last_working_date?: string | null;
+  document_number?: string | null;
   generated_at: string;
   created_at: string;
   employee_name?: string;
@@ -1550,22 +1555,31 @@ export async function getPaklaringPresignedUrl(id: number): Promise<string> {
   return data.url ?? '';
 }
 
-export async function createPaklaringForEmployee(employeeId: number, file_path: string): Promise<PaklaringDocument> {
+/** Generate and create a paklaring document for an employee (no file upload; document is auto-generated from template). */
+export async function createPaklaringForEmployee(
+  employeeId: number,
+  last_working_date: string
+): Promise<PaklaringDocument> {
   const res = await authFetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
-    body: JSON.stringify({ file_path }),
+    body: JSON.stringify({ last_working_date }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create');
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to generate paklaring');
   return data;
 }
 
 /** Upload a PDF file to generate/register a paklaring for an employee. */
-export async function uploadPaklaringForEmployee(employeeId: number, file: File): Promise<PaklaringDocument> {
+export async function uploadPaklaringForEmployee(
+  employeeId: number,
+  file: File,
+  last_working_date?: string | null
+): Promise<PaklaringDocument> {
   const form = new FormData();
   form.append('file', file);
+  if (last_working_date) form.append('last_working_date', last_working_date);
   const token = getAccessToken();
   const headers: HeadersInit = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -1664,6 +1678,50 @@ export async function getMyWarnings(): Promise<WarningLetter[]> {
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
   return data.data ?? [];
+}
+
+/** Download warning letter PDF. Triggers file save in browser. */
+export async function downloadWarningDocument(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/download`, { credentials: 'include', headers: authHeaders() });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? `warning-${id}.pdf`;
+  downloadBlob(blob, filename);
+}
+
+/** Regenerate warning letter PDF from template. Returns updated warning. */
+export async function generateWarningDocument(id: number): Promise<WarningLetter> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/generate-pdf`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to generate document');
+  return data;
+}
+
+/** Download a warning attachment (company_policy or additional_reference). */
+export async function downloadWarningAttachment(
+  id: number,
+  type: 'company_policy' | 'additional_reference'
+): Promise<void> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/attachments/${type}`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? `warning-${id}-${type}.pdf`;
+  downloadBlob(blob, filename);
 }
 
 // Payslips
