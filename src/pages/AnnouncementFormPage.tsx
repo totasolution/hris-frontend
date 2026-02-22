@@ -1,12 +1,43 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Select from 'react-select';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
-import type { AnnouncementCreate } from '../services/api';
+import type { AnnouncementCreate, AnnouncementUpdate } from '../services/api';
 import * as api from '../services/api';
+
+const clientSelectStyles = {
+  control: (base: any) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    border: '1px solid #e2e8f0',
+    padding: '2px',
+    boxShadow: 'none',
+    '&:hover': { border: '1px solid #107BC7' },
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+  }),
+  placeholder: (base: any) => ({
+    ...base,
+    fontSize: '0.875rem',
+    color: '#94a3b8',
+    fontWeight: '500',
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#282828',
+  }),
+};
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return '';
@@ -31,21 +62,31 @@ export default function AnnouncementFormPage() {
   const isEdit = id !== 'new' && id != null && id !== undefined;
   const navigate = useNavigate();
   const { t } = useTranslation('pages');
+  const [clientId, setClientId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [publishedFrom, setPublishedFrom] = useState('');
   const [publishedUntil, setPublishedUntil] = useState('');
-  const [loading, setLoading] = useState(isEdit);
+  const [clients, setClients] = useState<api.Client[]>([]);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isEdit || !id) return;
+    api.getClients().then(setClients).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!isEdit || !id) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const a = await api.getAnnouncement(parseInt(id, 10));
         setTitle(a.title);
         setBody(a.body);
+        setClientId(a.client_id != null ? String(a.client_id) : '');
         setPublishedFrom(toDatetimeLocal(a.published_from ?? null));
         setPublishedUntil(toDatetimeLocal(a.published_until ?? null));
       } catch (e) {
@@ -61,16 +102,18 @@ export default function AnnouncementFormPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const payload: AnnouncementCreate = {
+      const base = {
+        client_id: clientId ? Number(clientId) : undefined,
         title: title.trim(),
         body: body.trim(),
         published_from: fromDatetimeLocal(publishedFrom) ?? undefined,
         published_until: fromDatetimeLocal(publishedUntil) ?? undefined,
       };
       if (isEdit && id) {
+        const payload: AnnouncementUpdate = { ...base };
         await api.updateAnnouncement(parseInt(id, 10), payload);
       } else {
-        await api.createAnnouncement(payload);
+        await api.createAnnouncement(base);
       }
       navigate('/announcements');
     } catch (e) {
@@ -105,6 +148,24 @@ export default function AnnouncementFormPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {t('announcementForm.client')}
+              </label>
+              <Select
+                options={[
+                  { value: '', label: t('announcementForm.allClients') },
+                  ...clients.map((c) => ({ value: String(c.id), label: c.name })),
+                ]}
+                value={clientId ? { value: clientId, label: clients.find((c) => String(c.id) === clientId)?.name ?? clientId } : { value: '', label: t('announcementForm.allClients') }}
+                onChange={(option: { value: string; label: string } | null) => setClientId(option?.value ?? '')}
+                placeholder={t('announcementForm.allClients')}
+                styles={clientSelectStyles}
+                isSearchable
+                isClearable
+              />
+            </div>
+
             <Input
               label={t('announcementForm.title')}
               value={title}

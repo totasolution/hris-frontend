@@ -1063,7 +1063,8 @@ export type Employee = {
   emergency_contact?: string;
   emergency_phone?: string;
   // Address
-  address?: string;
+  address?: string;           // KTP address (alamat sesuai KTP)
+  domicile_address?: string;  // Domicile address (alamat domisili)
   village?: string;
   sub_district?: string;
   district?: string;
@@ -2114,6 +2115,7 @@ export async function deleteFAQ(id: number): Promise<void> {
 export type Announcement = {
   id: number;
   tenant_id: number;
+  client_id?: number | null;
   title: string;
   body: string;
   published_from?: string | null;
@@ -2124,6 +2126,7 @@ export type Announcement = {
 };
 
 export type AnnouncementCreate = {
+  client_id?: number | null;
   title: string;
   body: string;
   published_from?: string | null;
@@ -2131,18 +2134,37 @@ export type AnnouncementCreate = {
 };
 
 export type AnnouncementUpdate = {
+  client_id?: number | null;
   title?: string;
   body?: string;
   published_from?: string | null;
   published_until?: string | null;
 };
 
-export async function getAnnouncements(params?: { publishedOnly?: boolean }): Promise<Announcement[]> {
-  const q = params?.publishedOnly ? '?published_only=true' : '';
+export type AnnouncementsResponse = {
+  data: Announcement[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+};
+
+export async function getAnnouncements(params?: { publishedOnly?: boolean; page?: number; per_page?: number }): Promise<AnnouncementsResponse> {
+  const search = new URLSearchParams();
+  if (params?.publishedOnly) search.set('published_only', 'true');
+  if (params?.page != null) search.set('page', String(params.page));
+  if (params?.per_page != null) search.set('per_page', String(params.per_page));
+  const q = search.toString() ? `?${search.toString()}` : '';
   const res = await authFetch(`${API_BASE}/announcements${q}`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch announcements');
-  return data.data ?? [];
+  return {
+    data: data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    per_page: data.per_page ?? 10,
+    total_pages: data.total_pages ?? 1,
+  };
 }
 
 export async function getAnnouncement(id: number): Promise<Announcement> {

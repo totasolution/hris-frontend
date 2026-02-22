@@ -159,7 +159,7 @@ export default function EmployeeFormPage() {
         email: email.trim(),
         company_email: companyEmail.trim() || undefined,
         phone: phone.trim() || undefined,
-        employee_number: employeeNumber.trim() || undefined,
+        // employee_number is auto-generated on create and read-only on edit; do not send
         employee_type: employeeType,
         status,
         hire_date: hireDate || undefined,
@@ -249,12 +249,15 @@ export default function EmployeeFormPage() {
                 required
                 placeholder="Enter full name"
               />
-              <Input
-                label="Employee Number"
-                value={employeeNumber}
-                onChange={(e) => setEmployeeNumber(e.target.value)}
-                placeholder="Optional"
-              />
+              {isEdit && (
+                <Input
+                  label="Employee Number"
+                  value={employeeNumber}
+                  readOnly
+                  disabled
+                  placeholder="—"
+                />
+              )}
               <Input
                 label="Email Address"
                 type="email"

@@ -85,6 +85,21 @@ export default function PayslipsPage() {
         subtitle={t('pages:payslips.subtitle')}
       />
 
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
+          <div className="h-2 w-2 rounded-full bg-red-500" />
+          <p className="text-sm text-red-600 font-medium">{error}</p>
+        </div>
+      )}
+
+      {/* Bulk upload (for users with payslip:create) */}
+      {canUpload && (
+        <BulkUploadCSVSection
+          onSuccess={() => { load(); toast.success(t('pages:payslips.payslipsUploaded')); }}
+          toast={toast}
+        />
+      )}
+
       {/* Filters */}
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <input
@@ -112,21 +127,6 @@ export default function PayslipsPage() {
           </Select>
         </div>
       </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-red-500" />
-          <p className="text-sm text-red-600 font-medium">{error}</p>
-        </div>
-      )}
-
-      {/* Bulk upload (for users with payslip:create) */}
-      {canUpload && (
-        <BulkUploadCSVSection
-          onSuccess={() => { load(); toast.success(t('pages:payslips.payslipsUploaded')); }}
-          toast={toast}
-        />
-      )}
 
       {/* List */}
       {loading ? (

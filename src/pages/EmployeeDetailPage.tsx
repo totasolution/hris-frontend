@@ -197,14 +197,12 @@ function OverviewTab({
                 {employee.employee_type}
               </p>
             </div>
-            {employee.employee_number && (
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                  Employee Number
-                </p>
-                <p className="text-sm font-bold text-brand-dark">{employee.employee_number}</p>
-              </div>
-            )}
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                Employee Number
+              </p>
+              <p className="text-sm font-bold text-brand-dark">{employee.employee_number ?? '—'}</p>
+            </div>
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                 Email
@@ -313,7 +311,7 @@ function OverviewTab({
         </Card>
 
         {/* Personal Information */}
-        {(employee.identification_id || employee.id_expired_date || employee.birthdate || employee.place_of_birth || employee.gender || employee.religion || employee.marital_status || employee.address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
+        {(employee.identification_id || employee.id_expired_date || employee.birthdate || employee.place_of_birth || employee.gender || employee.religion || employee.marital_status || employee.address || employee.domicile_address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -384,7 +382,7 @@ function OverviewTab({
               {(employee.address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
                 <div className="md:col-span-2">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Address
+                    Address (KTP)
                   </p>
                   <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
                     {[
@@ -395,6 +393,16 @@ function OverviewTab({
                       employee.province,
                       employee.zip_code,
                     ].filter(Boolean).join(', ') || '—'}
+                  </p>
+                </div>
+              )}
+              {employee.domicile_address && (
+                <div className="md:col-span-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Domicile Address
+                  </p>
+                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl whitespace-pre-wrap">
+                    {employee.domicile_address}
                   </p>
                 </div>
               )}
