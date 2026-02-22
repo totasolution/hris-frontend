@@ -63,7 +63,10 @@ export default function RecruitmentStatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>('');
-  const [monthFilter, setMonthFilter] = useState<string>(''); // YYYY-MM or '' for all time
+  const [monthFilter, setMonthFilter] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }); // YYYY-MM or '' for all time; default current month
   const [clients, setClients] = useState<Client[]>([]);
 
   const loadStats = async () => {
