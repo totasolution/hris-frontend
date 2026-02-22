@@ -101,14 +101,12 @@ export default function PaklaringPage() {
 
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <div className="flex-1 min-w-[200px] max-w-md">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-            {t('pages:paklaring.searchByEmployeeName')}
-          </label>
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('pages:paklaring.typeToFilter')}
+            title={t('pages:paklaring.searchByEmployeeName')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
           />
         </div>

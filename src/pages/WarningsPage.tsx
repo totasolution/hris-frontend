@@ -5,7 +5,6 @@ import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
-import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { WarningLetter } from '../services/api';
 import * as api from '../services/api';
@@ -16,7 +15,6 @@ export default function WarningsPage() {
   const [list, setList] = useState<WarningLetter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [employeeId, setEmployeeId] = useState<string>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -29,7 +27,6 @@ export default function WarningsPage() {
     setError(null);
     try {
       const res = await api.getWarnings({
-        employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
         search: search.trim() || undefined,
         page,
         per_page: perPage,
@@ -46,7 +43,7 @@ export default function WarningsPage() {
 
   useEffect(() => {
     load();
-  }, [employeeId, search, page]);
+  }, [search, page]);
 
   useEffect(() => {
     api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
@@ -72,17 +69,6 @@ export default function WarningsPage() {
             }}
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
-        </div>
-        <div className="w-64">
-          <Select
-            value={employeeId}
-            onChange={(e) => setEmployeeId(e.target.value)}
-          >
-            <option value="">{t('pages:warnings.allEmployees')}</option>
-            {employees.map((e) => (
-              <option key={e.id} value={String(e.id)}>{e.full_name}</option>
-            ))}
-          </Select>
         </div>
       </div>
 

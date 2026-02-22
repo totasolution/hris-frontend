@@ -117,6 +117,9 @@ const customSelectStyles = {
 export default function RecruitmentBoardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [nameFilter, setNameFilter] = useState('');
+  const [createdFrom, setCreatedFrom] = useState('');
+  const [createdTo, setCreatedTo] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       const saved = localStorage.getItem('recruitment-board-view');
@@ -156,9 +159,12 @@ export default function RecruitmentBoardPage() {
     async function loadCandidates() {
       setLoading(true);
       try {
-        const params: any = {};
+        const params: any = { per_page: 1000 };
         if (selectedClientId) params.client_id = parseInt(selectedClientId, 10);
-        const res = await api.getCandidates({ ...params, per_page: 1000 });
+        if (nameFilter.trim()) params.search = nameFilter.trim();
+        if (createdFrom) params.created_from = createdFrom;
+        if (createdTo) params.created_to = createdTo;
+        const res = await api.getCandidates(params);
         setCandidates(res.data);
       } catch (err) {
         console.error('Failed to load candidates', err);
@@ -167,7 +173,7 @@ export default function RecruitmentBoardPage() {
       }
     }
     loadCandidates();
-  }, [selectedClientId]);
+  }, [selectedClientId, nameFilter, createdFrom, createdTo]);
 
   const selectedClient = clients.find(c => String(c.id) === selectedClientId);
 
@@ -201,7 +207,7 @@ export default function RecruitmentBoardPage() {
     <div className="space-y-8 font-body">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="w-64">
               <Select
                 options={clientOptions}
@@ -211,6 +217,30 @@ export default function RecruitmentBoardPage() {
                 styles={customSelectStyles}
                 isSearchable
                 isClearable
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Candidate name"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              className="w-48 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={createdFrom}
+                onChange={(e) => setCreatedFrom(e.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                title="Created from"
+              />
+              <span className="text-slate-400 text-sm">–</span>
+              <input
+                type="date"
+                value={createdTo}
+                onChange={(e) => setCreatedTo(e.target.value)}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+                title="Created to"
               />
             </div>
           </div>

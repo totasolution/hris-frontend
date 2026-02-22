@@ -527,6 +527,8 @@ export async function getCandidates(params?: {
   status?: string;
   search?: string;
   created_by?: number;
+  created_from?: string;
+  created_to?: string;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Candidate>> {
@@ -535,6 +537,8 @@ export async function getCandidates(params?: {
   if (params?.status) q.set('status', params.status);
   if (params?.created_by) q.set('created_by', String(params.created_by));
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.created_from) q.set('created_from', params.created_from);
+  if (params?.created_to) q.set('created_to', params.created_to);
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/candidates?${q}` : `${API_BASE}/candidates`;

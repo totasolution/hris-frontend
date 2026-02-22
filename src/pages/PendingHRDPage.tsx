@@ -5,6 +5,7 @@ import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
+import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +23,10 @@ export default function PendingHRDPage() {
   const [rejectComment, setRejectComment] = useState('');
   const [rejectingId, setRejectingId] = useState<number | null>(null);
   const [rejectLoading, setRejectLoading] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [candidateNameSearch, setCandidateNameSearch] = useState('');
+  const [picFilter, setPicFilter] = useState('');
   const toast = useToast();
 
   const load = async () => {
@@ -92,6 +97,43 @@ export default function PendingHRDPage() {
     }
   };
 
+  const uniquePicNames = Array.from(
+    new Set(Object.values(candidates).map((c) => c.pic_name).filter((n): n is string => !!n))
+  ).sort();
+
+  const filteredList = list.filter((d) => {
+    const c = candidates[d.candidate_id];
+    if (candidateNameSearch.trim()) {
+      const q = candidateNameSearch.trim().toLowerCase();
+      const matchName = c?.full_name?.toLowerCase().includes(q);
+      const matchEmail = c?.email?.toLowerCase().includes(q);
+      if (!matchName && !matchEmail) return false;
+    }
+    if (picFilter && c?.pic_name !== picFilter) return false;
+    const submittedAt = d.submitted_for_hrd_at;
+    if (!submittedAt) return true;
+    const t = new Date(submittedAt).getTime();
+    if (dateFrom) {
+      const fromStart = new Date(dateFrom);
+      fromStart.setHours(0, 0, 0, 0);
+      if (t < fromStart.getTime()) return false;
+    }
+    if (dateTo) {
+      const toEnd = new Date(dateTo);
+      toEnd.setHours(23, 59, 59, 999);
+      if (t > toEnd.getTime()) return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = !!(dateFrom || dateTo || candidateNameSearch.trim() || picFilter);
+  const clearFilters = () => {
+    setDateFrom('');
+    setDateTo('');
+    setCandidateNameSearch('');
+    setPicFilter('');
+  };
+
   return (
     <div className="space-y-8">
       <PageHeader
@@ -105,6 +147,58 @@ export default function PendingHRDPage() {
           <p className="text-sm text-red-600 font-medium">{error}</p>
         </div>
       )}
+
+      <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="w-64">
+          <input
+            type="text"
+            placeholder="Candidate name or email"
+            value={candidateNameSearch}
+            onChange={(e) => setCandidateNameSearch(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </div>
+        <div className="w-64">
+          <Select
+            value={picFilter}
+            onChange={(e) => setPicFilter(e.target.value)}
+          >
+            <option value="">All PICs</option>
+            {uniquePicNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="w-44">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            title="From date"
+          />
+        </div>
+        <div className="w-44">
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            title="To date"
+          />
+        </div>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-sm font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -121,17 +215,23 @@ export default function PendingHRDPage() {
               </TR>
             </THead>
             <TBody>
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <TR>
                   <TD colSpan={canApprove ? 3 : 2} className="py-12 text-center">
-                    <p className="text-slate-400">No contract requests pending approval.</p>
-                    <p className="mt-2 text-xs text-slate-400 max-w-md mx-auto">
-                      Candidates with status &quot;Contract requested&quot; who are not listed here have already been approved by HRD and are no longer pending.
+                    <p className="text-slate-400">
+                      {list.length === 0
+                        ? 'No contract requests pending approval.'
+                        : 'No requests match the selected filters.'}
                     </p>
+                    {list.length === 0 && (
+                      <p className="mt-2 text-xs text-slate-400 max-w-md mx-auto">
+                        Candidates with status &quot;Contract requested&quot; who are not listed here have already been approved by HRD and are no longer pending.
+                      </p>
+                    )}
                   </TD>
                 </TR>
               ) : (
-                list.map((d) => {
+                filteredList.map((d) => {
                   const c = candidates[d.candidate_id];
                   return (
                     <TR key={d.candidate_id}>
