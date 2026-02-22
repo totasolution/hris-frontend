@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,8 +9,9 @@ import {
   type NavItem,
 } from '../config/nav';
 import { NotificationBell } from './NotificationBell';
+import * as api from '../services/api';
 
-const GROUP_ORDER: NavGroupId[] = ['home', 'recruitment', 'people', 'support', 'setup'];
+const GROUP_ORDER: NavGroupId[] = ['home', 'recruitment', 'people', 'support', 'mySpace', 'setup'];
 
 function groupNavItems(items: NavItem[]): Map<NavGroupId, NavItem[]> {
   const map = new Map<NavGroupId, NavItem[]>();
@@ -153,6 +155,11 @@ export default function AppLayout() {
   const location = useLocation();
   const navItems = getVisibleNavItems(roles || [], permissions || []);
   const grouped = groupNavItems(navItems);
+  const [onboardingFollowUpCount, setOnboardingFollowUpCount] = useState<number>(0);
+  useEffect(() => {
+    if (!permissions?.includes('recruitment:read')) return;
+    api.getOnboardingFollowUpCount().then(setOnboardingFollowUpCount).catch(() => setOnboardingFollowUpCount(0));
+  }, [permissions]);
 
   const roleLabel = roles[0]?.replace(/_/g, ' ') ?? 'Member';
   const firstName = user?.full_name?.split(' ')[0] ?? 'User';
@@ -186,10 +193,12 @@ export default function AppLayout() {
                 </p>
                 <ul className="space-y-1">
                   {items.map((item) => {
+                    const pathOnly = item.path.split('?')[0];
                     const isActive = item.exact
-                      ? location.pathname === item.path
-                      : location.pathname === item.path ||
-                        (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'));
+                      ? location.pathname === pathOnly
+                      : location.pathname === pathOnly ||
+                        (pathOnly !== '/dashboard' && location.pathname.startsWith(pathOnly + '/'));
+                    const showBadge = item.badgeKey === 'onboardingFollowUp' && onboardingFollowUpCount > 0;
                     return (
                       <li key={item.path}>
                         <Link
@@ -203,7 +212,12 @@ export default function AppLayout() {
                           <div className={`flex-shrink-0 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-brand'}`}>
                             {getIcon(item.icon)}
                           </div>
-                          {t(item.label)}
+                          <span className="flex-1 truncate">{t(item.label)}</span>
+                          {showBadge && (
+                            <span className={`flex-shrink-0 min-w-[1.25rem] text-center text-[10px] font-black px-1.5 py-0.5 rounded-lg ${isActive ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-700'}`}>
+                              {onboardingFollowUpCount}
+                            </span>
+                          )}
                         </Link>
                       </li>
                     );

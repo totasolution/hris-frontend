@@ -54,7 +54,6 @@ export default function CandidatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') ?? '');
   const [clientId, setClientId] = useState<string>(() => searchParams.get('client_id') ?? '');
-  const [projectId, setProjectId] = useState<string>(() => searchParams.get('project_id') ?? '');
   const [createdById] = useState<string>(() => searchParams.get('created_by') ?? '');
   const [searchName, setSearchName] = useState<string>('');
   const [page, setPage] = useState(1);
@@ -62,16 +61,14 @@ export default function CandidatesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
   const [clients, setClients] = useState<Client[]>([]);
-  const [projects, setProjects] = useState<api.Project[]>([]);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: { status?: string; client_id?: number; project_id?: number; created_by?: number; search?: string; page?: number; per_page?: number } = {};
+      const params: { status?: string; client_id?: number; created_by?: number; search?: string; page?: number; per_page?: number } = {};
       if (statusFilter) params.status = statusFilter;
       if (clientId) params.client_id = parseInt(clientId, 10);
-      if (projectId) params.project_id = parseInt(projectId, 10);
       if (createdById) params.created_by = parseInt(createdById, 10);
       if (searchName.trim()) params.search = searchName.trim();
       params.page = page;
@@ -89,19 +86,13 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, clientId, projectId, createdById, searchName, page]);
+  }, [statusFilter, clientId, createdById, searchName, page]);
 
   useEffect(() => {
-    Promise.all([api.getClients(), api.getProjects()]).then(([cList, pList]) => {
-      setClients(cList);
-      setProjects(pList);
-    }).catch(() => {});
+    api.getClients().then(setClients).catch(() => {});
   }, []);
 
-  const filteredProjects = projects.filter(p => !clientId || String(p.client_id) === clientId);
-
   const clientOptions = clients.map(c => ({ value: String(c.id), label: c.name }));
-  const projectOptions = filteredProjects.map(p => ({ value: String(p.id), label: p.name }));
   const statusOptions = [
     { value: 'new', label: 'New' },
     { value: 'screening', label: 'Screening' },
@@ -145,26 +136,11 @@ export default function CandidatesPage() {
           <Select
             options={clientOptions}
             value={clientOptions.find(o => o.value === clientId)}
-            onChange={(option: any) => {
-              setClientId(option?.value || '');
-              setProjectId('');
-            }}
+            onChange={(option: any) => setClientId(option?.value || '')}
             placeholder={t('pages:candidates.allClients')}
             styles={customSelectStyles}
             isClearable
             isSearchable
-          />
-        </div>
-        <div className="w-64">
-          <Select
-            options={projectOptions}
-            value={projectOptions.find(o => o.value === projectId)}
-            onChange={(option: any) => setProjectId(option?.value || '')}
-            placeholder={t('pages:candidates.allProjects')}
-            styles={customSelectStyles}
-            isClearable
-            isSearchable
-            isDisabled={!clientId}
           />
         </div>
         <div className="w-64">
@@ -197,7 +173,7 @@ export default function CandidatesPage() {
             <THead>
               <TR>
                 <TH>{t('pages:candidates.fullName')}</TH>
-                <TH>{t('pages:candidates.clientProject')}</TH>
+                <TH>{t('pages:candidates.client')}</TH>
                 <TH>{t('pages:candidates.employmentType')}</TH>
                 <TH>{t('pages:candidates.picRecruiter')}</TH>
                 <TH>{t('pages:candidates.status')}</TH>
@@ -220,7 +196,6 @@ export default function CandidatesPage() {
                     <TD>
                       <div className="flex flex-col">
                         <span className="font-bold text-brand text-xs uppercase tracking-wider">{c.client_name || 'No Client'}</span>
-                        <span className="text-sm text-slate-500">{c.project_name || 'No Project'}</span>
                       </div>
                     </TD>
                     <TD>

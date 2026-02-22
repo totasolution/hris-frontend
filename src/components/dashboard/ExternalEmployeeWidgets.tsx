@@ -15,7 +15,6 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
   const [contracts, setContracts] = useState<api.Contract[]>([]);
   const [paklarings, setPaklarings] = useState<any[]>([]);
   const [tickets, setTickets] = useState<api.Ticket[]>([]);
-  const [project, setProject] = useState<api.Project | null>(null);
   const [client, setClient] = useState<api.Client | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,11 +23,10 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
       try {
         // TODO: Get current user's employee record
         // For now, fetch all and filter (should be optimized with backend endpoint)
-        const [allEmployees, allContracts, allTickets, allProjects, allClients] = await Promise.all([
+        const [allEmployees, allContracts, allTickets, allClients] = await Promise.all([
           api.getEmployees({ per_page: 1000 }).then((r) => r.data),
           api.getContracts({ per_page: 1000 }).then((r) => r.data),
           api.getTickets({ per_page: 1000 }).then((r) => r.data),
-          api.getProjects(),
           api.getClients(),
         ]);
 
@@ -36,14 +34,12 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
         const myEmployee = userId ? allEmployees.find((e) => e.user_id === userId) : null;
         const myContracts = userId ? allContracts.filter((c) => c.employee_id === myEmployee?.id) : [];
         const myTickets = allTickets.filter((t) => t.author_id === userId);
-        const myProject = myEmployee?.project_id ? allProjects.find((p) => p.id === myEmployee.project_id) : null;
         const myClient = myEmployee?.client_id ? allClients.find((c) => c.id === myEmployee.client_id) : null;
 
         // TODO: Get Paklarings for this employee
         setEmployee(myEmployee || null);
         setContracts(myContracts);
         setTickets(myTickets);
-        setProject(myProject || null);
         setClient(myClient || null);
         setPaklarings([]); // TODO: Implement Paklaring API
       } catch (err) {
@@ -111,26 +107,15 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
         />
       </div>
 
-      {(project || client) && (
+      {client && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {project && (
-            <div className="group relative overflow-hidden rounded-[2rem] bg-blue-50 p-8 border-2 border-blue-200 shadow-xl">
-              <h3 className="text-xl font-bold text-blue-900 font-headline mb-4">Assigned Project</h3>
-              <p className="text-lg font-bold text-blue-700">{project.name}</p>
-              {project.description && (
-                <p className="text-sm text-blue-600 mt-2">{project.description}</p>
-              )}
-            </div>
-          )}
-          {client && (
-            <div className="group relative overflow-hidden rounded-[2rem] bg-green-50 p-8 border-2 border-green-200 shadow-xl">
-              <h3 className="text-xl font-bold text-green-900 font-headline mb-4">Client</h3>
-              <p className="text-lg font-bold text-green-700">{client.name}</p>
-              {client.contact_name && (
-                <p className="text-sm text-green-600 mt-2">Contact: {client.contact_name}</p>
-              )}
-            </div>
-          )}
+          <div className="group relative overflow-hidden rounded-[2rem] bg-green-50 p-8 border-2 border-green-200 shadow-xl">
+            <h3 className="text-xl font-bold text-green-900 font-headline mb-4">Client</h3>
+            <p className="text-lg font-bold text-green-700">{client.name}</p>
+            {client.contact_name && (
+              <p className="text-sm text-green-600 mt-2">Contact: {client.contact_name}</p>
+            )}
+          </div>
         </div>
       )}
 
@@ -171,7 +156,7 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
             id: ticket.id,
             title: ticket.subject,
             subtitle: ticket.status,
-            link: `/me/tickets/${ticket.id}`,
+            link: `/tickets/${ticket.id}`,
           }))}
           loading={loading}
           emptyMessage="No tickets"

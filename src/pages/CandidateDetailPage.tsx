@@ -13,6 +13,7 @@ import * as api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
+import { formatGender } from '../utils/formatGender';
 
 type TabType = 'overview' | 'onboarding' | 'documents' | 'contracts';
 
@@ -477,10 +478,6 @@ function OverviewTab({
                 <p className="text-sm font-bold text-brand-dark">{candidate.client_name ?? '—'}</p>
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Project</p>
-                <p className="text-sm font-bold text-brand-dark">{candidate.project_name ?? '—'}</p>
-              </div>
-              <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">PIC / Recruiter</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.pic_name ?? '—'}</p>
               </div>
@@ -715,16 +712,7 @@ function OverviewTab({
                     </div>
                     <h4 className="text-sm font-bold text-brand-dark font-headline">Contract Requested</h4>
                     <p className="text-xs text-slate-500">Waiting for HRD to generate and send the contract.</p>
-                    {candidateContracts.length > 0 ? (
-                      <div className="pt-2">
-                        <ButtonLink to={candidateReturnTo ? `/contracts/${candidateContracts[0].id}/edit?return=${encodeURIComponent(candidateReturnTo)}` : `/contracts/${candidateContracts[0].id}/edit`} className="!px-4 !py-2 !text-xs">
-                          View generated contract
-                        </ButtonLink>
-                        <p className="mt-2 text-[10px] text-slate-400">Or go to <Link to="/contracts" className="text-brand hover:underline">Contracts</Link> to manage all contracts.</p>
-                      </div>
-                    ) : (
-                      <p className="text-[10px] text-slate-400 pt-2">Go to <Link to="/contracts" className="text-brand hover:underline">Contracts</Link> (filter by Draft) to view or edit the generated contract.</p>
-                    )}
+                    
                   </div>
                 )}
 
@@ -790,6 +778,7 @@ function OnboardingTab({
   }
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Submitted Onboarding Data</h3>
@@ -801,6 +790,7 @@ function OnboardingTab({
               setOnboardingEditForm({
                 id_number: onboardingData.id_number ?? '',
                 address: onboardingData.address ?? '',
+                domicile_address: onboardingData.domicile_address ?? '',
                 place_of_birth: onboardingData.place_of_birth ?? '',
                 date_of_birth: onboardingData.date_of_birth ?? '',
                 gender: onboardingData.gender ?? 'male',
@@ -846,8 +836,8 @@ function OnboardingTab({
               <Input label="Place of Birth" name="place_of_birth" value={onboardingEditForm.place_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, place_of_birth: e.target.value }))} placeholder="City" />
               <Input label="Date of Birth" name="date_of_birth" type="date" value={onboardingEditForm.date_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, date_of_birth: e.target.value }))} />
               <Select label="Gender" name="gender" value={onboardingEditForm.gender ?? 'male'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, gender: e.target.value }))}>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+                <option value="male">Laki-laki</option>
+                <option value="female">Perempuan</option>
               </Select>
               <Input label="Religion" name="religion" value={onboardingEditForm.religion ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, religion: e.target.value }))} placeholder="e.g. Islam, Christian" />
               <Select label="Marital Status" name="marital_status" value={onboardingEditForm.marital_status ?? 'single'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, marital_status: e.target.value }))}>
@@ -857,7 +847,10 @@ function OnboardingTab({
               </Select>
               <Input label="NPWP Number" name="npwp_number" value={onboardingEditForm.npwp_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, npwp_number: e.target.value }))} placeholder="Tax ID (optional)" />
               <div className="md:col-span-2">
-                <Textarea label="Current Address" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, address: e.target.value }))} rows={3} placeholder="Full residential address..." />
+                <Textarea label="KTP/ID Address" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, address: e.target.value }))} rows={3} placeholder="Address as on ID..." />
+              </div>
+              <div className="md:col-span-2">
+                <Textarea label="Domicile Address" name="domicile_address" value={onboardingEditForm.domicile_address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, domicile_address: e.target.value }))} rows={3} placeholder="Current domicile (if different from KTP)..." />
               </div>
               <Input label="Bank Name" name="bank_name" value={onboardingEditForm.bank_name ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_name: e.target.value }))} placeholder="e.g. BCA, Mandiri" />
               <Input label="Account Number" name="bank_account_number" value={onboardingEditForm.bank_account_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_account_number: e.target.value }))} placeholder="0000000000" />
@@ -886,10 +879,11 @@ function OnboardingTab({
                 { label: 'ID Number', value: onboardingData.id_number },
                 { label: 'Place of Birth', value: onboardingData.place_of_birth },
                 { label: 'Date of Birth', value: onboardingData.date_of_birth },
-                { label: 'Gender', value: onboardingData.gender },
+                { label: 'Gender', value: formatGender(onboardingData.gender) },
                 { label: 'Religion', value: onboardingData.religion },
                 { label: 'Marital Status', value: onboardingData.marital_status },
-                { label: 'Address', value: onboardingData.address, full: true },
+                { label: 'KTP/ID Address', value: onboardingData.address, full: true },
+                { label: 'Domicile Address', value: onboardingData.domicile_address, full: true },
                 { label: 'Bank Name', value: onboardingData.bank_name },
                 { label: 'Bank Account Number', value: onboardingData.bank_account_number },
                 { label: 'Bank Account Holder', value: onboardingData.bank_account_holder },
@@ -913,6 +907,60 @@ function OnboardingTab({
         )}
       </CardBody>
     </Card>
+
+    {onboardingData?.declaration_checklist && typeof onboardingData.declaration_checklist === 'object' && (
+      <Card className="mt-8">
+        <CardHeader>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Declaration List</h3>
+        </CardHeader>
+        <CardBody className="space-y-8">
+          <div>
+            <h4 className="text-xs font-bold text-brand uppercase tracking-wider mb-4">KETENTUAN</h4>
+            <ul className="space-y-3">
+              {(onboardingData.declaration_checklist as api.DeclarationChecklistData).ketentuan?.map((item, idx) => (
+                <li key={item.id} className="flex items-start gap-2 text-sm text-slate-700">
+                  <span className={`shrink-0 mt-0.5 w-5 h-5 rounded border flex items-center justify-center ${item.checked ? 'bg-green-100 border-green-300 text-green-600' : 'bg-slate-100 border-slate-200'}`}>
+                    {item.checked ? '✓' : '—'}
+                  </span>
+                  <div className="min-w-0">
+                    <span><span className="font-medium">{idx + 1}. </span>{item.text}</span>
+                    {item.subItems && (
+                      <ul className="mt-2 ml-4 list-disc space-y-1 text-slate-600">
+                        {item.subItems.map((sub, i) => (
+                          <li key={i}>{sub}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-brand uppercase tracking-wider mb-4">SANKSI</h4>
+            <ul className="space-y-3">
+              {(onboardingData.declaration_checklist as api.DeclarationChecklistData).sanksi?.map((item, idx) => (
+                <li key={item.id} className="flex items-start gap-2 text-sm text-slate-700">
+                  <span className={`shrink-0 mt-0.5 w-5 h-5 rounded border flex items-center justify-center ${item.checked ? 'bg-green-100 border-green-300 text-green-600' : 'bg-slate-100 border-slate-200'}`}>
+                    {item.checked ? '✓' : '—'}
+                  </span>
+                  <span><span className="font-medium">{idx + 1}. </span>{item.text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-start gap-2 text-sm text-slate-700">
+              <span className={`shrink-0 mt-0.5 w-5 h-5 rounded border flex items-center justify-center ${(onboardingData.declaration_checklist as api.DeclarationChecklistData).finalDeclaration?.checked ? 'bg-green-100 border-green-300 text-green-600' : 'bg-slate-100 border-slate-200'}`}>
+                {(onboardingData.declaration_checklist as api.DeclarationChecklistData).finalDeclaration?.checked ? '✓' : '—'}
+              </span>
+              <span>{(onboardingData.declaration_checklist as api.DeclarationChecklistData).finalDeclaration?.text}</span>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+    )}
+  </>
   );
 }
 

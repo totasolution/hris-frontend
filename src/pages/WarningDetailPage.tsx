@@ -24,9 +24,11 @@ export default function WarningDetailPage() {
   const [regenerating, setRegenerating] = useState(false);
 
   const warningId = id ? parseInt(id, 10) : 0;
-  const fromMyWarnings = (location.state as { from?: string } | null)?.from === 'me';
-  const backHref = fromMyWarnings ? '/me/warnings' : '/warnings';
-  const backLabel = fromMyWarnings ? t('pages:myWarnings.title') : t('pages:warnings.title');
+  const stateFrom = (location.state as { from?: string } | null)?.from;
+  const fromMySpaceDocuments = stateFrom === 'me-documents';
+  const fromMyWarnings = stateFrom === 'me';
+  const backHref = fromMySpaceDocuments ? '/me/documents' : fromMyWarnings ? '/me/documents' : '/warnings';
+  const backLabel = fromMySpaceDocuments ? t('pages:mySpace.documents') : fromMyWarnings ? t('pages:myWarnings.title') : t('pages:warnings.title');
 
   const load = async () => {
     if (!warningId) return;
@@ -136,6 +138,10 @@ export default function WarningDetailPage() {
         </CardHeader>
         <CardBody className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-sm font-medium text-slate-500">{t('pages:warnings.documentNumber')}</dt>
+              <dd className="mt-1 text-slate-800 font-mono text-sm">{warning.document_number ?? '—'}</dd>
+            </div>
             <div>
               <dt className="text-sm font-medium text-slate-500">{t('pages:warnings.employee')}</dt>
               <dd className="mt-1">

@@ -10,7 +10,7 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { ContractTemplate, ContractTemplateType } from '../services/api';
 import * as api from '../services/api';
 
-const CONTRACT_TYPE_KEYS: Record<ContractTemplateType, string> = {
+const CONTRACT_TYPE_KEYS: Record<string, string> = {
   pkwt: 'contractTemplates.typePkwt',
   pkwtt: 'contractTemplates.typePkwtt',
   partnership: 'contractTemplates.typePartnership',
@@ -18,6 +18,10 @@ const CONTRACT_TYPE_KEYS: Record<ContractTemplateType, string> = {
   freelance: 'contractTemplates.typeFreelance',
   other: 'contractTemplates.typeOther',
   payslip: 'contractTemplates.typePayslip',
+  paklaring: 'contractTemplates.typePaklaring',
+  warning_sp1: 'contractTemplates.typeWarningSp1',
+  warning_sp2: 'contractTemplates.typeWarningSp2',
+  warning_sp3: 'contractTemplates.typeWarningSp3',
 };
 
 export default function ContractTemplatesPage() {
@@ -82,6 +86,10 @@ export default function ContractTemplatesPage() {
             <option value="freelance">{t('pages:contractTemplates.typeFreelance')}</option>
             <option value="other">{t('pages:contractTemplates.typeOther')}</option>
             <option value="payslip">{t('pages:contractTemplates.typePayslip', 'Payslip')}</option>
+            <option value="paklaring">{t('pages:contractTemplates.typePaklaring')}</option>
+            <option value="warning_sp1">{t('pages:contractTemplates.typeWarningSp1')}</option>
+            <option value="warning_sp2">{t('pages:contractTemplates.typeWarningSp2')}</option>
+            <option value="warning_sp3">{t('pages:contractTemplates.typeWarningSp3')}</option>
           </Select>
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
@@ -131,7 +139,7 @@ export default function ContractTemplatesPage() {
                     <TD className="font-bold text-[#0f172a]">{template.name}</TD>
                     <TD>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                        {t('pages:' + CONTRACT_TYPE_KEYS[template.contract_type])}
+                        {t('pages:' + (CONTRACT_TYPE_KEYS[template.contract_type] ?? 'contractTemplates.typeOther'))}
                       </span>
                     </TD>
                     <TD>

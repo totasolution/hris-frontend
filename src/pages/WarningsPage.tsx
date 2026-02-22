@@ -102,6 +102,7 @@ export default function WarningsPage() {
           <Table>
             <THead>
               <TR>
+                <TH>{t('pages:warnings.documentNumber')}</TH>
                 <TH>{t('pages:warnings.employee')}</TH>
                 <TH>{t('pages:warnings.type')}</TH>
                 <TH>{t('common:date')}</TH>
@@ -112,13 +113,14 @@ export default function WarningsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-12 text-center text-slate-400">
+                  <TD colSpan={6} className="py-12 text-center text-slate-400">
                     {t('pages:warnings.noWarningsFound')}
                   </TD>
                 </TR>
               ) : (
                 list.map((w) => (
                   <TR key={w.id}>
+                    <TD className="text-slate-700 font-mono text-sm">{w.document_number ?? '—'}</TD>
                     <TD className="font-bold text-[#0f172a]">
                       {employees.find(e => e.id === w.employee_id)?.full_name ?? `ID: ${w.employee_id}`}
                     </TD>

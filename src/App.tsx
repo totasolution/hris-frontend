@@ -8,8 +8,6 @@ import ClientsPage from './pages/ClientsPage';
 import DepartmentFormPage from './pages/DepartmentFormPage';
 import DepartmentsPage from './pages/DepartmentsPage';
 import LoginPage from './pages/LoginPage';
-import ProjectFormPage from './pages/ProjectFormPage';
-import ProjectsPage from './pages/ProjectsPage';
 import RoleFormPage from './pages/RoleFormPage';
 import RolePermissionsPage from './pages/RolePermissionsPage';
 import RolesPage from './pages/RolesPage';
@@ -24,6 +22,7 @@ import OnboardingFormPage from './pages/OnboardingFormPage';
 import ContractSigningPage from './pages/ContractSigningPage';
 import PendingHRDPage from './pages/PendingHRDPage';
 import PendingHRDContractCreatePage from './pages/PendingHRDContractCreatePage';
+import OnboardingStatusPage from './pages/OnboardingStatusPage';
 import EmployeesPage from './pages/EmployeesPage';
 import EmployeeFormPage from './pages/EmployeeFormPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
@@ -34,9 +33,7 @@ import ContractTemplateFormPage from './pages/ContractTemplateFormPage';
 import WarningsPage from './pages/WarningsPage';
 import WarningDetailPage from './pages/WarningDetailPage';
 import WarningFormPage from './pages/WarningFormPage';
-import MyDocumentsPage from './pages/MyDocumentsPage';
-import MySpacePage from './pages/MySpacePage';
-import MyWarningsPage from './pages/MyWarningsPage';
+import MySpaceLayout, { MyProfilePage, MyContractsPage, MyDocumentsPage, MyPayslipsPage, MyTicketsOutlet } from './pages/MySpacePage';
 import TicketsPage from './pages/TicketsPage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import NewTicketPage from './pages/NewTicketPage';
@@ -90,9 +87,6 @@ function AppRoutes() {
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/new" element={<ClientFormPage />} />
         <Route path="clients/:id/edit" element={<ClientFormPage />} />
-        <Route path="projects" element={<ProjectsPage />} />
-        <Route path="projects/new" element={<ProjectFormPage />} />
-        <Route path="projects/:id/edit" element={<ProjectFormPage />} />
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/new" element={<RoleFormPage />} />
         <Route path="roles/:id/edit" element={<RoleFormPage />} />
@@ -106,6 +100,7 @@ function AppRoutes() {
         <Route path="candidates/new" element={<CandidateFormPage />} />
         <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="candidates/:id/edit" element={<CandidateFormPage />} />
+        <Route path="onboarding/status" element={<OnboardingStatusPage />} />
         <Route path="onboarding/pending-hrd" element={<PendingHRDPage />} />
         <Route path="onboarding/pending-hrd/create-contract" element={<PendingHRDContractCreatePage />} />
         <Route path="employees" element={<EmployeesPage />} />
@@ -135,10 +130,14 @@ function AppRoutes() {
         <Route path="faq/admin" element={<FAQAdminPage />} />
         <Route path="faq/new" element={<FAQFormPage />} />
         <Route path="faq/:id/edit" element={<FAQFormPage />} />
-        <Route path="me" element={<MySpacePage />} />
-        <Route path="me/documents" element={<MyDocumentsPage />} />
-        <Route path="me/warnings" element={<MyWarningsPage />} />
-        <Route path="me/tickets" element={<MyTicketsPage />} />
+        <Route path="me" element={<MySpaceLayout />}>
+          <Route index element={<Navigate to="/me/profile" replace />} />
+          <Route path="profile" element={<MyProfilePage />} />
+          <Route path="contracts" element={<MyContractsPage />} />
+          <Route path="documents" element={<MyDocumentsPage />} />
+          <Route path="payslips" element={<MyPayslipsPage />} />
+          <Route path="tickets" element={<MyTicketsOutlet />} />
+        </Route>
         <Route path="notifications" element={<NotificationsPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

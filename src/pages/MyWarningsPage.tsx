@@ -44,6 +44,7 @@ export default function MyWarningsPage() {
           <Table>
             <THead>
               <TR>
+                <TH>{t('pages:warnings.documentNumber')}</TH>
                 <TH>{t('pages:myWarnings.warningType')}</TH>
                 <TH>{t('pages:myWarnings.issuedDate')}</TH>
                 <TH>{t('pages:warnings.description')}</TH>
@@ -53,13 +54,14 @@ export default function MyWarningsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-12 text-center text-slate-400">
+                  <TD colSpan={5} className="py-12 text-center text-slate-400">
                     {t('pages:myWarnings.noWarnings')}
                   </TD>
                 </TR>
               ) : (
                 list.map((w) => (
                   <TR key={w.id}>
+                    <TD className="text-slate-700 font-mono text-sm">{w.document_number ?? '—'}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                         w.type === 'SP3' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'

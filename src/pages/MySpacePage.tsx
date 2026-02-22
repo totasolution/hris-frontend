@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link, Outlet, useOutletContext } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Input } from '../components/Input';
@@ -10,12 +9,24 @@ import { useToast } from '../components/Toast';
 import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument, Payslip } from '../services/api';
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download.ts';
-import { formatDate, formatDateLong } from '../utils/formatDate';
+import { formatDate, formatDateLong, addMonths } from '../utils/formatDate';
+import { formatGender } from '../utils/formatGender';
 import MyTicketsPage from './MyTicketsPage';
 
-type TabType = 'profile' | 'contracts' | 'documents' | 'payslips' | 'tickets' | 'account';
+export type MySpaceContext = {
+  employee: Employee | null;
+  error: string | null;
+  contracts: Contract[];
+  paklaringDocs: PaklaringDocument[];
+  warnings: WarningLetter[];
+  employeeDocuments: EmployeeDocument[];
+  payslips: Payslip[];
+  loadContractsAndDocuments: (employeeId: number) => Promise<void>;
+  toast: ReturnType<typeof useToast>;
+};
 
-export default function MySpacePage() {
+/** Layout for /me/* routes: loads employee + data, renders Outlet with context. */
+export function MySpaceLayout() {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [paklaringDocs, setPaklaringDocs] = useState<PaklaringDocument[]>([]);
@@ -24,20 +35,7 @@ export default function MySpacePage() {
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('profile');
   const toast = useToast();
-  const { permissions = [] } = useAuth();
-  const canEditEmployee = permissions.includes('employee:update');
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    api
-      .getMyEmployee()
-      .then(setEmployee)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, []);
 
   const loadContractsAndDocuments = async (employeeId: number) => {
     try {
@@ -59,106 +57,167 @@ export default function MySpacePage() {
   };
 
   useEffect(() => {
-    if (employee?.id) {
-      loadContractsAndDocuments(employee.id);
-    }
+    setLoading(true);
+    setError(null);
+    api
+      .getMyEmployee()
+      .then(setEmployee)
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (employee?.id) loadContractsAndDocuments(employee.id);
   }, [employee?.id]);
 
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     );
   }
 
-  if (!employee) {
+  const context: MySpaceContext = {
+    employee,
+    error,
+    contracts,
+    paklaringDocs,
+    warnings,
+    employeeDocuments,
+    payslips,
+    loadContractsAndDocuments,
+    toast,
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto font-body">
+      {employee && (
+        <>
+          <PageHeader
+            title={employee.full_name}
+            subtitle={employee.email}
+          />
+          {error && (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3 mb-6">
+              <div className="h-2 w-2 rounded-full bg-red-500" />
+              <p className="text-sm text-red-600 font-medium">{error}</p>
+            </div>
+          )}
+        </>
+      )}
+      {!employee && (
+        <PageHeader title="My Space" subtitle="Your profile and account" />
+      )}
+      <Outlet context={context} />
+    </div>
+  );
+}
+
+/** My Profile: 2 tabs — Profile, Change Password */
+export function MyProfilePage() {
+  const [tab, setTab] = useState<'profile' | 'password'>('profile');
+  const ctx = useOutletContext() as MySpaceContext;
+
+  if (!ctx.employee) {
     return (
-      <div className="max-w-2xl mx-auto space-y-8 font-body">
-        <PageHeader title="My Space" subtitle="Your profile and support tickets" />
+      <div className="space-y-8">
         <Card>
           <CardBody className="py-12 text-center">
             <p className="text-slate-600 font-medium">
               No employee profile is linked to your account. Please contact HR if you believe this is an error.
             </p>
             <div className="mt-6">
-              <ButtonLink to={`/tickets/new?return=${encodeURIComponent('/me')}`}>New support ticket</ButtonLink>
+              <ButtonLink to={`/tickets/new?return=${encodeURIComponent('/me/profile')}`}>New support ticket</ButtonLink>
             </div>
           </CardBody>
         </Card>
-        <AccountTab toast={toast} />
+        <AccountTab toast={ctx.toast} />
       </div>
     );
   }
 
-  const tabs: { id: TabType; label: string }[] = [
-    { id: 'profile', label: 'Profile' },
-    { id: 'contracts', label: 'Contracts' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'payslips', label: 'Payslips' },
-    { id: 'tickets', label: 'My Tickets' },
-    { id: 'account', label: 'Account' },
-  ];
-
   return (
-    <div className="max-w-6xl mx-auto space-y-8 font-body">
-      <PageHeader
-        title={employee.full_name}
-        subtitle={employee.email}
-        actions={
-          canEditEmployee ? (
-            <ButtonLink to={`/employees/${employee.id}/edit?return=${encodeURIComponent('/me')}`} variant="secondary">
-              Edit Profile
-            </ButtonLink>
-          ) : undefined
-        }
-      />
-
-      {error && (
-        <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-red-500" />
-          <p className="text-sm text-red-600 font-medium">{error}</p>
-        </div>
-      )}
-
+    <div className="space-y-8">
       <div className="border-b border-slate-200">
         <nav className="flex gap-8 -mb-px">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-brand text-brand'
-                  : 'border-transparent text-slate-400 hover:text-slate-600 hover:border-slate-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <button
+            type="button"
+            onClick={() => setTab('profile')}
+            className={`px-4 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+              tab === 'profile' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            Profile
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('password')}
+            className={`px-4 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+              tab === 'password' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            Change Password
+          </button>
         </nav>
       </div>
-
-      <div className="space-y-8">
-        {activeTab === 'profile' && <ProfileTab employee={employee} />}
-        {activeTab === 'contracts' && <MySpaceContractsTab contracts={contracts} toast={toast} />}
-        {activeTab === 'documents' && (
-          <MySpaceDocumentsTab
-            paklaringDocs={paklaringDocs}
-            warnings={warnings}
-            employeeDocuments={employeeDocuments}
-            employeeId={employee.id}
-            toast={toast}
-            onDocumentsChange={() => employee.id && loadContractsAndDocuments(employee.id)}
-          />
-        )}
-        {activeTab === 'payslips' && <MySpacePayslipsTab payslips={payslips} toast={toast} />}
-        {activeTab === 'tickets' && <MyTicketsPage embedded />}
-        {activeTab === 'account' && <AccountTab toast={toast} />}
-      </div>
+      {tab === 'profile' && <ProfileTab employee={ctx.employee} />}
+      {tab === 'password' && <AccountTab toast={ctx.toast} />}
     </div>
   );
 }
+
+/** My Contracts */
+export function MyContractsPage() {
+  const ctx = useOutletContext() as MySpaceContext;
+  if (!ctx.employee) return <NoEmployeeMessage />;
+  return <MySpaceContractsTab contracts={ctx.contracts} toast={ctx.toast} />;
+}
+
+/** My Documents */
+export function MyDocumentsPage() {
+  const ctx = useOutletContext() as MySpaceContext;
+  if (!ctx.employee) return <NoEmployeeMessage />;
+  return (
+    <MySpaceDocumentsTab
+      paklaringDocs={ctx.paklaringDocs}
+      warnings={ctx.warnings}
+      employeeDocuments={ctx.employeeDocuments}
+      employeeId={ctx.employee.id}
+      toast={ctx.toast}
+      onDocumentsChange={() => ctx.employee && ctx.loadContractsAndDocuments(ctx.employee.id)}
+    />
+  );
+}
+
+/** My Payslips */
+export function MyPayslipsPage() {
+  const ctx = useOutletContext() as MySpaceContext;
+  if (!ctx.employee) return <NoEmployeeMessage />;
+  return <MySpacePayslipsTab payslips={ctx.payslips} toast={ctx.toast} />;
+}
+
+/** My Tickets */
+export function MyTicketsOutlet() {
+  return <MyTicketsPage embedded />;
+}
+
+function NoEmployeeMessage() {
+  return (
+    <Card>
+      <CardBody className="py-12 text-center">
+        <p className="text-slate-600 font-medium">
+          No employee profile is linked to your account. Link your profile to see contracts, documents, and payslips.
+        </p>
+        <div className="mt-6">
+          <ButtonLink to="/me/profile">Go to My Profile</ButtonLink>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
+export default MySpaceLayout;
 
 function ProfileTab({ employee }: { employee: Employee }) {
   const displayDate = employee.join_date || employee.hire_date;
@@ -306,7 +365,7 @@ function ProfileTab({ employee }: { employee: Employee }) {
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                     Gender
                   </p>
-                  <p className="text-sm font-bold text-brand-dark capitalize">{employee.gender}</p>
+                  <p className="text-sm font-bold text-brand-dark">{formatGender(employee.gender)}</p>
                 </div>
               )}
               {employee.religion && (
@@ -875,8 +934,10 @@ function MySpaceDocumentsTab({
         <Table>
           <THead>
             <TR>
+              <TH>Document No.</TH>
               <TH>Type</TH>
               <TH>Warning Date</TH>
+              <TH>Warning Due</TH>
               <TH>Description</TH>
               <TH className="text-right">Actions</TH>
             </TR>
@@ -884,13 +945,16 @@ function MySpaceDocumentsTab({
           <TBody>
             {warnings.length === 0 ? (
               <TR>
-                <TD colSpan={4} className="py-8 text-center text-slate-400">
+                <TD colSpan={6} className="py-8 text-center text-slate-400">
                   No warning letters found.
                 </TD>
               </TR>
             ) : (
               warnings.map((warning) => (
                 <TR key={warning.id}>
+                  <TD className="text-sm font-mono text-slate-700">
+                    {warning.document_number ?? '—'}
+                  </TD>
                   <TD>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-100 text-red-700">
                       {warning.type}
@@ -899,10 +963,16 @@ function MySpaceDocumentsTab({
                   <TD className="text-sm text-slate-600">
                     {formatDate(warning.warning_date)}
                   </TD>
+                  <TD className="text-sm text-slate-600">
+                    {warning.duration_months != null
+                      ? formatDate(addMonths(warning.warning_date, warning.duration_months))
+                      : '—'}
+                  </TD>
                   <TD className="text-sm text-slate-600 max-w-md truncate">{warning.description || '—'}</TD>
                   <TD className="text-right">
                     <Link
                       to={`/warnings/${warning.id}`}
+                      state={{ from: 'me-documents' }}
                       className="p-2 text-slate-400 hover:text-brand transition-colors"
                       title="View warning"
                     >

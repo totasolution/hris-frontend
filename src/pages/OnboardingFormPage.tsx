@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { getDefaultDeclarationChecklist } from '../constants/onboardingDeclaration';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { Select } from '../components/Select';
 import * as api from '../services/api';
+import type { DeclarationChecklistData } from '../services/api';
 
 export default function OnboardingFormPage() {
   const { token } = useParams<{ token: string }>();
@@ -13,6 +15,8 @@ export default function OnboardingFormPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [declarationChecklist, setDeclarationChecklist] = useState<DeclarationChecklistData>(() => getDefaultDeclarationChecklist());
   const [ktpFile, setKtpFile] = useState<File | null>(null);
   const [uploadingKtp, setUploadingKtp] = useState(false);
   const [ktpUploaded, setKtpUploaded] = useState(false);
@@ -22,13 +26,13 @@ export default function OnboardingFormPage() {
   const [skckFile, setSkckFile] = useState<File | null>(null);
   const [uploadingSkck, setUploadingSkck] = useState(false);
   const [skckUploaded, setSkckUploaded] = useState(false);
-  const [dataReviewed, setDataReviewed] = useState(false);
   const ktpInputRef = useRef<HTMLInputElement>(null);
 
   // Form Fields - Auto-filled with default values for testing
   const [formData, setFormData] = useState({
     id_number: '',
     address: '',
+    domicile_address: '',
     place_of_birth: '',
     date_of_birth: '',
     gender: '',
@@ -68,6 +72,7 @@ export default function OnboardingFormPage() {
             ...prev,
             id_number: existing.id_number ?? prev.id_number,
             address: existing.address ?? prev.address,
+            domicile_address: existing.domicile_address ?? prev.domicile_address,
             place_of_birth: existing.place_of_birth ?? prev.place_of_birth,
             date_of_birth: existing.date_of_birth
               ? existing.date_of_birth.split('T')[0]
@@ -83,6 +88,9 @@ export default function OnboardingFormPage() {
             emergency_contact_relationship: existing.emergency_contact_relationship ?? prev.emergency_contact_relationship,
             emergency_contact_phone: existing.emergency_contact_phone ?? prev.emergency_contact_phone,
           }));
+          if (existing.declaration_checklist && typeof existing.declaration_checklist === 'object') {
+            setDeclarationChecklist(existing.declaration_checklist as DeclarationChecklistData);
+          }
         } catch {
           // No existing form yet; ignore
         }
@@ -238,27 +246,59 @@ export default function OnboardingFormPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleNextToDeclaration = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token) return;
     if (!ktpUploaded || !kkUploaded) {
-      setError('Silakan unggah KTP dan Kartu Keluarga (KK) sebelum mengirim formulir.');
+      setError('Silakan unggah KTP dan Kartu Keluarga (KK) sebelum melanjutkan.');
       return;
     }
-    if (!dataReviewed) {
-      setError('Silakan centang pernyataan bahwa Anda telah memeriksa semua data sebelum mengirim.');
+    setError(null);
+    setStep(2);
+  };
+
+  const handleSubmitDeclaration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    const allKetentuanChecked = declarationChecklist.ketentuan.every((i) => i.checked);
+    const allSanksiChecked = declarationChecklist.sanksi.every((i) => i.checked);
+    const finalChecked = declarationChecklist.finalDeclaration.checked;
+    if (!allKetentuanChecked || !allSanksiChecked || !finalChecked) {
+      setError('Silakan centang semua pernyataan KETENTUAN, SANKSI, dan pernyataan akhir sebelum mengirim.');
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      await api.submitOnboardingForm(token, { ...formData, data_reviewed: true });
+      await api.submitOnboardingForm(token, {
+        ...formData,
+        declaration_checklist: declarationChecklist,
+        data_reviewed: true,
+      });
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Pengiriman gagal');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const setKetentuanChecked = (id: string, checked: boolean) => {
+    setDeclarationChecklist((prev) => ({
+      ...prev,
+      ketentuan: prev.ketentuan.map((i) => (i.id === id ? { ...i, checked } : i)),
+    }));
+  };
+  const setSanksiChecked = (id: string, checked: boolean) => {
+    setDeclarationChecklist((prev) => ({
+      ...prev,
+      sanksi: prev.sanksi.map((i) => (i.id === id ? { ...i, checked } : i)),
+    }));
+  };
+  const setFinalDeclarationChecked = (checked: boolean) => {
+    setDeclarationChecklist((prev) => ({
+      ...prev,
+      finalDeclaration: { ...prev.finalDeclaration, checked },
+    }));
   };
 
   // Full-page loading: initial load or any document processing
@@ -314,9 +354,13 @@ export default function OnboardingFormPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="text-center space-y-2">
           <img src="/logo-sigma.png" alt="Sigma Solusi" className="h-12 mx-auto mb-6" />
-          <h1 className="text-3xl font-black text-brand-dark font-headline tracking-tight">Data Pribadi</h1>
+          <h1 className="text-3xl font-black text-brand-dark font-headline tracking-tight">
+            {step === 2 ? 'Pernyataan & Persetujuan' : 'Data Pribadi'}
+          </h1>
           <p className="text-slate-500 font-medium leading-relaxed max-w-lg mx-auto">
-            Selamat datang, <span className="text-brand-dark font-bold">{candidate?.full_name}</span>. Silakan lengkapi formulir di bawah untuk melanjutkan onboarding.
+            {step === 2
+              ? 'Baca dan centang semua pernyataan di bawah, lalu klik Setujui dan Kirim.'
+              : `Selamat datang, ${candidate?.full_name ? ` ${candidate.full_name}` : ''}. Silakan lengkapi formulir di bawah untuk melanjutkan onboarding.`}
           </p>
         </div>
 
@@ -327,7 +371,86 @@ export default function OnboardingFormPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        {step === 2 ? (
+          <form onSubmit={handleSubmitDeclaration} className="space-y-8">
+            <Card>
+              <CardBody className="space-y-6">
+                <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">KETENTUAN</h3>
+                <div className="space-y-4">
+                  {declarationChecklist.ketentuan.map((item, idx) => (
+                    <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={(e) => setKetentuanChecked(item.id, e.target.checked)}
+                        className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand shrink-0"
+                      />
+                      <span className="text-sm text-slate-700 leading-relaxed">
+                        <span className="font-medium">{idx + 1}. </span>
+                        {item.text}
+                        {item.subItems && (
+                          <ul className="mt-2 ml-4 list-disc space-y-1 text-slate-600">
+                            {item.subItems.map((sub, idx) => (
+                              <li key={idx}>{sub}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="space-y-6">
+                <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">SANKSI</h3>
+                <div className="space-y-4">
+                  {declarationChecklist.sanksi.map((item, idx) => (
+                    <label key={item.id} className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={(e) => setSanksiChecked(item.id, e.target.checked)}
+                        className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand shrink-0"
+                      />
+                      <span className="text-sm text-slate-700 leading-relaxed">
+                        <span className="font-medium">{idx + 1}. </span>
+                        {item.text}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="space-y-4">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={declarationChecklist.finalDeclaration.checked}
+                    onChange={(e) => setFinalDeclarationChecked(e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand shrink-0"
+                  />
+                  <span className="text-sm text-slate-700 leading-relaxed">
+                    {declarationChecklist.finalDeclaration.text}
+                  </span>
+                </label>
+              </CardBody>
+            </Card>
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button type="button" variant="secondary" onClick={() => setStep(1)} className="order-2 sm:order-1">
+                Kembali
+              </Button>
+              <Button type="submit" disabled={submitting} className="flex-1 order-1 sm:order-2 py-5 text-lg shadow-2xl shadow-brand/20">
+                {submitting ? 'Mengirim...' : 'Setujui dan Kirim'}
+              </Button>
+            </div>
+            <p className="text-center text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black">
+              Pengiriman Aman • Sigma Solusi Servis
+            </p>
+          </form>
+        ) : (
+        <form onSubmit={handleNextToDeclaration} className="space-y-8">
           {/* Dokumen Upload Section - KTP, KK, SKCK */}
           <Card>
             <CardBody className="space-y-8">
@@ -469,7 +592,8 @@ export default function OnboardingFormPage() {
                 </Select>
                 <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
                 <div className="md:col-span-2">
-                  <Textarea label="Alamat Sekarang" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Alamat lengkap tempat tinggal..." />
+                  <Textarea label="Alamat KTP/ID" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Alamat sesuai KTP..." />
+                <Textarea label="Alamat Domisili" name="domicile_address" value={formData.domicile_address} onChange={handleInputChange} rows={3} placeholder="Alamat domisili saat ini (jika berbeda dari KTP)..." />
                 </div>
               </div>
             </CardBody>
@@ -503,33 +627,16 @@ export default function OnboardingFormPage() {
             </CardBody>
           </Card>
 
-          {/* Declaration: candidate confirms they have reviewed all data */}
-          <Card>
-            <CardBody className="space-y-4">
-              <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">5. Pernyataan</h3>
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={dataReviewed}
-                  onChange={(e) => setDataReviewed(e.target.checked)}
-                  className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand"
-                />
-                <span className="text-sm text-slate-600 leading-relaxed">
-                  Saya menyatakan telah memeriksa semua informasi dan data yang diisi dalam formulir ini serta menyatakan bahwa data tersebut benar dan lengkap sesuai pengetahuan saya.
-                </span>
-              </label>
-            </CardBody>
-          </Card>
-          
           <div className="pt-6">
-            <Button type="submit" disabled={submitting || !dataReviewed} className="w-full py-5 text-lg shadow-2xl shadow-brand/20">
-              {submitting ? 'Mengirim...' : 'Kirim Formulir Onboarding'}
+            <Button type="submit" className="w-full py-5 text-lg shadow-2xl shadow-brand/20">
+              Lanjut ke Pernyataan
             </Button>
             <p className="mt-6 text-center text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black">
-              Pengiriman Aman • Sigma Solusi Servis
+              Langkah 1 dari 2 • Sigma Solusi Servis
             </p>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

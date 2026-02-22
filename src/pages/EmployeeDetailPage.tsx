@@ -8,8 +8,9 @@ import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument } from '../services/api';
 import * as api from '../services/api';
-import { downloadFromUrl } from '../utils/download.ts';
+import { downloadFromUrl } from '../utils/download';
 import { formatDate, formatDateLong } from '../utils/formatDate';
+import { formatGender } from '../utils/formatGender';
 
 type TabType = 'overview' | 'contracts' | 'documents' | 'history';
 
@@ -21,7 +22,6 @@ export default function EmployeeDetailPage() {
   const [warnings, setWarnings] = useState<WarningLetter[]>([]);
   const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
   const [detailDepartments, setDetailDepartments] = useState<api.Department[]>([]);
-  const [detailProjects, setDetailProjects] = useState<api.Project[]>([]);
   const [detailClients, setDetailClients] = useState<api.Client[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState(true);
@@ -29,6 +29,7 @@ export default function EmployeeDetailPage() {
   const toast = useToast();
   const { permissions = [] } = useAuth();
   const canEditEmployee = permissions.includes('employee:update');
+  const canDeletePaklaring = permissions.includes('paklaring:delete');
 
   const employeeId = id ? parseInt(id, 10) : 0;
 
@@ -37,14 +38,13 @@ export default function EmployeeDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [emp, contractsData, paklaringData, warningsData, documentsData, depts, projs, clis] = await Promise.all([
+      const [emp, contractsData, paklaringData, warningsData, documentsData, depts, clis] = await Promise.all([
         api.getEmployee(employeeId),
         api.getContracts({ employee_id: employeeId, per_page: 100 }).then((r) => r.data).catch(() => []),
         api.getPaklaringByEmployee(employeeId).catch(() => []),
         api.getWarnings({ employee_id: employeeId, per_page: 100 }).then((r) => r.data).catch(() => []),
         api.getEmployeeDocuments(employeeId).catch(() => []),
         api.getDepartments(),
-        api.getProjects(),
         api.getClients(),
       ]);
       setEmployee(emp);
@@ -53,7 +53,6 @@ export default function EmployeeDetailPage() {
       setWarnings(warningsData);
       setEmployeeDocuments(documentsData);
       setDetailDepartments(depts);
-      setDetailProjects(projs);
       setDetailClients(clis);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
@@ -127,7 +126,6 @@ export default function EmployeeDetailPage() {
           <OverviewTab
             employee={employee}
             departments={detailDepartments}
-            projects={detailProjects}
             clients={detailClients}
           />
         )}
@@ -138,7 +136,8 @@ export default function EmployeeDetailPage() {
 
         {activeTab === 'documents' && (
           <DocumentsTab 
-            paklaringDocs={paklaringDocs} 
+            paklaringDocs={paklaringDocs}
+            canDeletePaklaring={canDeletePaklaring} 
             warnings={warnings}
             employeeDocuments={employeeDocuments}
             employeeId={employeeId}
@@ -159,12 +158,10 @@ export default function EmployeeDetailPage() {
 function OverviewTab({
   employee,
   departments,
-  projects,
   clients,
 }: {
   employee: Employee;
   departments: api.Department[];
-  projects: api.Project[];
   clients: api.Client[];
 }) {
   const displayDate = employee.join_date || employee.hire_date;
@@ -280,16 +277,6 @@ function OverviewTab({
                 </p>
               </div>
             )}
-            {employee.project_id && (
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                  Project
-                </p>
-                <p className="text-sm font-bold text-brand-dark">
-                  {projects.find((p) => p.id === employee.project_id)?.name ?? `ID: ${employee.project_id}`}
-                </p>
-              </div>
-            )}
             {employee.termination_date && (
               <>
                 <div>
@@ -375,7 +362,7 @@ function OverviewTab({
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                     Gender
                   </p>
-                  <p className="text-sm font-bold text-brand-dark capitalize">{String(employee.gender)}</p>
+                  <p className="text-sm font-bold text-brand-dark">{formatGender(employee.gender)}</p>
                 </div>
               )}
               {employee.religion && (
@@ -627,6 +614,7 @@ function DocumentsTab({
   employeeId,
   toast,
   onPaklaringUploaded,
+  canDeletePaklaring,
 }: { 
   paklaringDocs: PaklaringDocument[]; 
   warnings: WarningLetter[];
@@ -634,18 +622,24 @@ function DocumentsTab({
   employeeId: number;
   toast: ReturnType<typeof useToast>;
   onPaklaringUploaded?: () => void;
+  canDeletePaklaring?: boolean;
 }) {
   const [generatingPaklaring, setGeneratingPaklaring] = useState(false);
   const [paklaringLastWorkingDate, setPaklaringLastWorkingDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paklaringDocumentNumber, setPaklaringDocumentNumber] = useState('');
 
   const handlePaklaringGenerate = async () => {
     if (!paklaringLastWorkingDate.trim()) {
       toast.error('Last working date is required');
       return;
     }
+    if (!paklaringDocumentNumber.trim()) {
+      toast.error('Document number is required');
+      return;
+    }
     setGeneratingPaklaring(true);
     try {
-      await api.createPaklaringForEmployee(employeeId, paklaringLastWorkingDate.trim());
+      await api.createPaklaringForEmployee(employeeId, paklaringLastWorkingDate.trim(), paklaringDocumentNumber.trim());
       toast.success('Paklaring generated and employee notified');
       onPaklaringUploaded?.();
     } catch (err) {
@@ -725,6 +719,14 @@ function DocumentsTab({
             Paklaring Documents
           </h3>
           <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Document No.:</label>
+            <input
+              type="text"
+              value={paklaringDocumentNumber}
+              onChange={(e) => setPaklaringDocumentNumber(e.target.value)}
+              placeholder="e.g. PAK-2026-001"
+              className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 min-w-[120px]"
+            />
             <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Last working date:</label>
             <input
               type="date"
@@ -735,9 +737,9 @@ function DocumentsTab({
             <button
               type="button"
               onClick={handlePaklaringGenerate}
-              disabled={generatingPaklaring || !paklaringLastWorkingDate.trim()}
+              disabled={generatingPaklaring || !paklaringLastWorkingDate.trim() || !paklaringDocumentNumber.trim()}
               className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
-                generatingPaklaring || !paklaringLastWorkingDate.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
+                generatingPaklaring || !paklaringLastWorkingDate.trim() || !paklaringDocumentNumber.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
               }`}
             >
               {generatingPaklaring ? 'Generating...' : 'Generate paklaring'}
@@ -773,23 +775,46 @@ function DocumentsTab({
                     {formatDateLong(doc.generated_at)}
                   </TD>
                   <TD className="text-right">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const url = await api.getPaklaringPresignedUrl(doc.id);
-                          await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
-                        } catch {
-                          toast.error('Failed to open document');
-                        }
-                      }}
-                      className="p-2 text-slate-400 hover:text-brand transition-colors"
-                      title="Download paklaring"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center justify-end gap-0">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const url = await api.getPaklaringPresignedUrl(doc.id);
+                            await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
+                          } catch {
+                            toast.error('Failed to open document');
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Download paklaring"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                      {canDeletePaklaring && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm('Delete this paklaring document? The file will be removed from storage.')) return;
+                            try {
+                              await api.deletePaklaring(doc.id);
+                              toast.success('Paklaring document deleted');
+                              onPaklaringUploaded?.();
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : 'Delete failed');
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                          title="Delete paklaring"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   </TD>
                 </TR>
               ))
@@ -808,6 +833,7 @@ function DocumentsTab({
         <Table>
           <THead>
             <TR>
+              <TH>Document No.</TH>
               <TH>Type</TH>
               <TH>Warning Date</TH>
               <TH>Description</TH>
@@ -817,13 +843,14 @@ function DocumentsTab({
           <TBody>
             {warnings.length === 0 ? (
               <TR>
-                <TD colSpan={4} className="py-8 text-center text-slate-400">
+                <TD colSpan={5} className="py-8 text-center text-slate-400">
                   No warning letters found.
                 </TD>
               </TR>
             ) : (
               warnings.map((warning) => (
                 <TR key={warning.id}>
+                  <TD className="text-sm text-slate-600 font-mono">{warning.document_number ?? '—'}</TD>
                   <TD>
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-red-100 text-red-700">
                       {warning.type}

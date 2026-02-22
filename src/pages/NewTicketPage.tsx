@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
-import { Select } from '../components/Select';
 import * as api from '../services/api';
+
+const HRD_DEPARTMENT_ID = 1;
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -20,16 +21,10 @@ export default function NewTicketPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = getReturnPath(location.search);
-  const [departmentId, setDepartmentId] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [departments, setDepartments] = useState<api.Department[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.getDepartments().then(setDepartments).catch(() => {});
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +32,7 @@ export default function NewTicketPage() {
     setSubmitting(true);
     try {
       await api.createTicket({
-        department_id: parseInt(departmentId, 10),
+        department_id: HRD_DEPARTMENT_ID,
         subject: subject.trim(),
         message: message.trim(),
       });
@@ -53,7 +48,7 @@ export default function NewTicketPage() {
     <div className="max-w-3xl mx-auto space-y-8">
       <PageHeader
         title="Create Support Ticket"
-        subtitle="Submit a question or issue to a department"
+        subtitle="Submit a question or issue to HRD"
       />
 
       {error && (
@@ -66,26 +61,13 @@ export default function NewTicketPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select
-                label="Target Department"
-                value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                required
-              >
-                <option value="">Select Department</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={String(d.id)}>{d.name}</option>
-                ))}
-              </Select>
-              <Input
-                label="Subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                placeholder="Brief summary of the issue"
-              />
-            </div>
+            <Input
+              label="Subject"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+              placeholder="Brief summary of the issue"
+            />
 
             <div className="pt-6 border-t border-slate-50">
               <Textarea

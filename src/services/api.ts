@@ -291,72 +291,6 @@ export async function deleteClient(id: number): Promise<void> {
   }
 }
 
-// Projects
-export type Project = {
-  id: number;
-  tenant_id: number;
-  client_id: number;
-  name: string;
-  client_name?: string;
-  description?: string;
-  start_date?: string;
-  end_date?: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export async function getProjects(clientId?: number): Promise<Project[]> {
-  const url = clientId ? `${API_BASE}/projects?client_id=${clientId}` : `${API_BASE}/projects`;
-  const res = await authFetch(url);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch projects');
-  return data.data ?? [];
-}
-
-export async function getProject(id: number): Promise<Project> {
-  const res = await authFetch(`${API_BASE}/projects/${id}`, { credentials: 'include', headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch project');
-  return data;
-}
-
-export async function createProject(body: Partial<Project> & { name: string; client_id: number }): Promise<Project> {
-  const res = await authFetch(`${API_BASE}/projects`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create project');
-  return data;
-}
-
-export async function updateProject(id: number, body: Partial<Project> & { name: string; client_id: number }): Promise<Project> {
-  const res = await authFetch(`${API_BASE}/projects/${id}`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update project');
-  return data;
-}
-
-export async function deleteProject(id: number): Promise<void> {
-  const res = await authFetch(`${API_BASE}/projects/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data?.error?.message ?? 'Failed to delete project');
-  }
-}
-
 // Permissions (read-only list)
 export type Permission = {
   id: number;
@@ -559,7 +493,6 @@ export type Candidate = {
   id: number;
   tenant_id: number;
   client_id?: number;
-  project_id?: number;
   full_name: string;
   email: string;
   phone?: string;
@@ -572,7 +505,6 @@ export type Candidate = {
   created_by?: number;
   pic_name?: string;
   client_name?: string;
-  project_name?: string;
   created_at: string;
   updated_at: string;
 };
@@ -591,7 +523,6 @@ export type CandidateDocument = {
 };
 
 export async function getCandidates(params?: {
-  project_id?: number;
   client_id?: number;
   status?: string;
   search?: string;
@@ -600,7 +531,6 @@ export async function getCandidates(params?: {
   per_page?: number;
 }): Promise<PaginatedResponse<Candidate>> {
   const q = new URLSearchParams();
-  if (params?.project_id) q.set('project_id', String(params.project_id));
   if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.status) q.set('status', params.status);
   if (params?.created_by) q.set('created_by', String(params.created_by));
@@ -629,7 +559,6 @@ export async function getCandidate(id: number): Promise<Candidate> {
 
 export async function createCandidate(body: {
   client_id?: number;
-  project_id?: number;
   full_name: string;
   email: string;
   phone?: string;
@@ -651,7 +580,6 @@ export async function updateCandidate(
   id: number,
   body: Partial<{
     client_id: number;
-    project_id: number;
     full_name: string;
     email: string;
     phone: string;
@@ -689,7 +617,6 @@ export async function deleteCandidate(id: number): Promise<void> {
 export type RecruitmentStatistics = {
   by_status: Record<string, number>;
   by_client: { client_id?: number; client_name: string; count: number }[];
-  by_project: { project_id?: number; project_name: string; count: number }[];
   by_pic: { pic_id?: number; pic_name: string; count: number }[];
   totals: {
     all: number;
@@ -703,13 +630,11 @@ export type RecruitmentStatistics = {
 
 export async function getRecruitmentStatistics(params?: {
   client_id?: number;
-  project_id?: number;
   year?: number;
   month?: number;
 }): Promise<RecruitmentStatistics> {
   const q = new URLSearchParams();
   if (params?.client_id) q.set('client_id', String(params.client_id));
-  if (params?.project_id) q.set('project_id', String(params.project_id));
   if (params?.year) q.set('year', String(params.year));
   if (params?.month) q.set('month', String(params.month));
   const url = q.toString() ? `${API_BASE}/recruitment/statistics?${q}` : `${API_BASE}/recruitment/statistics`;
@@ -789,7 +714,8 @@ export type OnboardingFormData = {
 
   // Personal Info
   id_number?: string;
-  address?: string;
+  address?: string;           // KTP/ID address
+  domicile_address?: string;  // Domicile address (alamat domisili)
   place_of_birth?: string;
   date_of_birth?: string;
   gender?: string;
@@ -821,6 +747,29 @@ export type OnboardingFormData = {
   hrd_comment?: string;
   created_at: string;
   updated_at: string;
+
+  /** Declaration checklist (KETENTUAN + SANKSI + final); stored as JSON */
+  declaration_checklist?: DeclarationChecklistData;
+};
+
+/** Single item in KETENTUAN or SANKSI with optional sub-items (display only; one checkbox per item). */
+export type DeclarationChecklistItem = {
+  id: string;
+  text: string;
+  subItems?: string[];
+  checked: boolean;
+};
+
+/** Final declaration paragraph with one checkbox. */
+export type DeclarationFinalItem = {
+  text: string;
+  checked: boolean;
+};
+
+export type DeclarationChecklistData = {
+  ketentuan: DeclarationChecklistItem[];
+  sanksi: DeclarationChecklistItem[];
+  finalDeclaration: DeclarationFinalItem;
 };
 
 export async function createOnboardingLink(candidateId: number): Promise<OnboardingLink> {
@@ -924,7 +873,7 @@ export async function getOnboardingFormByCandidate(candidateId: number): Promise
 /** Editable onboarding form fields (recruiter can review and update after candidate submission). */
 export type OnboardingFormDataEditable = Pick<
   OnboardingFormData,
-  | 'id_number' | 'address' | 'place_of_birth' | 'date_of_birth' | 'gender' | 'religion' | 'marital_status'
+  | 'id_number' | 'address' | 'domicile_address' | 'place_of_birth' | 'date_of_birth' | 'gender' | 'religion' | 'marital_status'
   | 'bank_name' | 'bank_account_number' | 'bank_account_holder' | 'npwp_number'
   | 'emergency_contact_name' | 'emergency_contact_relationship' | 'emergency_contact_phone'
 >;
@@ -1027,6 +976,50 @@ export async function getPendingHRDList(): Promise<OnboardingFormData[]> {
   return data.data ?? [];
 }
 
+/** Count of onboarding links sent >2 days ago not yet submitted (for nav badge). */
+export async function getOnboardingFollowUpCount(): Promise<number> {
+  const res = await authFetch(`${API_BASE}/onboarding/follow-up-count`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) return 0;
+  return typeof data.count === 'number' ? data.count : 0;
+}
+
+export type OnboardingStatusItem = {
+  candidate_id: number;
+  candidate_name: string;
+  client_name: string;
+  token: string;
+  created_at: string;
+  status: 'new' | 'need_follow_up';
+};
+
+export async function getOnboardingStatusList(params?: {
+  search?: string;
+  client_id?: number;
+  page?: number;
+  per_page?: number;
+}): Promise<PaginatedResponse<OnboardingStatusItem>> {
+  const q = new URLSearchParams();
+  if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.client_id) q.set('client_id', String(params.client_id));
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.per_page) q.set('per_page', String(params.per_page));
+  const url = q.toString() ? `${API_BASE}/onboarding/status?${q}` : `${API_BASE}/onboarding/status`;
+  const res = await authFetch(url, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch');
+  return {
+    data: data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    per_page: data.per_page ?? 10,
+    total_pages: data.total_pages ?? 1,
+  };
+}
+
 // Employees
 export type Employee = {
   id: number;
@@ -1036,7 +1029,6 @@ export type Employee = {
   employee_type: string;
   employee_number?: string;
   department_id?: number;
-  project_id?: number;
   client_id?: number;
   full_name: string;
   email: string;
@@ -1203,7 +1195,7 @@ export async function deleteEmployeeDocument(employeeId: number, documentId: num
 }
 
 // Contract Templates
-export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'partnership' | 'internship' | 'freelance' | 'other' | 'payslip';
+export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'partnership' | 'internship' | 'freelance' | 'other' | 'payslip' | 'paklaring' | 'warning_sp1' | 'warning_sp2' | 'warning_sp3';
 
 export type ContractTemplate = {
   id: number;
@@ -1558,13 +1550,14 @@ export async function getPaklaringPresignedUrl(id: number): Promise<string> {
 /** Generate and create a paklaring document for an employee (no file upload; document is auto-generated from template). */
 export async function createPaklaringForEmployee(
   employeeId: number,
-  last_working_date: string
+  last_working_date: string,
+  document_number: string
 ): Promise<PaklaringDocument> {
   const res = await authFetch(`${API_BASE}/employees/${employeeId}/paklaring`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
-    body: JSON.stringify({ last_working_date }),
+    body: JSON.stringify({ last_working_date, document_number: document_number.trim() }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to generate paklaring');
@@ -1594,12 +1587,26 @@ export async function uploadPaklaringForEmployee(
   return data;
 }
 
+/** Delete a paklaring document and its file from storage. */
+export async function deletePaklaring(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/paklaring/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data?.error?.message ?? 'Failed to delete paklaring');
+  }
+}
+
 // Warnings
 export type WarningLetter = {
   id: number;
   tenant_id: number;
   employee_id: number;
   type: string;
+  document_number?: string | null;
   warning_date: string;
   duration_months?: number;
   description?: string;

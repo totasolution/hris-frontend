@@ -30,6 +30,7 @@ export default function PayslipsPage() {
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState<string>(String(currentYear));
   const [month, setMonth] = useState<string>('');
+  const [employeeNameSearch, setEmployeeNameSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 20;
   const { permissions = [] } = useAuth();
@@ -65,10 +66,17 @@ export default function PayslipsPage() {
     }
   };
 
-  const total = list.length;
+  const searchTrimmed = employeeNameSearch.trim().toLowerCase();
+  const filteredList = searchTrimmed
+    ? list.filter((p) => {
+        const name = (p.employee_name ?? `Employee #${p.employee_id}`).toLowerCase();
+        return name.includes(searchTrimmed);
+      })
+    : list;
+  const total = filteredList.length;
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const startIndex = (page - 1) * perPage;
-  const paginatedList = list.slice(startIndex, startIndex + perPage);
+  const paginatedList = filteredList.slice(startIndex, startIndex + perPage);
 
   return (
     <div className="space-y-8">
@@ -79,6 +87,16 @@ export default function PayslipsPage() {
 
       {/* Filters */}
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <input
+          type="text"
+          value={employeeNameSearch}
+          onChange={(e) => {
+            setEmployeeNameSearch(e.target.value);
+            setPage(1);
+          }}
+          placeholder={t('pages:payslips.searchByEmployeeName')}
+          className="flex-1 min-w-[200px] max-w-xs px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+        />
         <div className="w-32">
           <Select value={year} onChange={(e) => setYear(e.target.value)}>
             {YEARS.map((y) => (
@@ -127,7 +145,7 @@ export default function PayslipsPage() {
               </TR>
             </THead>
             <TBody>
-              {list.length === 0 ? (
+              {filteredList.length === 0 ? (
                 <TR>
                   <TD colSpan={4} className="py-12 text-center text-slate-400">
                     {t('pages:payslips.noPayslipsFound')}

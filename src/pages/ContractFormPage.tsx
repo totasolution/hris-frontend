@@ -185,7 +185,7 @@ export default function ContractFormPage() {
         address: '[Address]',
         place_of_birth: '[Place of Birth]',
         date_of_birth: '[Date of Birth]',
-        gender: '[Gender]',
+        gender: 'Laki-laki', // or Perempuan
         religion: '[Religion]',
         marital_status: '[Marital Status]',
         bank_name: '[Bank Name]',

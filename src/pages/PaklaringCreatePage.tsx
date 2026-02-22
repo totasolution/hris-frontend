@@ -24,6 +24,7 @@ export default function PaklaringCreatePage() {
   const [employeeSearching, setEmployeeSearching] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [lastWorkingDate, setLastWorkingDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [documentNumber, setDocumentNumber] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,9 +87,13 @@ export default function PaklaringCreatePage() {
       setError(t('pages:paklaring.lastWorkingDateRequired'));
       return;
     }
+    if (!documentNumber.trim()) {
+      setError(t('pages:paklaring.documentNumberRequired'));
+      return;
+    }
     setSubmitting(true);
     try {
-      await api.createPaklaringForEmployee(selectedEmployee.id, lastWorkingDate.trim());
+      await api.createPaklaringForEmployee(selectedEmployee.id, lastWorkingDate.trim(), documentNumber.trim());
       toast.success(t('pages:paklaring.paklaringGenerated'));
       navigate('/paklaring');
     } catch (err) {
@@ -199,22 +204,38 @@ export default function PaklaringCreatePage() {
         </Card>
 
         {selectedEmployee && (
-          <Card>
-            <CardBody className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                {t('pages:paklaring.lastWorkingDate')}
-              </h3>
-              <Input
-                type="date"
-                value={lastWorkingDate}
-                onChange={(e) => setLastWorkingDate(e.target.value)}
-                required
-              />
-              <p className="text-xs text-slate-500">
-                {t('pages:paklaring.lastWorkingDateHelp')}
-              </p>
-            </CardBody>
-          </Card>
+          <>
+            <Card>
+              <CardBody className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  {t('pages:paklaring.documentNumber')}
+                </h3>
+                <Input
+                  type="text"
+                  value={documentNumber}
+                  onChange={(e) => setDocumentNumber(e.target.value)}
+                  placeholder={t('pages:paklaring.documentNumberPlaceholder')}
+                  required
+                />
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  {t('pages:paklaring.lastWorkingDate')}
+                </h3>
+                <Input
+                  type="date"
+                  value={lastWorkingDate}
+                  onChange={(e) => setLastWorkingDate(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-slate-500">
+                  {t('pages:paklaring.lastWorkingDateHelp')}
+                </p>
+              </CardBody>
+            </Card>
+          </>
         )}
 
         {selectedEmployee && (

@@ -4,7 +4,7 @@
  * Role slugs match backend roles.slug (e.g. tenant_admin, hrd, recruiter).
  */
 
-export type NavGroupId = 'home' | 'setup' | 'recruitment' | 'people' | 'support';
+export type NavGroupId = 'home' | 'setup' | 'recruitment' | 'people' | 'support' | 'mySpace';
 
 export type NavItem = {
   label: string;
@@ -21,6 +21,8 @@ export type NavItem = {
   icon?: string;
   /** When true, match path exactly (no prefix match). Use when item has child routes like /faq vs /faq/admin */
   exact?: boolean;
+  /** If set, nav shows a badge with count from API (e.g. onboardingFollowUp = count not submitted >2 days). */
+  badgeKey?: 'onboardingFollowUp';
 };
 
 /** Dashboard visible when user has any dashboard section permission (defined in permission settings). */
@@ -35,10 +37,10 @@ export const DASHBOARD_SECTION_PERMISSIONS = [
 /** Translation keys for nav item labels (resolved with useTranslation('nav')). */
 export const NAV_ITEMS: NavItem[] = [
   { label: 'dashboard', path: '/dashboard', permissionsAny: [...DASHBOARD_SECTION_PERMISSIONS], group: 'home', icon: 'home' },
-  { label: 'mySpace', path: '/me', permission: 'my_space:read', group: 'home', icon: 'my-space', exact: true },
   { label: 'recruitmentStatistics', path: '/recruitment/statistics', permission: 'recruitment:statistics', group: 'recruitment', icon: 'chart' },
   { label: 'recruitmentBoard', path: '/recruitment/board', permission: 'recruitment:read', group: 'recruitment', icon: 'board' },
   { label: 'candidates', path: '/candidates', permission: 'recruitment:read', group: 'recruitment', icon: 'candidates' },
+  { label: 'onboardingStatus', path: '/onboarding/status', permission: 'recruitment:read', group: 'recruitment', icon: 'pending', badgeKey: 'onboardingFollowUp' },
   { label: 'pendingHrd', path: '/onboarding/pending-hrd', permissionsAny: ['rc:view', 'rc:approve'], group: 'recruitment', icon: 'pending' },
   { label: 'employees', path: '/employees', permission: 'employee:read', group: 'people', icon: 'employees' },
   { label: 'payslips', path: '/payslips', permission: 'payslip:read', group: 'people', icon: 'payslip' },
@@ -51,9 +53,13 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'announcements', path: '/announcements', permission: 'announcement:read', group: 'support', icon: 'megaphone', exact: true },
   { label: 'faq', path: '/faq', permission: 'faq:read', group: 'support', icon: 'faq', exact: true },
   { label: 'manageFaq', path: '/faq/admin', permission: 'faq:manage', group: 'support', icon: 'faq' },
+  { label: 'myProfile', path: '/me/profile', permission: 'my_space:read', group: 'mySpace', icon: 'my-space', exact: true },
+  { label: 'myContracts', path: '/me/contracts', permission: 'my_space:read', group: 'mySpace', icon: 'contracts', exact: true },
+  { label: 'myDocuments', path: '/me/documents', permission: 'my_space:read', group: 'mySpace', icon: 'contracts', exact: true },
+  { label: 'myPayslips', path: '/me/payslips', permission: 'my_space:read', group: 'mySpace', icon: 'payslip', exact: true },
+  { label: 'myTickets', path: '/me/tickets', permission: 'my_space:read', group: 'mySpace', icon: 'tickets', exact: true },
   { label: 'departments', path: '/departments', permission: 'department:manage', group: 'setup', icon: 'departments' },
   { label: 'clients', path: '/clients', permission: 'client:manage', group: 'setup', icon: 'clients' },
-  { label: 'projects', path: '/projects', permission: 'project:manage', group: 'setup', icon: 'projects' },
   { label: 'users', path: '/users', permission: 'user:read', group: 'setup', icon: 'users' },
   { label: 'roles', path: '/roles', permission: 'role:manage', group: 'setup', icon: 'roles' },
 ];
@@ -64,6 +70,7 @@ export const NAV_GROUP_LABELS: Record<NavGroupId, string> = {
   recruitment: 'groupRecruitment',
   people: 'groupPeople',
   support: 'groupSupport',
+  mySpace: 'groupMySpace',
   setup: 'groupSetup',
 };
 

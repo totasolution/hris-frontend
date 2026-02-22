@@ -23,3 +23,12 @@ export function formatDateLong(date: Date | string | number): string {
     day: 'numeric',
   });
 }
+
+/**
+ * Add months to a date and return the result as a Date (for formatting).
+ */
+export function addMonths(date: Date | string, months: number): Date {
+  const d = typeof date === 'string' ? new Date(date) : new Date(date.getTime());
+  d.setMonth(d.getMonth() + months);
+  return d;
+}

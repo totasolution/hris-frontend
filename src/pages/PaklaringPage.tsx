@@ -28,6 +28,7 @@ export default function PaklaringPage() {
   const [perPage] = useState(10);
   const { permissions = [] } = useAuth();
   const canCreate = permissions.includes('paklaring:create');
+  const canDelete = permissions.includes('paklaring:delete');
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -67,6 +68,17 @@ export default function PaklaringPage() {
       await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
     } catch {
       toast.error(t('pages:paklaring.failedToOpenDocument'));
+    }
+  };
+
+  const handleDelete = async (doc: PaklaringDocument) => {
+    if (!window.confirm(t('pages:paklaring.confirmDelete'))) return;
+    try {
+      await api.deletePaklaring(doc.id);
+      toast.success(t('pages:paklaring.deleted'));
+      load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('pages:paklaring.loadError'));
     }
   };
 
@@ -150,16 +162,30 @@ export default function PaklaringPage() {
                       {formatDateLong(doc.generated_at)}
                     </TD>
                     <TD className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(doc)}
-                        className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title={t('common:download')}
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center justify-end gap-0">
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(doc)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('common:download')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(doc)}
+                            className="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                            title={t('common:delete')}
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </TD>
                   </TR>
                 ))

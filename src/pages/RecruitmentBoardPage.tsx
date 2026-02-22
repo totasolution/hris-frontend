@@ -6,7 +6,7 @@ import { Card, CardBody } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
-import type { Candidate, Project, Client } from '../services/api';
+import type { Candidate, Client } from '../services/api';
 import * as api from '../services/api';
 
 type ViewMode = 'column' | 'list';
@@ -115,10 +115,8 @@ const customSelectStyles = {
 };
 
 export default function RecruitmentBoardPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     try {
       const saved = localStorage.getItem('recruitment-board-view');
@@ -135,11 +133,10 @@ export default function RecruitmentBoardPage() {
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const [pList, cList] = await Promise.all([api.getProjects(), api.getClients()]);
-        setProjects(pList);
+        const cList = await api.getClients();
         setClients(cList);
       } catch (err) {
-        console.error('Failed to load projects/clients', err);
+        console.error('Failed to load clients', err);
       } finally {
         setInitialLoading(false);
       }
@@ -160,7 +157,6 @@ export default function RecruitmentBoardPage() {
       setLoading(true);
       try {
         const params: any = {};
-        if (selectedProjectId) params.project_id = parseInt(selectedProjectId, 10);
         if (selectedClientId) params.client_id = parseInt(selectedClientId, 10);
         const res = await api.getCandidates({ ...params, per_page: 1000 });
         setCandidates(res.data);
@@ -171,10 +167,8 @@ export default function RecruitmentBoardPage() {
       }
     }
     loadCandidates();
-  }, [selectedProjectId, selectedClientId]);
+  }, [selectedClientId]);
 
-  const filteredProjects = projects.filter(p => !selectedClientId || String(p.client_id) === selectedClientId);
-  const selectedProject = projects.find(p => String(p.id) === selectedProjectId);
   const selectedClient = clients.find(c => String(c.id) === selectedClientId);
 
   const getCandidatesByColumn = (column: BoardColumn) => {
@@ -202,7 +196,6 @@ export default function RecruitmentBoardPage() {
   }
 
   const clientOptions = clients.map(c => ({ value: String(c.id), label: c.name }));
-  const projectOptions = filteredProjects.map(p => ({ value: String(p.id), label: p.name }));
 
   return (
     <div className="space-y-8 font-body">
@@ -213,27 +206,11 @@ export default function RecruitmentBoardPage() {
               <Select
                 options={clientOptions}
                 value={clientOptions.find(o => o.value === selectedClientId)}
-                onChange={(option: any) => {
-                  const val = option?.value || '';
-                  setSelectedClientId(val);
-                  setSelectedProjectId('');
-                }}
+                onChange={(option: any) => setSelectedClientId(option?.value || '')}
                 placeholder="All Clients"
                 styles={customSelectStyles}
                 isSearchable
                 isClearable
-              />
-            </div>
-            <div className="w-64">
-              <Select
-                options={projectOptions}
-                value={projectOptions.find(o => o.value === selectedProjectId)}
-                onChange={(option: any) => setSelectedProjectId(option?.value || '')}
-                placeholder="All Projects"
-                styles={customSelectStyles}
-                isSearchable
-                isClearable
-                isDisabled={!selectedClientId}
               />
             </div>
           </div>
@@ -283,7 +260,6 @@ export default function RecruitmentBoardPage() {
                 <TH>Name</TH>
                 <TH>Email</TH>
                 <TH>Client</TH>
-                <TH>Project</TH>
                 <TH>Stage</TH>
                 <TH>PIC</TH>
                 <TH>Rating</TH>
@@ -293,7 +269,7 @@ export default function RecruitmentBoardPage() {
             <TBody>
               {candidates.length === 0 ? (
                 <TR>
-                  <TD colSpan={8} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     No candidates found. Try adjusting your filters or add a new candidate.
                   </TD>
                 </TR>
@@ -312,7 +288,6 @@ export default function RecruitmentBoardPage() {
                       </TD>
                       <TD className="text-slate-600">{c.email}</TD>
                       <TD>{c.client_name || '—'}</TD>
-                      <TD>{c.project_name || '—'}</TD>
                       <TD>
                         <select
                           value={c.screening_status}
@@ -403,7 +378,6 @@ export default function RecruitmentBoardPage() {
                               <p className="text-[10px] text-slate-400 font-bold truncate tracking-wider">{c.email}</p>
                               <div className="flex flex-col gap-0.5 mt-1">
                                 <span className="text-[9px] font-black text-brand uppercase tracking-tight">{c.client_name || 'No Client'}</span>
-                                <span className="text-[9px] text-slate-400 font-bold tracking-tight">{c.project_name || 'No Project'}</span>
                               </div>
                               {c.pic_name && (
                                 <div className="flex items-center gap-1.5 mt-1">

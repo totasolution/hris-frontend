@@ -30,7 +30,6 @@ export default function CandidateFormPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [clientId, setClientId] = useState<string>('');
-  const [projectId, setProjectId] = useState<string>('');
   const [employmentType, setEmploymentType] = useState<api.CandidateEmploymentType | ''>('');
   const [ojtOption, setOjtOption] = useState(false);
   const [screeningStatus, setScreeningStatus] = useState('new');
@@ -39,7 +38,6 @@ export default function CandidateFormPage() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState('');
   const [clients, setClients] = useState<api.Client[]>([]);
-  const [projects, setProjects] = useState<api.Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,17 +45,15 @@ export default function CandidateFormPage() {
   useEffect(() => {
     async function loadInitial() {
       try {
-        const [cList, pList] = await Promise.all([api.getClients(), api.getProjects()]);
+        const cList = await api.getClients();
         setClients(cList);
-        setProjects(pList);
-        
+
         if (isEdit && id) {
           const c = await api.getCandidate(parseInt(id, 10));
           setFullName(c.full_name);
           setEmail(c.email);
           setPhone(c.phone ?? '');
           setClientId(c.client_id ? String(c.client_id) : '');
-          setProjectId(c.project_id ? String(c.project_id) : '');
           setEmploymentType((c.employment_type as api.CandidateEmploymentType) ?? '');
           setOjtOption(c.ojt_option ?? false);
           setScreeningStatus(c.screening_status ?? 'new');
@@ -73,8 +69,6 @@ export default function CandidateFormPage() {
     loadInitial();
   }, [isEdit, id]);
 
-  const filteredProjects = projects.filter(p => !clientId || String(p.client_id) === clientId);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -89,7 +83,6 @@ export default function CandidateFormPage() {
         email: email.trim(),
         phone: phone.trim() || undefined,
         client_id: clientId ? parseInt(clientId, 10) : undefined,
-        project_id: projectId ? parseInt(projectId, 10) : undefined,
         ojt_option: ojtOption,
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
@@ -212,32 +205,16 @@ export default function CandidateFormPage() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+62..."
               />
-              <div className="grid grid-cols-2 gap-4">
-                <Select
-                  label="Client"
-                  value={clientId}
-                  onChange={(e) => {
-                    setClientId(e.target.value);
-                    setProjectId(''); // Reset project when client changes
-                  }}
-                >
-                  <option value="">Select Client</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={String(c.id)}>{c.name}</option>
-                  ))}
-                </Select>
-                <Select
-                  label="Project"
-                  value={projectId}
-                  onChange={(e) => setProjectId(e.target.value)}
-                  disabled={!clientId}
-                >
-                  <option value="">Select Project</option>
-                  {filteredProjects.map((p) => (
-                    <option key={p.id} value={String(p.id)}>{p.name}</option>
-                  ))}
-                </Select>
-              </div>
+              <Select
+                label="Client"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+              >
+                <option value="">Select Client</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={String(c.id)}>{c.name}</option>
+                ))}
+              </Select>
               <Select
                 label="Employment Type"
                 value={employmentType}

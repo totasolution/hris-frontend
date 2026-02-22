@@ -98,7 +98,7 @@ export default function ContractTemplateFormPage() {
       return;
     }
     try {
-      // Generate sample values for preview
+      // Generate sample values for preview (contract + paklaring placeholders)
       const sampleValues: Record<string, string> = {
         contract_number: 'PKWT-2026-001',
         contract_date: formatDateLong(new Date()),
@@ -107,13 +107,14 @@ export default function ContractTemplateFormPage() {
         company_representative: 'John Director',
         representative_position: 'Human Resources Director',
         full_name: 'Jane Doe',
+        employee_name: 'Jane Doe',
         email: 'jane.doe@example.com',
         phone: '08123456789',
         id_number: '3201234567890001',
         address: 'Jl. Contoh No. 456, Bandung',
         place_of_birth: 'Jakarta',
         date_of_birth: '15 Januari 1990',
-        gender: 'Female',
+        gender: 'Perempuan',
         religion: 'Islam',
         marital_status: 'Single',
         bank_name: 'BCA',
@@ -122,9 +123,15 @@ export default function ContractTemplateFormPage() {
         npwp_number: '12.345.678.9-012.345',
         position: 'Software Engineer',
         start_date: '1 Februari 2026',
+        start_working_date: '1 Februari 2026',
         end_date: '31 Januari 2027',
+        last_working_date: '31 Januari 2027',
+        document_number: 'PAK-2026-001',
+        document_date: formatDateLong(new Date()),
         salary: '15.000.000',
         work_location: 'Jakarta Office',
+        penempatan: 'Jakarta Office',
+        bpjs_id: '1234567890123',
         other_terms: 'Subject to company policy and regulations.',
       };
       const html = await api.previewContractTemplate(parseInt(id, 10), sampleValues);
@@ -198,6 +205,10 @@ export default function ContractTemplateFormPage() {
                   <option value="freelance">Contract – Freelance</option>
                   <option value="other">Contract – Other</option>
                   <option value="payslip">Payslip</option>
+                  <option value="paklaring">Paklaring</option>
+                  <option value="warning_sp1">Warning – SP 1</option>
+                  <option value="warning_sp2">Warning – SP 2</option>
+                  <option value="warning_sp3">Warning – SP 3</option>
                 </Select>
               </FormGroup>
             </div>

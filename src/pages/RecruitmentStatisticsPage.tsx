@@ -5,7 +5,7 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/dashboard/StatCard';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
-import type { RecruitmentStatistics, Client, Project } from '../services/api';
+import type { RecruitmentStatistics, Client } from '../services/api';
 import * as api from '../services/api';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -63,18 +63,15 @@ export default function RecruitmentStatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>('');
-  const [projectId, setProjectId] = useState<string>('');
   const [monthFilter, setMonthFilter] = useState<string>(''); // YYYY-MM or '' for all time
   const [clients, setClients] = useState<Client[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
 
   const loadStats = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: { client_id?: number; project_id?: number; year?: number; month?: number } = {};
+      const params: { client_id?: number; year?: number; month?: number } = {};
       if (clientId) params.client_id = parseInt(clientId, 10);
-      if (projectId) params.project_id = parseInt(projectId, 10);
       if (monthFilter) {
         const [y, m] = monthFilter.split('-').map(Number);
         if (!Number.isNaN(y) && !Number.isNaN(m)) {
@@ -93,30 +90,22 @@ export default function RecruitmentStatisticsPage() {
 
   useEffect(() => {
     loadStats();
-  }, [clientId, projectId, monthFilter]);
+  }, [clientId, monthFilter]);
 
   useEffect(() => {
-    Promise.all([api.getClients(), api.getProjects()])
-      .then(([cList, pList]) => {
-        setClients(cList);
-        setProjects(pList);
-      })
-      .catch(() => {});
+    api.getClients().then(setClients).catch(() => {});
   }, []);
 
-  const filteredProjects = projects.filter((p) => !clientId || String(p.client_id) === clientId);
   const clientOptions = clients.map((c) => ({ value: String(c.id), label: c.name }));
-  const projectOptions = filteredProjects.map((p) => ({ value: String(p.id), label: p.name }));
 
   const maxPipelineCount = stats
     ? Math.max(1, ...Object.values(stats.by_status))
     : 1;
 
-  const candidatesLink = (params: { status?: string; client_id?: string; project_id?: string; created_by?: string }) => {
+  const candidatesLink = (params: { status?: string; client_id?: string; created_by?: string }) => {
     const p = new URLSearchParams();
     if (params.status) p.set('status', params.status);
     if (params.client_id) p.set('client_id', params.client_id);
-    if (params.project_id) p.set('project_id', params.project_id);
     if (params.created_by) p.set('created_by', params.created_by);
     const q = p.toString();
     return q ? `/candidates?${q}` : '/candidates';
@@ -154,27 +143,11 @@ export default function RecruitmentStatisticsPage() {
           <Select
             options={clientOptions}
             value={clientOptions.find((o) => o.value === clientId)}
-            onChange={(option: { value: string } | null) => {
-              setClientId(option?.value ?? '');
-              setProjectId('');
-            }}
+            onChange={(option: { value: string } | null) => setClientId(option?.value ?? '')}
             placeholder="All Clients"
             styles={customSelectStyles}
             isClearable
             isSearchable
-          />
-        </div>
-        <div className="w-64">
-          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Project</label>
-          <Select
-            options={projectOptions}
-            value={projectOptions.find((o) => o.value === projectId)}
-            onChange={(option: { value: string } | null) => setProjectId(option?.value ?? '')}
-            placeholder="All Projects"
-            styles={customSelectStyles}
-            isClearable
-            isSearchable
-            isDisabled={!clientId}
           />
         </div>
       </div>
@@ -260,7 +233,6 @@ export default function RecruitmentStatisticsPage() {
                         to={candidatesLink({
                           status,
                           client_id: clientId || undefined,
-                          project_id: projectId || undefined,
                         })}
                         className="text-sm font-bold text-slate-700 hover:text-brand"
                       >
@@ -332,65 +304,10 @@ export default function RecruitmentStatisticsPage() {
                       <Link
                         to={candidatesLink({
                           client_id: row.client_id ? String(row.client_id) : undefined,
-                          project_id: projectId || undefined,
                         })}
                         className="text-brand hover:underline"
                       >
                         {row.client_name}
-                      </Link>
-                    </TD>
-                    <TD className="text-right font-bold">{row.count}</TD>
-                  </TR>
-                ))
-              )}
-            </TBody>
-          </Table>
-        </Card>
-
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-              By Project
-            </h3>
-            <Link
-              to="/candidates"
-              className="text-xs font-bold text-brand hover:text-brand-dark uppercase tracking-widest"
-            >
-              View candidates
-            </Link>
-          </CardHeader>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Project</TH>
-                <TH className="text-right">Count</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {loading ? (
-                <TR>
-                  <TD colSpan={2} className="py-8 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand mx-auto" />
-                  </TD>
-                </TR>
-              ) : stats?.by_project.length === 0 ? (
-                <TR>
-                  <TD colSpan={2} className="py-8 text-center text-slate-400">
-                    No data
-                  </TD>
-                </TR>
-              ) : (
-                stats?.by_project.map((row) => (
-                  <TR key={row.project_id ?? 'none'}>
-                    <TD className="font-medium">
-                      <Link
-                        to={candidatesLink({
-                          client_id: clientId || undefined,
-                          project_id: row.project_id ? String(row.project_id) : undefined,
-                        })}
-                        className="text-brand hover:underline"
-                      >
-                        {row.project_name}
                       </Link>
                     </TD>
                     <TD className="text-right font-bold">{row.count}</TD>
@@ -442,7 +359,6 @@ export default function RecruitmentStatisticsPage() {
                           to={candidatesLink({
                             created_by: String(row.pic_id),
                             client_id: clientId || undefined,
-                            project_id: projectId || undefined,
                           })}
                           className="text-brand hover:underline"
                         >

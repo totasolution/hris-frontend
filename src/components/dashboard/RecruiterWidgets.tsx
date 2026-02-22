@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { StatCard } from './StatCard';
 import { QuickActions } from './QuickActions';
-import { RecentActivity } from './RecentActivity';
 import * as api from '../../services/api';
 
 type RecruiterWidgetsProps = {
@@ -14,19 +13,13 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
     activeCandidates: 0,
     submittedToClient: 0,
     onboardingQueue: 0,
-    activeProjects: 0,
   });
-  const [projects, setProjects] = useState<api.Project[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [candidates, projs] = await Promise.all([
-          api.getCandidates({ per_page: 1000 }).then((r) => r.data),
-          api.getProjects(),
-        ]);
-
+        const candidates = await api.getCandidates({ per_page: 1000 }).then((r) => r.data);
         const submitted = candidates.filter((c) => c.screening_status === 'submitted');
         const onboarding = candidates.filter((c) => c.screening_status === 'onboarding');
 
@@ -34,9 +27,7 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
           activeCandidates: candidates.length,
           submittedToClient: submitted.length,
           onboardingQueue: onboarding.length,
-          activeProjects: projs.filter((p) => p.status === 'active').length,
         });
-        setProjects(projs.filter((p) => p.status === 'active').slice(0, 5));
       } catch (err) {
         console.error('Failed to load recruiter dashboard data', err);
       } finally {
@@ -99,42 +90,10 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Active Projects"
-          value={stats.activeProjects}
-          loading={loading}
-          color="blue"
-          icon={
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          }
-          link="/projects"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <RecentActivity
-          title="Active Projects"
-          subtitle="Projects you're managing"
-          items={projects.map((project) => ({
-            id: project.id,
-            title: project.name,
-            subtitle: project.client_name || 'No client',
-            link: `/projects/${project.id}`,
-          }))}
-          loading={loading}
-          emptyMessage="No active projects"
-          viewAllLink="/projects"
-        />
-      </div>
-
       <QuickActions
         actions={[
           { label: 'Add Candidate', path: '/candidates/new', variant: 'primary', permission: 'candidate:create' },
           { label: 'View Board', path: '/recruitment/board', variant: 'secondary' },
-          { label: 'Manage Projects', path: '/projects', variant: 'secondary', permission: 'project:read' },
         ]}
         userPermissions={permissions}
       />

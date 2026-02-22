@@ -36,7 +36,6 @@ export default function EmployeeFormPage() {
   const [hireDate, setHireDate] = useState('');
   const [joinDate, setJoinDate] = useState('');
   const [departmentId, setDepartmentId] = useState('');
-  const [projectId, setProjectId] = useState('');
   const [clientId, setClientId] = useState('');
 
   // Termination
@@ -81,7 +80,6 @@ export default function EmployeeFormPage() {
   const [bpjsksId, setBpjsksId] = useState('');
 
   const [departments, setDepartments] = useState<api.Department[]>([]);
-  const [projects, setProjects] = useState<api.Project[]>([]);
   const [clients, setClients] = useState<api.Client[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
@@ -90,11 +88,9 @@ export default function EmployeeFormPage() {
   useEffect(() => {
     Promise.all([
       api.getDepartments(),
-      api.getProjects(),
       api.getClients(),
-    ]).then(([d, p, c]) => {
+    ]).then(([d, c]) => {
       setDepartments(d);
-      setProjects(p);
       setClients(c);
     }).catch(() => {});
   }, []);
@@ -117,7 +113,6 @@ export default function EmployeeFormPage() {
         setHireDate(e.hire_date?.slice(0, 10) ?? '');
         setJoinDate(e.join_date?.slice(0, 10) ?? '');
         setDepartmentId(e.department_id ? String(e.department_id) : '');
-        setProjectId(e.project_id ? String(e.project_id) : '');
         setClientId(e.client_id ? String(e.client_id) : '');
         setTerminationType(e.termination_type ?? '');
         setTerminationDate(e.termination_date?.slice(0, 10) ?? '');
@@ -170,7 +165,6 @@ export default function EmployeeFormPage() {
         hire_date: hireDate || undefined,
         join_date: joinDate || undefined,
         department_id: departmentId ? parseInt(departmentId, 10) : undefined,
-        project_id: projectId ? parseInt(projectId, 10) : undefined,
         client_id: clientId ? parseInt(clientId, 10) : undefined,
         termination_type: terminationType || undefined,
         termination_date: terminationDate || undefined,
@@ -224,8 +218,6 @@ export default function EmployeeFormPage() {
   }
 
   const isOffboarded = status === 'terminated' || status === 'resigned' || status === 'contract_ended';
-  const filteredProjects = projects.filter((p) => !clientId || String(p.client_id) === clientId);
-
   return (
     <div className="max-w-4xl mx-auto space-y-8 font-body">
       <PageHeader
@@ -353,25 +345,11 @@ export default function EmployeeFormPage() {
               <Select
                 label="Client"
                 value={clientId}
-                onChange={(e) => {
-                  setClientId(e.target.value);
-                  setProjectId('');
-                }}
+                onChange={(e) => setClientId(e.target.value)}
               >
                 <option value="">— Select —</option>
                 {clients.map((c) => (
                   <option key={c.id} value={String(c.id)}>{c.name}</option>
-                ))}
-              </Select>
-              <Select
-                label="Project"
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                disabled={!clientId}
-              >
-                <option value="">— Select —</option>
-                {filteredProjects.map((p) => (
-                  <option key={p.id} value={String(p.id)}>{p.name}</option>
                 ))}
               </Select>
             </div>
@@ -445,8 +423,8 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setGender(e.target.value)}
               >
                 <option value="">— Select —</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
+                <option value="male">Laki-laki</option>
+                <option value="female">Perempuan</option>
               </Select>
               <Input
                 label="Marital Status"
