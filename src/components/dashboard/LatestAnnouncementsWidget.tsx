@@ -25,8 +25,8 @@ export function LatestAnnouncementsWidget({ permissions }: LatestAnnouncementsWi
       return;
     }
     api
-      .getAnnouncements({ publishedOnly: true })
-      .then((data) => setList(data.slice(0, LIMIT)))
+      .getAnnouncements({ publishedOnly: true, page: 1, per_page: LIMIT })
+      .then((res) => setList(res.data))
       .catch(() => [])
       .finally(() => setLoading(false));
   }, [canSee]);
