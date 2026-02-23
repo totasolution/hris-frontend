@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
-import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
@@ -33,8 +31,6 @@ export default function PayslipsPage() {
   const [employeeNameSearch, setEmployeeNameSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 20;
-  const { permissions = [] } = useAuth();
-  const canUpload = permissions.includes('payslip:create');
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -92,14 +88,6 @@ export default function PayslipsPage() {
         </div>
       )}
 
-      {/* Bulk upload (for users with payslip:create) */}
-      {canUpload && (
-        <BulkUploadCSVSection
-          onSuccess={() => { load(); toast.success(t('pages:payslips.payslipsUploaded')); }}
-          toast={toast}
-        />
-      )}
-
       {/* Filters */}
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <input
@@ -139,6 +127,9 @@ export default function PayslipsPage() {
             <THead>
               <TR>
                 <TH>{t('pages:payslips.employee')}</TH>
+                <TH>{t('pages:payslips.identificationId')}</TH>
+                <TH>{t('pages:payslips.nip')}</TH>
+                <TH>{t('pages:payslips.clientName')}</TH>
                 <TH>{t('pages:payslips.period')}</TH>
                 <TH>{t('pages:payslips.created')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -147,7 +138,7 @@ export default function PayslipsPage() {
             <TBody>
               {filteredList.length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     {t('pages:payslips.noPayslipsFound')}
                   </TD>
                 </TR>
@@ -157,6 +148,9 @@ export default function PayslipsPage() {
                     <TD className="font-medium text-brand-dark">
                       {p.employee_name ?? `Employee #${p.employee_id}`}
                     </TD>
+                    <TD className="text-sm text-slate-600">{p.identification_id ?? '—'}</TD>
+                    <TD className="text-sm text-slate-600">{p.employee_number ?? '—'}</TD>
+                    <TD className="text-sm text-slate-600">{p.client_name ?? '—'}</TD>
                     <TD>{p.period_label}</TD>
                     <TD className="text-sm text-slate-500">
                       {formatDate(p.created_at)}
@@ -190,88 +184,5 @@ export default function PayslipsPage() {
         </Card>
       )}
     </div>
-  );
-}
-
-function BulkUploadCSVSection({
-  onSuccess,
-  toast,
-}: {
-  onSuccess: () => void;
-  toast: ReturnType<typeof useToast>;
-}) {
-  const { t } = useTranslation(['pages', 'common']);
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) {
-      toast.error(t('pages:payslips.addRowError'));
-      return;
-    }
-    setUploading(true);
-    try {
-      const res = await api.bulkUploadPayslipsFromCSV(file);
-      if (res.failed?.length) {
-        toast.error(`${res.count} generated; ${res.failed.length} failed: ${res.failed.join(', ')}`);
-      } else {
-        toast.success(t('pages:payslips.payslipsUploaded'));
-      }
-      onSuccess();
-      setFile(null);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('pages:payslips.uploadFailed'));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <Card>
-      <div className="p-6 space-y-3">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-          {t('pages:payslips.bulkUploadCSVTitle', 'Upload payslips from CSV')}
-        </h3>
-        <p className="text-xs text-slate-500">
-          {t(
-            'pages:payslips.bulkUploadCSVHelp',
-            'Upload a .csv file with columns: nik, year, month, city, print_date (YYYY-MM-DD), prepared_by, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, admin_bank, denda, rapel_potongan_bpjs, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id.'
-          )}
-        </p>
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)}
-            className="text-slate-600 max-w-xs text-sm"
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={async () => {
-              try {
-                const blob = await api.downloadPayslipCSVTemplate();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'payslip_template.csv';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : t('pages:payslips.uploadFailed'));
-              }
-            }}
-          >
-            {t('pages:payslips.downloadTemplate', 'Download template')}
-          </Button>
-          <Button type="submit" disabled={uploading}>
-            {uploading ? t('pages:payslips.uploading') : t('pages:payslips.uploadPayslips')}
-          </Button>
-        </form>
-      </div>
-    </Card>
   );
 }

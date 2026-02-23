@@ -1749,7 +1749,91 @@ export type Payslip = {
   created_by?: number;
   created_at: string;
   employee_name?: string;
+  identification_id?: string;
+  employee_number?: string;
+  client_name?: string;
 };
+
+export type PayslipUpload = {
+  id: number;
+  tenant_id: number;
+  uploaded_by?: number;
+  file_name?: string;
+  total_rows: number;
+  success_count: number;
+  error_count: number;
+  created_at: string;
+};
+
+export type PayslipUploadRow = {
+  id: number;
+  payslip_upload_id: number;
+  row_number: number;
+  status: 'success' | 'error';
+  error_message?: string;
+  payslip_id?: number;
+  created_at: string;
+};
+
+export type PayslipUploadDetail = {
+  upload: PayslipUpload;
+  rows: PayslipUploadRow[];
+  total_rows: number;
+  page: number;
+  limit: number;
+};
+
+export type PayslipUploadListResult = {
+  data: PayslipUpload[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+/** List payslip CSV uploads for the current tenant (paginated). Default page=1, limit=20. */
+export async function listPayslipUploads(opts?: { page?: number; limit?: number }): Promise<PayslipUploadListResult> {
+  const params = new URLSearchParams();
+  if (opts?.page != null) params.set('page', String(opts.page));
+  if (opts?.limit != null) params.set('limit', String(opts.limit));
+  const q = params.toString() ? `?${params}` : '';
+  const res = await authFetch(`${API_BASE}/payslip-uploads${q}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error((data?.error as { message?: string })?.message ?? 'Failed to list uploads');
+  return {
+    data: Array.isArray(data.data) ? data.data : [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    limit: data.limit ?? 20,
+  };
+}
+
+/** Get one payslip upload with paginated per-row results (page 1-based, default limit 50). */
+export async function getPayslipUploadDetail(
+  id: number,
+  opts?: { page?: number; limit?: number }
+): Promise<PayslipUploadDetail> {
+  const params = new URLSearchParams();
+  if (opts?.page != null) params.set('page', String(opts.page));
+  if (opts?.limit != null) params.set('limit', String(opts.limit));
+  const q = params.toString() ? `?${params}` : '';
+  const res = await authFetch(`${API_BASE}/payslip-uploads/${id}${q}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error((data?.error as { message?: string })?.message ?? 'Failed to load upload detail');
+  const payload = data.data as {
+    upload?: PayslipUpload;
+    rows?: PayslipUploadRow[];
+    total_rows?: number;
+    page?: number;
+    limit?: number;
+  };
+  return {
+    upload: payload?.upload ?? (payload as unknown as PayslipUpload),
+    rows: Array.isArray(payload?.rows) ? payload.rows : [],
+    total_rows: payload?.total_rows ?? 0,
+    page: payload?.page ?? 1,
+    limit: payload?.limit ?? 50,
+  };
+}
 
 export async function getPayslips(params?: {
   employee_id?: number;
@@ -1806,7 +1890,7 @@ export async function bulkUploadPayslipsFromCSV(
   const token = getAccessToken();
   const headers: HeadersInit = {};
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  const res = await authFetch(`${API_BASE}/payslips/bulk-csv`, {
+  const res = await authFetch(`${API_BASE}/payslip-uploads/bulk-csv`, {
     method: 'POST',
     credentials: 'include',
     headers,
@@ -1819,7 +1903,7 @@ export async function bulkUploadPayslipsFromCSV(
 
 /** Download the standard payslip CSV template. */
 export async function downloadPayslipCSVTemplate(): Promise<Blob> {
-  const res = await authFetch(`${API_BASE}/payslips/template-csv`, {
+  const res = await authFetch(`${API_BASE}/payslip-uploads/template-csv`, {
     method: 'GET',
   });
   if (!res.ok) {

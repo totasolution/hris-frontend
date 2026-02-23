@@ -244,6 +244,9 @@
     "searchByEmployeeName": "Cari berdasarkan nama karyawan",
     "bulkUpload": "Unggah Massal",
     "employee": "Karyawan",
+    "identificationId": "NIK/KTP",
+    "nip": "NIP",
+    "clientName": "Klien",
     "year": "Tahun",
     "month": "Bulan",
     "period": "Periode",
@@ -264,6 +267,13 @@
     "remove": "Hapus",
     "addRow": "+ Tambah baris",
     "uploading": "Mengunggah..."
+  },
+  "payslipUploads": {
+    "subtitle": "Lihat riwayat unggah CSV dan error per baris.",
+    "emptyState": "Riwayat unggah dan error akan tampil di sini setelah tracking diaktifkan.",
+    "backToPayslips": "Kembali ke Slip Gaji",
+    "partialSuccess": "{{count}} slip gaji dibuat, {{failed}} baris error. Unggah tercatat.",
+    "allFailedRecorded": "Tidak ada slip gaji dibuat; {{failed}} baris error. Unggah tercatat."
   },
   "paklaring": {
     "title": "Paklaring",

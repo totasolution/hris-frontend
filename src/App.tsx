@@ -46,6 +46,8 @@ import AnnouncementFormPage from './pages/AnnouncementFormPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CompanySettingsPage from './pages/CompanySettingsPage';
 import PayslipsPage from './pages/PayslipsPage';
+import PayslipUploadsPage from './pages/PayslipUploadsPage';
+import PayslipUploadDetailPage from './pages/PayslipUploadDetailPage';
 import PaklaringPage from './pages/PaklaringPage';
 import PaklaringCreatePage from './pages/PaklaringCreatePage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -118,6 +120,8 @@ function AppRoutes() {
         <Route path="warnings/new" element={<WarningFormPage />} />
         <Route path="warnings/:id" element={<WarningDetailPage />} />
         <Route path="payslips" element={<PayslipsPage />} />
+        <Route path="payslips/uploads" element={<PayslipUploadsPage />} />
+        <Route path="payslips/uploads/:id" element={<PayslipUploadDetailPage />} />
         <Route path="paklaring" element={<PaklaringPage />} />
         <Route path="paklaring/new" element={<PaklaringCreatePage />} />
         <Route path="tickets" element={<TicketsPage />} />
