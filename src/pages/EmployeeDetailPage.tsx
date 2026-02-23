@@ -523,16 +523,12 @@ function ContractsTab({
   toast: ReturnType<typeof useToast>;
   returnTo: string;
 }) {
-  const newContractUrl = returnTo ? `/contracts/new?return=${encodeURIComponent(returnTo)}` : '/contracts/new';
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex justify-between items-center">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
           Employment Contracts
         </h3>
-        <ButtonLink to={newContractUrl} variant="secondary" className="!py-1.5 !px-4 !text-xs">
-          New Contract
-        </ButtonLink>
       </CardHeader>
       <Table>
         <THead>
@@ -632,31 +628,6 @@ function DocumentsTab({
   onPaklaringUploaded?: () => void;
   canDeletePaklaring?: boolean;
 }) {
-  const [generatingPaklaring, setGeneratingPaklaring] = useState(false);
-  const [paklaringLastWorkingDate, setPaklaringLastWorkingDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [paklaringDocumentNumber, setPaklaringDocumentNumber] = useState('');
-
-  const handlePaklaringGenerate = async () => {
-    if (!paklaringLastWorkingDate.trim()) {
-      toast.error('Last working date is required');
-      return;
-    }
-    if (!paklaringDocumentNumber.trim()) {
-      toast.error('Document number is required');
-      return;
-    }
-    setGeneratingPaklaring(true);
-    try {
-      await api.createPaklaringForEmployee(employeeId, paklaringLastWorkingDate.trim(), paklaringDocumentNumber.trim());
-      toast.success('Paklaring generated and employee notified');
-      onPaklaringUploaded?.();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Generate failed');
-    } finally {
-      setGeneratingPaklaring(false);
-    }
-  };
-
   return (
     <div className="space-y-8">
       {/* Employee Documents */}
@@ -722,37 +693,10 @@ function DocumentsTab({
 
       {/* Paklaring Documents */}
       <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row justify-between items-center flex-wrap gap-2">
+        <CardHeader>
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
             Paklaring Documents
           </h3>
-          <div className="flex items-center gap-2 flex-wrap">
-            <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Document No.:</label>
-            <input
-              type="text"
-              value={paklaringDocumentNumber}
-              onChange={(e) => setPaklaringDocumentNumber(e.target.value)}
-              placeholder="e.g. PAK-2026-001"
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 min-w-[120px]"
-            />
-            <label className="text-xs font-medium text-slate-600 whitespace-nowrap">Last working date:</label>
-            <input
-              type="date"
-              value={paklaringLastWorkingDate}
-              onChange={(e) => setPaklaringLastWorkingDate(e.target.value)}
-              className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30"
-            />
-            <button
-              type="button"
-              onClick={handlePaklaringGenerate}
-              disabled={generatingPaklaring || !paklaringLastWorkingDate.trim() || !paklaringDocumentNumber.trim()}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors ${
-                generatingPaklaring || !paklaringLastWorkingDate.trim() || !paklaringDocumentNumber.trim() ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-brand/10 text-brand hover:bg-brand/20'
-              }`}
-            >
-              {generatingPaklaring ? 'Generating...' : 'Generate paklaring'}
-            </button>
-          </div>
         </CardHeader>
         <Table>
           <THead>

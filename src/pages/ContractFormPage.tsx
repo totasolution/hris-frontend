@@ -1,6 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import Select from 'react-select';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
@@ -9,21 +8,6 @@ import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 import { formatDateLong } from '../utils/formatDate';
-
-const searchableSelectStyles = {
-  control: (base: object) => ({
-    ...base,
-    borderRadius: '0.5rem',
-    border: '1px solid #e2e8f0',
-    minHeight: 42,
-    '&:hover': { borderColor: '#107BC7' },
-  }),
-  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({
-    ...base,
-    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
-    color: state.isSelected ? 'white' : '#282828',
-  }),
-};
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -42,12 +26,15 @@ export default function ContractFormPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [employeeId, setEmployeeId] = useState<string>('');
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [employeeSearchResults, setEmployeeSearchResults] = useState<api.Employee[]>([]);
+  const [employeeSearching, setEmployeeSearching] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<api.Employee | null>(null);
   const [templateId, setTemplateId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState<string>('');
   const [contractSignedUrl, setContractSignedUrl] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [contract, setContract] = useState<api.Contract | null>(null);
-  const [employees, setEmployees] = useState<api.Employee[]>([]);
   const [templates, setTemplates] = useState<api.ContractTemplate[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
@@ -59,22 +46,56 @@ export default function ContractFormPage() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  const searchEmployees = useCallback(async (term: string) => {
+    if (!term.trim()) {
+      setEmployeeSearchResults([]);
+      return;
+    }
+    setEmployeeSearching(true);
+    try {
+      const r = await api.getEmployees({ search: term.trim(), per_page: 20 });
+      setEmployeeSearchResults(r.data);
+    } catch {
+      setEmployeeSearchResults([]);
+    } finally {
+      setEmployeeSearching(false);
+    }
+  }, []);
+
+  const employeeSearchDebounced = useMemo(() => {
+    let timeout: ReturnType<typeof setTimeout>;
+    return (term: string) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => searchEmployees(term), 300);
+    };
+  }, [searchEmployees]);
+
   useEffect(() => {
-    api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
+    if (employeeSearch.trim()) employeeSearchDebounced(employeeSearch);
+    else setEmployeeSearchResults([]);
+  }, [employeeSearch, employeeSearchDebounced]);
+
+  useEffect(() => {
     api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
   }, []);
 
-  const employeeOptions = useMemo(
-    () => employees.map((e) => ({ value: String(e.id), label: `${e.full_name} (${e.email})` })),
-    [employees]
-  );
-  const selectedEmployee = employeeOptions.find((o) => o.value === employeeId) ?? null;
-
-  // For contract create/edit: only show contract templates (exclude payslip)
   const contractTemplates = useMemo(
     () => templates.filter((t) => t.contract_type !== 'payslip'),
     [templates]
   );
+
+  const handleSelectEmployee = (emp: api.Employee) => {
+    setSelectedEmployee(emp);
+    setEmployeeSearch(emp.full_name);
+    setEmployeeId(String(emp.id));
+    setEmployeeSearchResults([]);
+  };
+
+  const handleClearEmployee = () => {
+    setSelectedEmployee(null);
+    setEmployeeSearch('');
+    setEmployeeId('');
+  };
 
   useEffect(() => {
     if (!isEdit || !id) {
@@ -90,11 +111,13 @@ export default function ContractFormPage() {
         setContractNumber(c.contract_number ?? '');
         setContractSignedUrl(c.contract_signed_url ?? '');
         setStatus(c.status ?? 'draft');
-        // Determine creation mode: if has template_id, use 'template', otherwise if has file_path, use 'manual'
-        if (c.template_id) {
-          setCreationMode('template');
-        } else if (c.file_path) {
-          setCreationMode('manual');
+        if (c.template_id) setCreationMode('template');
+        else if (c.file_path) setCreationMode('manual');
+        if (c.employee_id) {
+          api.getEmployee(c.employee_id).then((emp) => {
+            setSelectedEmployee(emp);
+            setEmployeeSearch(emp.full_name);
+          }).catch(() => {});
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load');
@@ -342,16 +365,52 @@ export default function ContractFormPage() {
               </FormGroup>
               <FormGroup>
                 <Label>Related Employee</Label>
-                <Select
-                  placeholder="— Search employee —"
-                  isClearable
-                  isSearchable
-                  options={employeeOptions}
-                  value={selectedEmployee}
-                  onChange={(opt) => setEmployeeId(opt?.value ?? '')}
-                  styles={searchableSelectStyles}
-                  noOptionsMessage={() => 'No employees found'}
-                />
+                {!selectedEmployee ? (
+                  <>
+                    <input
+                      type="text"
+                      value={employeeSearch}
+                      onChange={(e) => setEmployeeSearch(e.target.value)}
+                      placeholder="Search by name or email..."
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                    />
+                    {employeeSearching && (
+                      <p className="text-sm text-slate-500 mt-1">Searching...</p>
+                    )}
+                    {!employeeSearching && employeeSearch.trim() && (
+                      <ul className="mt-1 border border-slate-200 rounded-lg max-h-56 overflow-y-auto divide-y divide-slate-100 bg-white">
+                        {employeeSearchResults.length === 0 ? (
+                          <li className="px-3 py-2 text-sm text-slate-500">No employees found</li>
+                        ) : (
+                          employeeSearchResults.map((e) => (
+                            <li key={e.id}>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectEmployee(e)}
+                                className="w-full text-left px-3 py-2.5 text-sm hover:bg-slate-50 text-slate-700"
+                              >
+                                <span className="font-medium">{e.full_name}</span>
+                                {e.email && <span className="text-slate-500 ml-2">({e.email})</span>}
+                              </button>
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-slate-800">{selectedEmployee.full_name}</p>
+                      {selectedEmployee.email && (
+                        <p className="text-sm text-slate-600">{selectedEmployee.email}</p>
+                      )}
+                    </div>
+                    <Button type="button" variant="secondary" onClick={handleClearEmployee}>
+                      Change
+                    </Button>
+                  </div>
+                )}
               </FormGroup>
               <NativeSelect
                 label="Contract Status"
