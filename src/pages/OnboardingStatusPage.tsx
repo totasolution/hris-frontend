@@ -130,6 +130,7 @@ export default function OnboardingStatusPage() {
             <THead>
               <TR>
                 <TH>{t('pages:onboardingStatus.candidateName')}</TH>
+                <TH>{t('pages:onboardingStatus.pic')}</TH>
                 <TH>{t('pages:onboardingStatus.onboardingUrl')}</TH>
                 <TH>{t('pages:onboardingStatus.createdDate')}</TH>
                 <TH>{t('pages:onboardingStatus.status')}</TH>
@@ -138,7 +139,7 @@ export default function OnboardingStatusPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-12 text-center text-slate-400">
+                  <TD colSpan={5} className="py-12 text-center text-slate-400">
                     {t('pages:onboardingStatus.noItems')}
                   </TD>
                 </TR>
@@ -149,6 +150,9 @@ export default function OnboardingStatusPage() {
                       <Link to={`/candidates/${item.candidate_id}`} className="text-brand hover:underline">
                         {item.candidate_name || `Candidate #${item.candidate_id}`}
                       </Link>
+                    </TD>
+                    <TD className="text-slate-600 text-sm">
+                      {item.pic_name || '—'}
                     </TD>
                     <TD>
                       <a

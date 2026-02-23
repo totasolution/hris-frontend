@@ -136,7 +136,7 @@ export default function TicketDetailPage() {
             <CardBody className="space-y-4">
               <div>
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 block">Status</label>
-                {canRespond ? (
+                {canRespond && (ticket.status === 'open' || ticket.status === 'in_progress') ? (
                   <Select
                     value={status}
                     onChange={(e) => handleStatusChange(e.target.value)}
@@ -267,8 +267,8 @@ export default function TicketDetailPage() {
             </CardBody>
           </Card>
 
-          {/* Reply Form */}
-          {canRespond && (
+          {/* Reply Form - only when ticket is in progress and current user is the assignee */}
+          {canRespond && ticket.status === 'in_progress' && user?.id === ticket.assignee_id && (
             <Card>
               <CardHeader>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Reply</h3>

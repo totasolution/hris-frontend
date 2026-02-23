@@ -995,6 +995,7 @@ export type OnboardingStatusItem = {
   candidate_id: number;
   candidate_name: string;
   client_name: string;
+  pic_name?: string;
   token: string;
   created_at: string;
   status: 'new' | 'need_follow_up';
