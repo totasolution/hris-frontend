@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
@@ -10,6 +10,7 @@ import { formatDate } from '../utils/formatDate';
 
 export default function NotificationsPage() {
   const { t } = useTranslation(['pages', 'common']);
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -120,7 +121,19 @@ export default function NotificationsPage() {
       ) : (
         <div className="space-y-4">
           {notifications.map((notif) => (
-            <Card key={notif.id} className={`${!notif.read_at ? 'border-l-4 border-l-brand' : ''}`}>
+            <Card
+              key={notif.id}
+              className={`${!notif.read_at ? 'border-l-4 border-l-brand' : ''} ${notif.link_url ? 'cursor-pointer hover:border-slate-300 transition-colors' : ''}`}
+              onClick={() => {
+                if (notif.link_url) {
+                  if (notif.link_url.startsWith('/')) {
+                    navigate(notif.link_url);
+                  } else {
+                    window.location.href = notif.link_url;
+                  }
+                }
+              }}
+            >
               <CardBody>
                 <div className="flex items-start gap-4">
                   <div className={`flex-shrink-0 h-2 w-2 rounded-full mt-2 ${
@@ -137,7 +150,7 @@ export default function NotificationsPage() {
                           {formatTimeAgo(notif.created_at)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                         {!notif.read_at && (
                           <button
                             onClick={() => handleMarkAsRead(notif.id)}
@@ -147,12 +160,23 @@ export default function NotificationsPage() {
                           </button>
                         )}
                         {notif.link_url && (
-                          <Link
-                            to={notif.link_url}
-                            className="px-3 py-1 text-xs font-bold text-brand hover:bg-brand-lighter rounded-lg transition-colors"
-                          >
-                            {t('pages:notifications.view')}
-                          </Link>
+                          notif.link_url.startsWith('/') ? (
+                            <Link
+                              to={notif.link_url}
+                              className="px-3 py-1 text-xs font-bold text-brand hover:bg-brand-lighter rounded-lg transition-colors"
+                            >
+                              {t('pages:notifications.view')}
+                            </Link>
+                          ) : (
+                            <a
+                              href={notif.link_url}
+                              className="px-3 py-1 text-xs font-bold text-brand hover:bg-brand-lighter rounded-lg transition-colors"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {t('pages:notifications.view')}
+                            </a>
+                          )
                         )}
                         <button
                           onClick={() => handleDelete(notif.id)}

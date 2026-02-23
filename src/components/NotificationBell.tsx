@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as api from '../services/api';
 import { useToast } from './Toast';
 import { formatDate } from '../utils/formatDate';
 
 export function NotificationBell() {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<api.Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -141,7 +142,11 @@ export function NotificationBell() {
                         handleMarkAsRead(notif.id);
                       }
                       if (notif.link_url) {
-                        window.location.href = notif.link_url;
+                        if (notif.link_url.startsWith('/')) {
+                          navigate(notif.link_url);
+                        } else {
+                          window.location.href = notif.link_url;
+                        }
                       }
                       setIsOpen(false);
                     }}
