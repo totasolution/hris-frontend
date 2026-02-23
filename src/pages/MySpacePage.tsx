@@ -626,14 +626,13 @@ function MySpaceContractsTab({
             <TH>Contract</TH>
             <TH>Status</TH>
             <TH>Created</TH>
-            <TH>Signed</TH>
             <TH className="text-right">Actions</TH>
           </TR>
         </THead>
         <TBody>
           {contracts.length === 0 ? (
             <TR>
-              <TD colSpan={5} className="py-8 text-center text-slate-400">
+              <TD colSpan={4} className="py-8 text-center text-slate-400">
                 No contracts found.
               </TD>
             </TR>
@@ -660,9 +659,6 @@ function MySpaceContractsTab({
                 </TD>
                 <TD className="text-sm text-slate-500">
                   {contract.created_at ? formatDate(contract.created_at) : '—'}
-                </TD>
-                <TD className="text-sm text-slate-500">
-                  {contract.signed_at ? formatDate(contract.signed_at) : '—'}
                 </TD>
                 <TD className="text-right">
                   <div className="flex justify-end gap-2 flex-wrap">
