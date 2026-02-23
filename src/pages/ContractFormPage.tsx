@@ -364,7 +364,7 @@ export default function ContractFormPage() {
                 </p>
               </FormGroup>
               <FormGroup>
-                <Label>Related Employee</Label>
+                <Label>Employee</Label>
                 {!selectedEmployee ? (
                   <>
                     <input
