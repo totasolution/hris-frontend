@@ -44,6 +44,7 @@ export default function ContractFormPage() {
   const [employeeId, setEmployeeId] = useState<string>('');
   const [templateId, setTemplateId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState<string>('');
+  const [contractSignedUrl, setContractSignedUrl] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [contract, setContract] = useState<api.Contract | null>(null);
   const [employees, setEmployees] = useState<api.Employee[]>([]);
@@ -87,6 +88,7 @@ export default function ContractFormPage() {
         setEmployeeId(c.employee_id ? String(c.employee_id) : '');
         setTemplateId(c.template_id ? String(c.template_id) : '');
         setContractNumber(c.contract_number ?? '');
+        setContractSignedUrl(c.contract_signed_url ?? '');
         setStatus(c.status ?? 'draft');
         // Determine creation mode: if has template_id, use 'template', otherwise if has file_path, use 'manual'
         if (c.template_id) {
@@ -150,6 +152,7 @@ export default function ContractFormPage() {
         template_id: templateId ? parseInt(templateId, 10) : undefined,
         contract_number: contractNumber || undefined,
         status,
+        contract_signed_url: creationMode === 'template' ? (contractSignedUrl || undefined) : undefined,
       };
       if (isEdit && id) {
         await api.updateContract(parseInt(id, 10), body);
@@ -362,6 +365,36 @@ export default function ContractFormPage() {
                 <option value="cancelled">Cancelled</option>
               </NativeSelect>
             </div>
+
+            {creationMode === 'template' && (
+              <FormGroup>
+                <Label>Signed Document URL</Label>
+                {status === 'draft' ? (
+                  <>
+                    <Input
+                      type="url"
+                      value={contractSignedUrl}
+                      onChange={(e) => setContractSignedUrl(e.target.value)}
+                      placeholder="https://..."
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Link to the signed document from a 3rd party (e.g. e-sign provider). Editable only while status is Draft.
+                    </p>
+                  </>
+                ) : contractSignedUrl ? (
+                  <a
+                    href={contractSignedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand hover:underline break-all"
+                  >
+                    {contractSignedUrl}
+                  </a>
+                ) : (
+                  <p className="text-sm text-slate-400">—</p>
+                )}
+              </FormGroup>
+            )}
 
             <div className="flex items-center gap-4 pt-4">
               <Button

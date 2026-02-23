@@ -131,9 +131,9 @@ export default function OnboardingStatusPage() {
               <TR>
                 <TH>{t('pages:onboardingStatus.candidateName')}</TH>
                 <TH>{t('pages:onboardingStatus.pic')}</TH>
-                <TH>{t('pages:onboardingStatus.onboardingUrl')}</TH>
                 <TH>{t('pages:onboardingStatus.createdDate')}</TH>
                 <TH>{t('pages:onboardingStatus.status')}</TH>
+                <TH>{t('pages:onboardingStatus.onboardingUrl')}</TH>
               </TR>
             </THead>
             <TBody>
@@ -154,16 +154,7 @@ export default function OnboardingStatusPage() {
                     <TD className="text-slate-600 text-sm">
                       {item.pic_name || '—'}
                     </TD>
-                    <TD>
-                      <a
-                        href={getOnboardingUrl(item.token)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand text-sm font-medium hover:underline break-all"
-                      >
-                        {getOnboardingUrl(item.token)}
-                      </a>
-                    </TD>
+                    
                     <TD className="text-slate-600 text-sm">
                       {formatDateLong(item.created_at)}
                     </TD>
@@ -179,6 +170,16 @@ export default function OnboardingStatusPage() {
                           ? t('pages:onboardingStatus.needFollowUp')
                           : t('pages:onboardingStatus.new')}
                       </span>
+                    </TD>
+                    <TD>
+                      <a
+                        href={getOnboardingUrl(item.token)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand text-sm font-medium hover:underline break-all"
+                      >
+                        {getOnboardingUrl(item.token)}
+                      </a>
                     </TD>
                   </TR>
                 ))

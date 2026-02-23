@@ -1346,6 +1346,7 @@ export type Contract = {
   contract_number?: string;
   status: string;
   file_path?: string;
+  contract_signed_url?: string; // Link to signed document by 3rd party (template-based only)
   template_ref?: string;
   sent_at?: string;
   signed_at?: string;

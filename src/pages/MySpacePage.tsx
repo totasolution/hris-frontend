@@ -665,7 +665,20 @@ function MySpaceContractsTab({
                   {contract.signed_at ? formatDate(contract.signed_at) : '—'}
                 </TD>
                 <TD className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-2 flex-wrap">
+                    {contract.template_id != null && contract.contract_signed_url && (
+                      <a
+                        href={contract.contract_signed_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="View signed document"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </a>
+                    )}
                     {contract.file_path && (
                       <button
                         type="button"
