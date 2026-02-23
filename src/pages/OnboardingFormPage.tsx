@@ -5,11 +5,13 @@ import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { Select } from '../components/Select';
+import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 import type { DeclarationChecklistData } from '../services/api';
 
 export default function OnboardingFormPage() {
   const { token } = useParams<{ token: string }>();
+  const toast = useToast();
   const [candidate, setCandidate] = useState<api.Candidate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -248,8 +250,28 @@ export default function OnboardingFormPage() {
 
   const handleNextToDeclaration = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ktpUploaded || !kkUploaded) {
-      setError('Silakan unggah KTP dan Kartu Keluarga (KK) sebelum melanjutkan.');
+    const missing: string[] = [];
+    if (!formData.id_number?.trim()) missing.push('NIK (KTP)');
+    if (!formData.address?.trim()) missing.push('Alamat KTP');
+    if (!formData.place_of_birth?.trim()) missing.push('Tempat Lahir');
+    if (!formData.date_of_birth?.trim()) missing.push('Tanggal Lahir');
+    if (!formData.gender?.trim()) missing.push('Jenis Kelamin');
+    if (!formData.religion?.trim()) missing.push('Agama');
+    if (!formData.marital_status?.trim()) missing.push('Status Pernikahan');
+    if (!formData.bank_name?.trim()) missing.push('Nama Bank');
+    if (!formData.bank_account_number?.trim()) missing.push('Nomor Rekening');
+    if (!formData.bank_account_holder?.trim()) missing.push('Nama Pemilik Rekening');
+    if (!formData.emergency_contact_name?.trim()) missing.push('Nama Kontak Darurat');
+    if (!formData.emergency_contact_relationship?.trim()) missing.push('Hubungan Kontak Darurat');
+    if (!formData.emergency_contact_phone?.trim()) missing.push('Nomor Telepon Kontak Darurat');
+    if (!ktpUploaded) missing.push('Unggah KTP');
+    if (!kkUploaded) missing.push('Unggah Kartu Keluarga (KK)');
+
+    if (missing.length > 0) {
+      const message = missing.length === 1
+        ? `Lengkapi field wajib: ${missing[0]}.`
+        : `Lengkapi semua field wajib sebelum melanjutkan: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? ` dan ${missing.length - 5} lainnya` : ''}.`;
+      toast.showToast(message, 'warning', { persistent: true });
       return;
     }
     setError(null);
