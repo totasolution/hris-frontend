@@ -173,6 +173,7 @@ export default function PayslipUploadsPage() {
             <THead>
               <TR>
                 <TH>{t('pages:payslipUploads.fileName', 'File')}</TH>
+                <TH>{t('pages:payslipUploads.uploadedBy', 'Uploaded by')}</TH>
                 <TH>{t('pages:payslipUploads.uploadedAt', 'Uploaded')}</TH>
                 <TH>{t('pages:payslipUploads.totalRows', 'Rows')}</TH>
                 <TH>{t('pages:payslipUploads.successCount', 'OK')}</TH>
@@ -184,6 +185,7 @@ export default function PayslipUploadsPage() {
               {uploads.map((u) => (
                 <TR key={u.id}>
                   <TD className="font-medium">{u.file_name ?? '—'}</TD>
+                  <TD>{u.uploaded_by_name ?? '—'}</TD>
                   <TD>{formatDate(u.created_at)}</TD>
                   <TD>{u.total_rows}</TD>
                   <TD>{u.success_count}</TD>

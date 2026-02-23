@@ -272,6 +272,13 @@
     "subtitle": "View history of CSV uploads and any row-level errors.",
     "emptyState": "Upload history and error records will appear here once tracking is enabled.",
     "backToPayslips": "Back to Payslips",
+    "fileName": "File",
+    "uploadedBy": "Uploaded by",
+    "uploadedAt": "Uploaded",
+    "totalRows": "Rows",
+    "successCount": "OK",
+    "errorCount": "Errors",
+    "viewDetails": "View details",
     "partialSuccess": "{{count}} payslips created, {{failed}} rows had errors. Upload recorded.",
     "allFailedRecorded": "No payslips created; {{failed}} rows had errors. Upload recorded."
   },

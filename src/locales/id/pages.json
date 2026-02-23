@@ -272,6 +272,13 @@
     "subtitle": "Lihat riwayat unggah CSV dan error per baris.",
     "emptyState": "Riwayat unggah dan error akan tampil di sini setelah tracking diaktifkan.",
     "backToPayslips": "Kembali ke Slip Gaji",
+    "fileName": "File",
+    "uploadedBy": "Diunggah oleh",
+    "uploadedAt": "Tanggal unggah",
+    "totalRows": "Baris",
+    "successCount": "OK",
+    "errorCount": "Error",
+    "viewDetails": "Lihat detail",
     "partialSuccess": "{{count}} slip gaji dibuat, {{failed}} baris error. Unggah tercatat.",
     "allFailedRecorded": "Tidak ada slip gaji dibuat; {{failed}} baris error. Unggah tercatat."
   },

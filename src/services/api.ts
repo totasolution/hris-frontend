@@ -1758,6 +1758,7 @@ export type PayslipUpload = {
   id: number;
   tenant_id: number;
   uploaded_by?: number;
+  uploaded_by_name?: string;
   file_name?: string;
   total_rows: number;
   success_count: number;
