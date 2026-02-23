@@ -15,7 +15,7 @@ import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate } from '../utils/formatDate';
 import { formatGender } from '../utils/formatGender';
 
-type TabType = 'overview' | 'onboarding' | 'documents' | 'contracts';
+type TabType = 'overview' | 'onboarding' | 'documents';
 
 export default function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,12 +33,9 @@ export default function CandidateDetailPage() {
   const [editingOnboarding, setEditingOnboarding] = useState(false);
   const [onboardingEditForm, setOnboardingEditForm] = useState<Record<string, string>>({});
   const [onboardingSaveLoading, setOnboardingSaveLoading] = useState(false);
-  const [candidateContracts, setCandidateContracts] = useState<api.Contract[]>([]);
-  const [contractSigningUrls, setContractSigningUrls] = useState<Record<number, string>>({});
   const [editingEmploymentTerms, setEditingEmploymentTerms] = useState(false);
   const [employmentTermsForm, setEmploymentTermsForm] = useState<{ start_date?: string; duration_months?: number; salary?: string }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
-  const [sendingContract, setSendingContract] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const toast = useToast();
   const { permissions = [] } = useAuth();
@@ -68,30 +65,6 @@ export default function CandidateDetailPage() {
         } catch (e) {
           console.log('No onboarding data yet');
         }
-      }
-
-      // Fetch contracts (contracts are no longer linked to candidate; we show recent contracts and allow creating signing link for this candidate)
-      try {
-        const contractsRes = await api.getContracts({ per_page: 100 });
-        const contracts = contractsRes.data;
-        setCandidateContracts(contracts);
-        // Fetch signing links for contracts in "sent_for_signature" status
-        const signingUrls: Record<number, string> = {};
-        await Promise.all(
-          contracts
-            .filter(c => c.status === 'sent_for_signature')
-            .map(async (contract) => {
-              try {
-                const { url } = await api.getContractSigningLink(contract.id);
-                signingUrls[contract.id] = url;
-              } catch (e) {
-                // Signing link might not exist yet, ignore
-              }
-            })
-        );
-        setContractSigningUrls(signingUrls);
-      } catch (e) {
-        setCandidateContracts([]);
       }
 
       // Try to fetch existing onboarding link if status is onboarding
@@ -246,7 +219,6 @@ export default function CandidateDetailPage() {
     { id: 'overview', label: 'Overview' },
     { id: 'onboarding', label: 'Onboarding' },
     { id: 'documents', label: 'Documents' },
-    { id: 'contracts', label: 'Contracts' },
   ];
 
   return (
@@ -302,7 +274,6 @@ export default function CandidateDetailPage() {
             submitToClientLoading={submitToClientLoading}
             linkLoading={linkLoading}
             submitHrdLoading={submitHrdLoading}
-            candidateContracts={candidateContracts}
             editingEmploymentTerms={editingEmploymentTerms}
             setEditingEmploymentTerms={setEditingEmploymentTerms}
             employmentTermsForm={employmentTermsForm}
@@ -339,20 +310,6 @@ export default function CandidateDetailPage() {
             onUpload={handleUpload}
             onDownload={handleDownload}
             onDelete={handleDeleteDocument}
-          />
-        )}
-
-        {activeTab === 'contracts' && (
-          <ContractsTab
-            candidateId={candidateId}
-            candidateReturnTo={candidateReturnTo}
-            candidateContracts={candidateContracts}
-            contractSigningUrls={contractSigningUrls}
-            setContractSigningUrls={setContractSigningUrls}
-            sendingContract={sendingContract}
-            setSendingContract={setSendingContract}
-            load={load}
-            toast={toast}
           />
         )}
       </div>
@@ -392,7 +349,6 @@ function OverviewTab({
   submitToClientLoading,
   linkLoading,
   submitHrdLoading,
-  candidateContracts,
   editingEmploymentTerms,
   setEditingEmploymentTerms,
   employmentTermsForm,
@@ -420,7 +376,6 @@ function OverviewTab({
   submitToClientLoading: boolean;
   linkLoading: boolean;
   submitHrdLoading: boolean;
-  candidateContracts: api.Contract[];
   editingEmploymentTerms: boolean;
   setEditingEmploymentTerms: (v: boolean) => void;
   employmentTermsForm: { start_date?: string; duration_months?: number; salary?: string };
@@ -725,13 +680,6 @@ function OverviewTab({
                     </div>
                     <h4 className="text-sm font-bold text-brand-dark font-headline">Hired</h4>
                     <p className="text-xs text-slate-500">Candidate has signed the contract and is now an employee.</p>
-                    {candidateContracts.length > 0 && (
-                      <div className="pt-2">
-                        <ButtonLink to={candidateReturnTo ? `/contracts/${candidateContracts[0].id}/edit?return=${encodeURIComponent(candidateReturnTo)}` : `/contracts/${candidateContracts[0].id}/edit`} variant="secondary" className="!px-4 !py-2 !text-xs">
-                          View contract
-                        </ButtonLink>
-                      </div>
-                    )}
                   </div>
                 )}
               </CardBody>
@@ -1181,184 +1129,5 @@ function DocumentsTab({
         </Table>
       </Card>
     </div>
-  );
-}
-
-// Contracts Tab Component
-function ContractsTab({
-  candidateId,
-  candidateReturnTo,
-  candidateContracts,
-  contractSigningUrls,
-  setContractSigningUrls,
-  sendingContract,
-  setSendingContract,
-  load,
-  toast,
-}: {
-  candidateId: number;
-  candidateReturnTo: string;
-  candidateContracts: api.Contract[];
-  contractSigningUrls: Record<number, string>;
-  setContractSigningUrls: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  sendingContract: number | null;
-  setSendingContract: (v: number | null) => void;
-  load: () => Promise<void>;
-  toast: ReturnType<typeof useToast>;
-}) {
-  return (
-    <Card className="overflow-hidden">
-      <CardHeader className="flex justify-between items-center">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Contracts</h3>
-        <Link
-          to="/contracts"
-          className="text-xs font-bold text-brand hover:text-brand-dark uppercase tracking-widest transition-colors"
-        >
-          All contracts
-        </Link>
-      </CardHeader>
-      <Table>
-        <THead>
-          <TR>
-            <TH>Contract</TH>
-            <TH>Status</TH>
-            <TH>Created</TH>
-            <TH className="text-right">Actions</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {candidateContracts.length === 0 ? (
-            <TR>
-              <TD colSpan={4} className="py-8 text-center text-slate-400">
-                No contracts linked to this candidate yet.
-              </TD>
-            </TR>
-          ) : (
-            candidateContracts.map((contract) => (
-              <TR key={contract.id}>
-                <TD className="font-medium text-brand-dark">#{contract.id}</TD>
-                <TD>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    contract.status === 'signed' ? 'bg-green-100 text-green-700' :
-                    contract.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                    contract.status === 'sent_for_signature' ? 'bg-amber-100 text-amber-700' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {contract.status.replace(/_/g, ' ')}
-                  </span>
-                </TD>
-                <TD className="text-sm text-slate-500">{contract.created_at ? formatDate(contract.created_at) : '—'}</TD>
-                <TD className="text-right">
-                  <div className="flex flex-col items-end gap-2">
-                    {/* {contract.status === 'draft' && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!candidateId) return;
-                          setSendingContract(contract.id);
-                          try {
-                            const { url } = await api.createContractSigningLink(contract.id, candidateId);
-                            setContractSigningUrls(prev => ({ ...prev, [contract.id]: url }));
-                            toast.success('Signing link created! URL copied to clipboard.');
-                            navigator.clipboard.writeText(url);
-                            await load();
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : 'Failed to create signing link');
-                          } finally {
-                            setSendingContract(null);
-                          }
-                        }}
-                        disabled={sendingContract === contract.id}
-                        className="px-3 py-1.5 text-xs font-bold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Send contract for signature"
-                      >
-                        {sendingContract === contract.id ? 'Sending...' : 'Send for Signature'}
-                      </button>
-                    )} */}
-                    {contract.status === 'sent_for_signature' && (
-                      contractSigningUrls[contract.id] ? (
-                        <div className="flex items-center gap-2 mb-2">
-                          <input
-                            type="text"
-                            readOnly
-                            value={contractSigningUrls[contract.id]}
-                            className="px-2 py-1 text-xs bg-slate-50 border border-slate-200 rounded text-slate-600 font-mono max-w-xs"
-                            onClick={(e) => (e.target as HTMLInputElement).select()}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              navigator.clipboard.writeText(contractSigningUrls[contract.id]);
-                              toast.info('Signing URL copied to clipboard');
-                            }}
-                            className="px-2 py-1 text-xs font-bold text-brand hover:text-brand-dark transition-colors"
-                            title="Copy signing URL"
-                          >
-                            Copy URL
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!candidateId) return;
-                            setSendingContract(contract.id);
-                            try {
-                              const { url } = await api.createContractSigningLink(contract.id, candidateId);
-                              setContractSigningUrls(prev => ({ ...prev, [contract.id]: url }));
-                              toast.success('Signing link created! URL copied to clipboard.');
-                              navigator.clipboard.writeText(url);
-                              await load();
-                            } catch (err) {
-                              toast.error(err instanceof Error ? err.message : 'Failed to create signing link');
-                            } finally {
-                              setSendingContract(null);
-                            }
-                          }}
-                          disabled={sendingContract === contract.id}
-                          className="px-3 py-1.5 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-2"
-                          title="Create signing link"
-                        >
-                          {sendingContract === contract.id ? 'Creating...' : 'Create Signing Link'}
-                        </button>
-                      )
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <Link
-                        to={candidateReturnTo ? `/contracts/${contract.id}/edit?return=${encodeURIComponent(candidateReturnTo)}` : `/contracts/${contract.id}/edit`}
-                        className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title="Edit contract"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </Link>
-                      {contract.file_path && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await api.downloadContractDocument(contract.id);
-                            } catch (err) {
-                              toast.error('Failed to open document');
-                            }
-                          }}
-                          className="p-2 text-slate-400 hover:text-brand transition-colors"
-                          title="Download document"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </TD>
-              </TR>
-            ))
-          )}
-        </TBody>
-      </Table>
-    </Card>
   );
 }
