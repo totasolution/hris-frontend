@@ -498,6 +498,8 @@ export type Candidate = {
   phone?: string;
   employment_type?: CandidateEmploymentType | null;
   ojt_option?: boolean;
+  position?: string | null;
+  placement_location?: string | null;
   screening_status: string;
   screening_notes?: string;
   screening_rating?: number;
@@ -508,6 +510,23 @@ export type Candidate = {
   created_at: string;
   updated_at: string;
 };
+
+/** Indonesian province (for placement location). */
+export type Province = {
+  id: number;
+  code: string;
+  name: string;
+};
+
+export async function getProvinces(params?: { search?: string }): Promise<Province[]> {
+  const q = new URLSearchParams();
+  if (params?.search?.trim()) q.set('search', params.search.trim());
+  const url = q.toString() ? `${API_BASE}/provinces?${q}` : `${API_BASE}/provinces`;
+  const res = await authFetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch provinces');
+  return Array.isArray(data?.data) ? data.data : [];
+}
 
 export type CandidateDocument = {
   id: number;
@@ -568,6 +587,8 @@ export async function createCandidate(body: {
   phone?: string;
   employment_type?: CandidateEmploymentType;
   ojt_option?: boolean;
+  position?: string;
+  placement_location?: string;
 }): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates`, {
     method: 'POST',
@@ -589,6 +610,8 @@ export async function updateCandidate(
     phone: string;
     employment_type: CandidateEmploymentType | null;
     ojt_option: boolean;
+    position: string;
+    placement_location: string;
     screening_status: string;
     screening_notes: string;
     screening_rating: number;

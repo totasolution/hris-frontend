@@ -32,12 +32,17 @@ export default function CandidateFormPage() {
   const [clientId, setClientId] = useState<string>('');
   const [employmentType, setEmploymentType] = useState<api.CandidateEmploymentType | ''>('');
   const [ojtOption, setOjtOption] = useState(false);
+  const [position, setPosition] = useState('');
+  const [placementLocation, setPlacementLocation] = useState('');
   const [screeningStatus, setScreeningStatus] = useState('new');
   const [screeningNotes, setScreeningNotes] = useState('');
   const [screeningRating, setScreeningRating] = useState<string>('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState('');
   const [clients, setClients] = useState<api.Client[]>([]);
+  const [provinces, setProvinces] = useState<api.Province[]>([]);
+  const [provinceSearch, setProvinceSearch] = useState('');
+  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +50,9 @@ export default function CandidateFormPage() {
   useEffect(() => {
     async function loadInitial() {
       try {
-        const cList = await api.getClients();
+        const [cList, pList] = await Promise.all([api.getClients(), api.getProvinces().catch(() => [])]);
         setClients(cList);
+        setProvinces(pList);
 
         if (isEdit && id) {
           const c = await api.getCandidate(parseInt(id, 10));
@@ -56,6 +62,8 @@ export default function CandidateFormPage() {
           setClientId(c.client_id ? String(c.client_id) : '');
           setEmploymentType((c.employment_type as api.CandidateEmploymentType) ?? '');
           setOjtOption(c.ojt_option ?? false);
+          setPosition(c.position ?? '');
+          setPlacementLocation(c.placement_location ?? '');
           setScreeningStatus(c.screening_status ?? 'new');
           setScreeningNotes(c.screening_notes ?? '');
           setScreeningRating(c.screening_rating != null ? String(c.screening_rating) : '');
@@ -84,6 +92,8 @@ export default function CandidateFormPage() {
         phone: phone.trim() || undefined,
         client_id: clientId ? parseInt(clientId, 10) : undefined,
         ojt_option: ojtOption,
+        position: position.trim() || undefined,
+        placement_location: placementLocation.trim() || undefined,
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
@@ -224,6 +234,73 @@ export default function CandidateFormPage() {
                 <option value="pkwt">PKWT</option>
                 <option value="partnership">Mitra Kerja</option>
               </Select>
+              <Input
+                label="Position"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+                placeholder="e.g. Software Engineer"
+              />
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Placement Location (Province)
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={provinceDropdownOpen ? provinceSearch : placementLocation}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setProvinceSearch(v);
+                      if (!provinceDropdownOpen) setProvinceDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setProvinceSearch(placementLocation);
+                      setProvinceDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        setPlacementLocation((prev) => provinceSearch.trim() || prev);
+                        setProvinceDropdownOpen(false);
+                      }, 150);
+                    }}
+                    placeholder="Search or type province..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                  />
+                  {provinceDropdownOpen && (
+                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                      {provinces
+                        .filter(
+                          (p) =>
+                            !provinceSearch.trim() ||
+                            p.name.toLowerCase().includes(provinceSearch.trim().toLowerCase())
+                        )
+                        .slice(0, 50)
+                        .map((p) => (
+                          <li
+                            key={p.id}
+                            role="option"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setPlacementLocation(p.name);
+                              setProvinceSearch('');
+                              setProvinceDropdownOpen(false);
+                            }}
+                            className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                          >
+                            {p.name}
+                          </li>
+                        ))}
+                      {provinces.filter(
+                        (p) =>
+                          !provinceSearch.trim() ||
+                          p.name.toLowerCase().includes(provinceSearch.trim().toLowerCase())
+                      ).length === 0 && (
+                        <li className="px-4 py-2 text-sm text-slate-500">No province found</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
