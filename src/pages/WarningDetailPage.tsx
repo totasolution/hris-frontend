@@ -117,7 +117,7 @@ export default function WarningDetailPage() {
     <div className="max-w-4xl mx-auto space-y-8">
       <PageHeader
         title={t('pages:warningDetail.pageTitle', { type: warning.type })}
-        subtitle={employee ? employee.full_name : `ID: ${warning.employee_id}`}
+        subtitle={warning.employee_name || (employee ? employee.full_name : null) || `ID: ${warning.employee_id}`}
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -145,13 +145,17 @@ export default function WarningDetailPage() {
             <div>
               <dt className="text-sm font-medium text-slate-500">{t('pages:warnings.employee')}</dt>
               <dd className="mt-1">
-                {employee ? (
-                  <Link
-                    to={`/employees/${employee.id}`}
-                    className="text-brand font-medium hover:underline"
-                  >
-                    {employee.full_name}
-                  </Link>
+                {(warning.employee_name || employee) ? (
+                  employee ? (
+                    <Link
+                      to={`/employees/${employee.id}`}
+                      className="text-brand font-medium hover:underline"
+                    >
+                      {employee.full_name}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-800">{warning.employee_name}</span>
+                  )
                 ) : (
                   <span className="text-slate-800">ID: {warning.employee_id}</span>
                 )}

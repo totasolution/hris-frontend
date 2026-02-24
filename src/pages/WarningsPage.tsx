@@ -20,7 +20,6 @@ export default function WarningsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
-  const [employees, setEmployees] = useState<api.Employee[]>([]);
 
   const load = async () => {
     setLoading(true);
@@ -44,10 +43,6 @@ export default function WarningsPage() {
   useEffect(() => {
     load();
   }, [search, page]);
-
-  useEffect(() => {
-    api.getEmployees({ per_page: 1000 }).then((r) => setEmployees(r.data)).catch(() => {});
-  }, []);
 
   return (
     <div className="space-y-8">
@@ -108,7 +103,7 @@ export default function WarningsPage() {
                   <TR key={w.id}>
                     <TD className="text-slate-700 font-mono text-sm">{w.document_number ?? '—'}</TD>
                     <TD className="font-bold text-[#0f172a]">
-                      {employees.find(e => e.id === w.employee_id)?.full_name ?? `ID: ${w.employee_id}`}
+                      {w.employee_name ?? `ID: ${w.employee_id}`}
                     </TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${

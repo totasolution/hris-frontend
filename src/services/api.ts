@@ -1635,6 +1635,7 @@ export type WarningLetter = {
   id: number;
   tenant_id: number;
   employee_id: number;
+  employee_name?: string;
   type: string;
   document_number?: string | null;
   warning_date: string;
