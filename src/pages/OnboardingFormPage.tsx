@@ -300,7 +300,7 @@ export default function OnboardingFormPage() {
         const [placeFromDob, dateFromDob] = placeDob ? (placeDob.includes(',') ? placeDob.split(',').map((s: string) => s.trim()) : [placeDob, '']) : ['', ''];
         setFormData(prev => ({
           ...prev,
-          id_number: extracted.nik || extracted.id_number || prev.id_number,
+          // id_number (NIK) is NOT auto-filled from extraction; candidate must enter it themselves
           ktp_province: extracted.province || prev.ktp_province,
           ktp_district: extracted.district || prev.ktp_district,
           address: address || prev.address,
