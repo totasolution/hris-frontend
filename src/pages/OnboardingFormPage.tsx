@@ -300,9 +300,7 @@ export default function OnboardingFormPage() {
         const [placeFromDob, dateFromDob] = placeDob ? (placeDob.includes(',') ? placeDob.split(',').map((s: string) => s.trim()) : [placeDob, '']) : ['', ''];
         setFormData(prev => ({
           ...prev,
-          // id_number (NIK) is NOT auto-filled from extraction; candidate must enter it themselves
-          ktp_province: extracted.province || prev.ktp_province,
-          ktp_district: extracted.district || prev.ktp_district,
+          // id_number, province, district, sub_district are NOT auto-filled from extraction; candidate must enter them
           address: address || prev.address,
           place_of_birth: extracted.birth_place || placeFromDob || prev.place_of_birth,
           date_of_birth: extracted.birth_date ? extracted.birth_date.split('T')[0] : (dateFromDob && dateFromDob.match(/\d{2}-\d{2}-\d{4}/) ? dateFromDob.split('-').reverse().join('-') : prev.date_of_birth),
@@ -487,6 +485,11 @@ export default function OnboardingFormPage() {
     );
   }
 
+  const allChecklistChecked =
+    declarationChecklist.ketentuan.every((i) => i.checked) &&
+    declarationChecklist.sanksi.every((i) => i.checked) &&
+    declarationChecklist.finalDeclaration.checked;
+
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -598,7 +601,11 @@ export default function OnboardingFormPage() {
               <Button type="button" variant="secondary" onClick={() => setStep(1)} className="order-2 sm:order-1">
                 Kembali
               </Button>
-              <Button type="submit" disabled={submitting} className="flex-1 order-1 sm:order-2 py-5 text-lg shadow-2xl shadow-brand/20">
+              <Button
+                type="submit"
+                disabled={submitting || !allChecklistChecked}
+                className="flex-1 order-1 sm:order-2 py-5 text-lg shadow-2xl shadow-brand/20"
+              >
                 {submitting ? 'Mengirim...' : 'Setujui dan Kirim'}
               </Button>
             </div>
