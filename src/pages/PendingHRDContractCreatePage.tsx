@@ -22,7 +22,6 @@ export default function PendingHRDContractCreatePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [candidateId, setCandidateId] = useState<string>(candidateIdParam ?? '');
-  const [templateId, setTemplateId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [templates, setTemplates] = useState<api.ContractTemplate[]>([]);
@@ -83,15 +82,23 @@ export default function PendingHRDContractCreatePage() {
       return;
     }
 
-    if (creationMode === 'template' && !templateId) {
-      toast.error('Please select a contract template');
+    // Template mode: auto-pick from candidate employment_type (pkwt | partnership)
+    let resolvedTemplateId: number | undefined;
+    if (creationMode === 'template' && candidate?.employment_type) {
+      const ct = candidate.employment_type as api.ContractTemplateType;
+      const matching = contractTemplates.filter((t) => t.contract_type === ct);
+      if (matching.length > 0) resolvedTemplateId = matching[0].id;
+      else resolvedTemplateId = contractTemplates.find((t) => t.contract_type === 'pkwt')?.id;
+    }
+    if (creationMode === 'template' && !resolvedTemplateId) {
+      toast.error('Candidate must have employment type (PKWT or Mitra) set, or add a PKWT template');
       return;
     }
 
     setSubmitting(true);
     try {
       await api.createContract({
-        template_id: templateId ? parseInt(templateId, 10) : undefined,
+        template_id: resolvedTemplateId,
         contract_number: contractNumber || undefined,
         status,
       });
@@ -106,8 +113,12 @@ export default function PendingHRDContractCreatePage() {
   };
 
   const handlePreviewTemplate = async () => {
-    if (!templateId) {
-      toast.error('Please select a template first');
+    // Resolve template from candidate employment_type
+    const ct = candidate?.employment_type as api.ContractTemplateType | undefined;
+    const matching = contractTemplates.filter((t) => t.contract_type === (ct ?? 'pkwt'));
+    const previewTemplateId = matching[0]?.id ?? contractTemplates.find((t) => t.contract_type === 'pkwt')?.id;
+    if (!previewTemplateId) {
+      toast.error('No template available for preview. Add a PKWT or Partnership template.');
       return;
     }
     try {
@@ -139,7 +150,7 @@ export default function PendingHRDContractCreatePage() {
         work_location: '[Work Location]',
         other_terms: '',
       };
-      const html = await api.previewContractTemplate(parseInt(templateId, 10), sampleValues);
+      const html = await api.previewContractTemplate(previewTemplateId, sampleValues);
       setPreviewHtml(html);
       setShowPreview(true);
     } catch (err) {
@@ -257,31 +268,19 @@ export default function PendingHRDContractCreatePage() {
 
             {creationMode === 'template' && (
               <FormGroup>
-                <Label>Contract Template <span className="text-red-500">*</span></Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={templateId}
-                    onChange={(e) => setTemplateId(e.target.value)}
-                    className="flex-1"
-                    required
-                  >
-                    <option value="">— Select Template —</option>
-                    {contractTemplates.map((t) => (
-                      <option key={t.id} value={String(t.id)}>
-                        {t.name} ({t.contract_type.toUpperCase()})
-                      </option>
-                    ))}
-                  </Select>
-                  {templateId && (
-                    <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
-                      Preview
-                    </Button>
-                  )}
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600">
+                      Template is auto-selected from the candidate&apos;s employment type ({candidate?.employment_type === 'pkwt' ? 'PKWT' : candidate?.employment_type === 'partnership' ? 'Mitra' : candidate?.employment_type ?? '—'}).
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Manage templates in <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
+                    </p>
+                  </div>
+                  <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
+                    Preview
+                  </Button>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Select a template for this contract. Manage templates in{' '}
-                  <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
-                </p>
               </FormGroup>
             )}
 
@@ -324,7 +323,7 @@ export default function PendingHRDContractCreatePage() {
                   submitting ||
                   uploading ||
                   (creationMode === 'manual' && !uploadFile) ||
-                  (creationMode === 'template' && !templateId)
+                  (creationMode === 'template' && !candidate?.employment_type)
                 }
               >
                 {uploading ? 'Uploading...' : submitting ? 'Saving...' : creationMode === 'manual' ? 'Create Contract & Approve Request' : 'Create Contract & Approve Request'}

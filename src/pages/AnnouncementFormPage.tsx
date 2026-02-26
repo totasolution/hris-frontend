@@ -103,7 +103,7 @@ export default function AnnouncementFormPage() {
     setSubmitting(true);
     try {
       const base = {
-        client_id: clientId ? Number(clientId) : undefined,
+        client_id: clientId ? Number(clientId) : null,
         title: title.trim(),
         body: body.trim(),
         published_from: fromDatetimeLocal(publishedFrom) ?? undefined,

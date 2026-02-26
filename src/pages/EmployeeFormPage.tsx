@@ -32,6 +32,7 @@ export default function EmployeeFormPage() {
   const [phone, setPhone] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [employeeType, setEmployeeType] = useState('external');
+  const [employmentContractType, setEmploymentContractType] = useState('');
   const [status, setStatus] = useState('active');
   const [hireDate, setHireDate] = useState('');
   const [joinDate, setJoinDate] = useState('');
@@ -50,6 +51,7 @@ export default function EmployeeFormPage() {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [gender, setGender] = useState('');
   const [maritalStatus, setMaritalStatus] = useState('');
+  const [childNumber, setChildNumber] = useState('');
   const [religion, setReligion] = useState('');
 
   // Financial
@@ -65,6 +67,8 @@ export default function EmployeeFormPage() {
 
   // Address
   const [address, setAddress] = useState('');
+  const [rtRw, setRtRw] = useState('');
+  const [domicileAddress, setDomicileAddress] = useState('');
   const [village, setVillage] = useState('');
   const [subDistrict, setSubDistrict] = useState('');
   const [district, setDistrict] = useState('');
@@ -78,6 +82,17 @@ export default function EmployeeFormPage() {
   // BPJS
   const [bpjstkId, setBpjstkId] = useState('');
   const [bpjsksId, setBpjsksId] = useState('');
+  const [bpjsKes, setBpjsKes] = useState('');
+  const [bpjsTku, setBpjsTku] = useState('');
+  const [bpjsBpu, setBpjsBpu] = useState('');
+  // Employment allowances
+  const [positionalAllowance, setPositionalAllowance] = useState('');
+  const [transportAllowance, setTransportAllowance] = useState('');
+  const [commAllowance, setCommAllowance] = useState('');
+  const [miscAllowance, setMiscAllowance] = useState('');
+  const [insuranceProvider, setInsuranceProvider] = useState('');
+  const [insuranceNo, setInsuranceNo] = useState('');
+  const [overtimeNominal, setOvertimeNominal] = useState('');
 
   const [departments, setDepartments] = useState<api.Department[]>([]);
   const [clients, setClients] = useState<api.Client[]>([]);
@@ -109,6 +124,7 @@ export default function EmployeeFormPage() {
         setPhone(e.phone ?? '');
         setEmployeeNumber(e.employee_number ?? '');
         setEmployeeType(e.employee_type ?? 'external');
+        setEmploymentContractType(e.employment_contract_type ?? '');
         setStatus(e.status ?? 'active');
         setHireDate(e.hire_date?.slice(0, 10) ?? '');
         setJoinDate(e.join_date?.slice(0, 10) ?? '');
@@ -123,6 +139,7 @@ export default function EmployeeFormPage() {
         setPlaceOfBirth(e.place_of_birth ?? '');
         setGender(e.gender ?? '');
         setMaritalStatus(e.marital_status ?? '');
+        setChildNumber(e.child_number != null ? String(e.child_number) : '');
         setReligion(e.religion ?? '');
         setNpwp(e.npwp ?? '');
         setBankName(e.bank_name ?? '');
@@ -132,6 +149,8 @@ export default function EmployeeFormPage() {
         setEmergencyContact(e.emergency_contact ?? '');
         setEmergencyPhone(e.emergency_phone ?? '');
         setAddress(e.address ?? '');
+        setRtRw(e.rt_rw ?? '');
+        setDomicileAddress(e.domicile_address ?? '');
         setVillage(e.village ?? '');
         setSubDistrict(e.sub_district ?? '');
         setDistrict(e.district ?? '');
@@ -141,6 +160,16 @@ export default function EmployeeFormPage() {
         setPlacementLocation(e.placement_location ?? '');
         setBpjstkId(e.bpjstk_id ?? '');
         setBpjsksId(e.bpjsks_id ?? '');
+        setBpjsKes(e.bpjs_kes ?? '');
+        setBpjsTku(e.bpjs_tku ?? '');
+        setBpjsBpu(e.bpjs_bpu ?? '');
+        setPositionalAllowance(e.positional_allowance ?? '');
+        setTransportAllowance(e.transport_allowance ?? '');
+        setCommAllowance(e.comm_allowance ?? '');
+        setMiscAllowance(e.misc_allowance ?? '');
+        setInsuranceProvider(e.insurance_provider ?? '');
+        setInsuranceNo(e.insurance_no ?? '');
+        setOvertimeNominal(e.overtime_nominal ?? '');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
       } finally {
@@ -161,6 +190,7 @@ export default function EmployeeFormPage() {
         phone: phone.trim() || undefined,
         // employee_number is auto-generated on create and read-only on edit; do not send
         employee_type: employeeType,
+        employment_contract_type: employmentContractType || undefined,
         status,
         hire_date: hireDate || undefined,
         join_date: joinDate || undefined,
@@ -175,6 +205,7 @@ export default function EmployeeFormPage() {
         place_of_birth: placeOfBirth.trim() || undefined,
         gender: gender || undefined,
         marital_status: maritalStatus.trim() || undefined,
+        child_number: childNumber !== '' ? (parseInt(childNumber, 10) || undefined) : undefined,
         religion: religion.trim() || undefined,
         npwp: npwp.trim() || undefined,
         salary: salary.trim() || undefined,
@@ -184,6 +215,8 @@ export default function EmployeeFormPage() {
         emergency_contact: emergencyContact.trim() || undefined,
         emergency_phone: emergencyPhone.trim() || undefined,
         address: address.trim() || undefined,
+        rt_rw: rtRw.trim() || undefined,
+        domicile_address: domicileAddress.trim() || undefined,
         village: village.trim() || undefined,
         sub_district: subDistrict.trim() || undefined,
         district: district.trim() || undefined,
@@ -193,6 +226,16 @@ export default function EmployeeFormPage() {
         placement_location: placementLocation.trim() || undefined,
         bpjstk_id: bpjstkId.trim() || undefined,
         bpjsks_id: bpjsksId.trim() || undefined,
+        bpjs_kes: bpjsKes.trim() || undefined,
+        bpjs_tku: bpjsTku.trim() || undefined,
+        bpjs_bpu: bpjsBpu.trim() || undefined,
+        positional_allowance: positionalAllowance.trim() || undefined,
+        transport_allowance: transportAllowance.trim() || undefined,
+        comm_allowance: commAllowance.trim() || undefined,
+        misc_allowance: miscAllowance.trim() || undefined,
+        insurance_provider: insuranceProvider.trim() || undefined,
+        insurance_no: insuranceNo.trim() || undefined,
+        overtime_nominal: overtimeNominal.trim() || undefined,
       };
       if (isEdit && id) {
         await api.updateEmployee(parseInt(id, 10), body);
@@ -286,6 +329,15 @@ export default function EmployeeFormPage() {
               >
                 <option value="internal">Internal Staff</option>
                 <option value="external">External Contractor</option>
+              </Select>
+              <Select
+                label="Contract Type"
+                value={employmentContractType}
+                onChange={(e) => setEmploymentContractType(e.target.value)}
+              >
+                <option value="">— Select —</option>
+                <option value="pkwt">PKWT</option>
+                <option value="partnership">Mitra Kerja (Partnership)</option>
               </Select>
             </div>
           </CardBody>
@@ -441,6 +493,14 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setReligion(e.target.value)}
                 placeholder="e.g. Islam, Christian"
               />
+              <Input
+                label="Number of Children"
+                type="number"
+                min={0}
+                value={childNumber}
+                onChange={(e) => setChildNumber(e.target.value)}
+                placeholder="0"
+              />
             </div>
           </CardBody>
         </Card>
@@ -495,6 +555,65 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setBpjsksId(e.target.value)}
                 placeholder="BPJS Kesehatan number"
               />
+              <Input
+                label="BPJS Kesehatan (Nominal)"
+                value={bpjsKes}
+                onChange={(e) => setBpjsKes(e.target.value)}
+                placeholder="e.g. 150000"
+              />
+              <Input
+                label="BPJS Ketenagakerjaan (Nominal)"
+                value={bpjsTku}
+                onChange={(e) => setBpjsTku(e.target.value)}
+                placeholder="e.g. 100000"
+              />
+              <Input
+                label="BPJS BPU (Nominal)"
+                value={bpjsBpu}
+                onChange={(e) => setBpjsBpu(e.target.value)}
+                placeholder="e.g. 50000"
+              />
+              <Input
+                label="Tunjangan Jabatan"
+                value={positionalAllowance}
+                onChange={(e) => setPositionalAllowance(e.target.value)}
+                placeholder="Positional allowance"
+              />
+              <Input
+                label="Tunjangan Transportasi"
+                value={transportAllowance}
+                onChange={(e) => setTransportAllowance(e.target.value)}
+                placeholder="Transport allowance"
+              />
+              <Input
+                label="Tunjangan Komunikasi"
+                value={commAllowance}
+                onChange={(e) => setCommAllowance(e.target.value)}
+                placeholder="Communication allowance"
+              />
+              <Input
+                label="Tunjangan Lain-lain"
+                value={miscAllowance}
+                onChange={(e) => setMiscAllowance(e.target.value)}
+                placeholder="Misc allowance"
+              />
+              <Input
+                label="Insurance Provider"
+                value={insuranceProvider}
+                onChange={(e) => setInsuranceProvider(e.target.value)}
+                placeholder="e.g. AXA, Allianz"
+              />
+              <Input
+                label="Insurance No."
+                value={insuranceNo}
+                onChange={(e) => setInsuranceNo(e.target.value)}
+              />
+              <Input
+                label="Overtime Nominal"
+                value={overtimeNominal}
+                onChange={(e) => setOvertimeNominal(e.target.value)}
+                placeholder="Per hour overtime rate"
+              />
             </div>
           </CardBody>
         </Card>
@@ -533,11 +652,17 @@ export default function EmployeeFormPage() {
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Textarea
-                label="Street Address"
+                label="KTP Address (Street)"
                 value={address}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setAddress(e.target.value)}
                 rows={2}
                 className="md:col-span-2"
+              />
+              <Input
+                label="RT/RW"
+                value={rtRw}
+                onChange={(e) => setRtRw(e.target.value)}
+                placeholder="e.g. 01/02"
               />
               <Input
                 label="Kelurahan / Village"
@@ -564,6 +689,14 @@ export default function EmployeeFormPage() {
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
                 placeholder="e.g. 12345"
+              />
+              <Textarea
+                label="Domicile Address"
+                value={domicileAddress}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDomicileAddress(e.target.value)}
+                rows={2}
+                className="md:col-span-2"
+                placeholder="Alamat domisili (if different from KTP)"
               />
             </div>
           </CardBody>

@@ -4,10 +4,14 @@ import { getDefaultDeclarationChecklist } from '../constants/onboardingDeclarati
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
+import { RegionSelect } from '../components/RegionSelect';
 import { Select } from '../components/Select';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
 import type { DeclarationChecklistData } from '../services/api';
+
+const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+const MAX_UPLOAD_SIZE_MB = 5;
 
 export default function OnboardingFormPage() {
   const { token } = useParams<{ token: string }>();
@@ -29,17 +33,30 @@ export default function OnboardingFormPage() {
   const [uploadingSkck, setUploadingSkck] = useState(false);
   const [skckUploaded, setSkckUploaded] = useState(false);
   const ktpInputRef = useRef<HTMLInputElement>(null);
+  const kkInputRef = useRef<HTMLInputElement>(null);
+  const skckInputRef = useRef<HTMLInputElement>(null);
 
-  // Form Fields - Auto-filled with default values for testing
+  // Form Fields
   const [formData, setFormData] = useState({
     id_number: '',
+    ktp_rt_rw: '',
+    ktp_province: '',
+    ktp_district: '',
+    ktp_sub_district: '',
     address: '',
+    domicile_rt_rw: '',
+    domicile_province: '',
+    domicile_district: '',
+    domicile_sub_district: '',
     domicile_address: '',
+    domicile_same_as_ktp: false,
     place_of_birth: '',
     date_of_birth: '',
     gender: '',
     religion: '',
     marital_status: '',
+    phone_no: '',
+    child_number: '',
     bank_name: '',
     bank_account_number: '',
     bank_account_holder: '',
@@ -48,6 +65,11 @@ export default function OnboardingFormPage() {
     emergency_contact_relationship: '',
     emergency_contact_phone: '',
   });
+  // Region IDs for cascading selects (not persisted)
+  const [ktpProvinceId, setKtpProvinceId] = useState('');
+  const [ktpDistrictId, setKtpDistrictId] = useState('');
+  const [domicileProvinceId, setDomicileProvinceId] = useState('');
+  const [domicileDistrictId, setDomicileDistrictId] = useState('');
 
   useEffect(() => {
     if (!token) {
@@ -73,8 +95,17 @@ export default function OnboardingFormPage() {
           setFormData(prev => ({
             ...prev,
             id_number: existing.id_number ?? prev.id_number,
+            ktp_rt_rw: existing.ktp_rt_rw ?? prev.ktp_rt_rw,
+            ktp_province: existing.ktp_province ?? prev.ktp_province,
+            ktp_district: existing.ktp_district ?? prev.ktp_district,
+            ktp_sub_district: existing.ktp_sub_district ?? prev.ktp_sub_district,
             address: existing.address ?? prev.address,
+            domicile_rt_rw: existing.domicile_rt_rw ?? prev.domicile_rt_rw,
+            domicile_province: existing.domicile_province ?? prev.domicile_province,
+            domicile_district: existing.domicile_district ?? prev.domicile_district,
+            domicile_sub_district: existing.domicile_sub_district ?? prev.domicile_sub_district,
             domicile_address: existing.domicile_address ?? prev.domicile_address,
+            domicile_same_as_ktp: existing.domicile_same_as_ktp ?? prev.domicile_same_as_ktp,
             place_of_birth: existing.place_of_birth ?? prev.place_of_birth,
             date_of_birth: existing.date_of_birth
               ? existing.date_of_birth.split('T')[0]
@@ -82,6 +113,8 @@ export default function OnboardingFormPage() {
             gender: existing.gender ?? prev.gender,
             religion: existing.religion ?? prev.religion,
             marital_status: existing.marital_status ?? prev.marital_status,
+            phone_no: existing.phone_no ?? prev.phone_no,
+            child_number: existing.child_number != null ? String(existing.child_number) : prev.child_number,
             bank_name: existing.bank_name ?? prev.bank_name,
             bank_account_number: existing.bank_account_number ?? prev.bank_account_number,
             bank_account_holder: existing.bank_account_holder ?? prev.bank_account_holder,
@@ -106,69 +139,139 @@ export default function OnboardingFormPage() {
     load();
   }, [token]);
 
-  const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+    if (name === 'domicile_same_as_ktp') {
+      setFormData(prev => {
+        const next = { ...prev, domicile_same_as_ktp: checked };
+        if (checked) {
+          next.domicile_rt_rw = prev.ktp_rt_rw;
+          next.domicile_province = prev.ktp_province;
+          next.domicile_district = prev.ktp_district;
+          next.domicile_sub_district = prev.ktp_sub_district;
+          next.domicile_address = prev.address;
+        }
+        return next;
+      });
+    } else {
+      setFormData(prev => {
+        const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+        if (prev.domicile_same_as_ktp && ['ktp_rt_rw', 'ktp_province', 'ktp_district', 'ktp_sub_district', 'address'].includes(name)) {
+          next.domicile_rt_rw = next.ktp_rt_rw;
+          next.domicile_province = next.ktp_province;
+          next.domicile_district = next.ktp_district;
+          next.domicile_sub_district = next.ktp_sub_district;
+          next.domicile_address = next.address;
+        }
+        return next;
+      });
+    }
+  };
+
+  const buildFullKtpAddress = (data: typeof formData) => {
+    const parts: string[] = [];
+    if (data.ktp_rt_rw?.trim()) parts.push(`RT/RW ${data.ktp_rt_rw.trim()}`);
+    if (data.address?.trim()) parts.push(data.address.trim());
+    if (data.ktp_sub_district?.trim()) parts.push(data.ktp_sub_district.trim());
+    if (data.ktp_district?.trim()) parts.push(data.ktp_district.trim());
+    if (data.ktp_province?.trim()) parts.push(data.ktp_province.trim());
+    return parts.join(', ');
+  };
+
+  const buildFullDomicileAddress = (data: typeof formData) => {
+    if (data.domicile_same_as_ktp) return buildFullKtpAddress(data);
+    const parts: string[] = [];
+    if (data.domicile_rt_rw?.trim()) parts.push(`RT/RW ${data.domicile_rt_rw.trim()}`);
+    if (data.domicile_address?.trim()) parts.push(data.domicile_address.trim());
+    if (data.domicile_sub_district?.trim()) parts.push(data.domicile_sub_district.trim());
+    if (data.domicile_district?.trim()) parts.push(data.domicile_district.trim());
+    if (data.domicile_province?.trim()) parts.push(data.domicile_province.trim());
+    return parts.join(', ');
   };
 
   const handleKtpFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Silakan unggah gambar (JPEG atau PNG). OCR bekerja paling baik dengan gambar.');
-        return;
-      }
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Ukuran file maksimal 5MB');
-        return;
-      }
-      setKtpFile(file);
-      setKtpUploaded(false);
-      setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Block oversize first, before any other check
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setKtpFile(null);
+      e.target.value = '';
+      if (ktpInputRef.current) ktpInputRef.current.value = '';
+      return;
     }
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Silakan unggah gambar (JPEG atau PNG). OCR bekerja paling baik dengan gambar.');
+      e.target.value = '';
+      return;
+    }
+    setKtpFile(file);
+    setKtpUploaded(false);
+    setError(null);
   };
 
   const handleKkFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Ukuran file maksimal 5MB');
-        return;
-      }
-      setKkFile(file);
-      setKkUploaded(false);
-      setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Block oversize first
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setKkFile(null);
+      e.target.value = '';
+      if (kkInputRef.current) kkInputRef.current.value = '';
+      return;
     }
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
+      e.target.value = '';
+      return;
+    }
+    setKkFile(file);
+    setKkUploaded(false);
+    setError(null);
   };
 
   const handleSkckFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Ukuran file maksimal 5MB');
-        return;
-      }
-      setSkckFile(file);
-      setSkckUploaded(false);
-      setError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Block oversize first
+    if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setSkckFile(null);
+      e.target.value = '';
+      if (skckInputRef.current) skckInputRef.current.value = '';
+      return;
     }
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Silakan unggah gambar (JPEG, PNG) atau PDF.');
+      e.target.value = '';
+      return;
+    }
+    setSkckFile(file);
+    setSkckUploaded(false);
+    setError(null);
   };
 
   const handleKtpUpload = async () => {
     if (!token || !ktpFile) return;
+    if (ktpFile.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(ktpFile.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setKtpFile(null);
+      if (ktpInputRef.current) ktpInputRef.current.value = '';
+      return;
+    }
     setUploadingKtp(true);
     setError(null);
     try {
@@ -198,6 +301,8 @@ export default function OnboardingFormPage() {
         setFormData(prev => ({
           ...prev,
           id_number: extracted.nik || extracted.id_number || prev.id_number,
+          ktp_province: extracted.province || prev.ktp_province,
+          ktp_district: extracted.district || prev.ktp_district,
           address: address || prev.address,
           place_of_birth: extracted.birth_place || placeFromDob || prev.place_of_birth,
           date_of_birth: extracted.birth_date ? extracted.birth_date.split('T')[0] : (dateFromDob && dateFromDob.match(/\d{2}-\d{2}-\d{4}/) ? dateFromDob.split('-').reverse().join('-') : prev.date_of_birth),
@@ -212,7 +317,9 @@ export default function OnboardingFormPage() {
       setKtpUploaded(true);
       setKtpFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unggah gagal');
+      const msg = e instanceof Error ? e.message : 'Unggah gagal';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploadingKtp(false);
     }
@@ -220,6 +327,14 @@ export default function OnboardingFormPage() {
 
   const handleKkUpload = async () => {
     if (!token || !kkFile) return;
+    if (kkFile.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(kkFile.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setKkFile(null);
+      if (kkInputRef.current) kkInputRef.current.value = '';
+      return;
+    }
     setUploadingKk(true);
     setError(null);
     try {
@@ -227,7 +342,9 @@ export default function OnboardingFormPage() {
       setKkUploaded(true);
       setKkFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unggah gagal');
+      const msg = e instanceof Error ? e.message : 'Unggah gagal';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploadingKk(false);
     }
@@ -235,6 +352,14 @@ export default function OnboardingFormPage() {
 
   const handleSkckUpload = async () => {
     if (!token || !skckFile) return;
+    if (skckFile.size > MAX_UPLOAD_SIZE_BYTES) {
+      const msg = `Ukuran file maksimal ${MAX_UPLOAD_SIZE_MB}MB. File Anda: ${(skckFile.size / 1024 / 1024).toFixed(2)}MB`;
+      setError(msg);
+      toast.error(msg);
+      setSkckFile(null);
+      if (skckInputRef.current) skckInputRef.current.value = '';
+      return;
+    }
     setUploadingSkck(true);
     setError(null);
     try {
@@ -242,7 +367,9 @@ export default function OnboardingFormPage() {
       setSkckUploaded(true);
       setSkckFile(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unggah gagal');
+      const msg = e instanceof Error ? e.message : 'Unggah gagal';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setUploadingSkck(false);
     }
@@ -252,7 +379,8 @@ export default function OnboardingFormPage() {
     e.preventDefault();
     const missing: string[] = [];
     if (!formData.id_number?.trim()) missing.push('NIK (KTP)');
-    if (!formData.address?.trim()) missing.push('Alamat KTP');
+    const ktpAddr = buildFullKtpAddress(formData);
+    if (!ktpAddr?.trim()) missing.push('Alamat KTP (lengkapi RT/RW, alamat, kecamatan, kabupaten, provinsi)');
     if (!formData.place_of_birth?.trim()) missing.push('Tempat Lahir');
     if (!formData.date_of_birth?.trim()) missing.push('Tanggal Lahir');
     if (!formData.gender?.trim()) missing.push('Jenis Kelamin');
@@ -266,6 +394,8 @@ export default function OnboardingFormPage() {
     if (!formData.emergency_contact_phone?.trim()) missing.push('Nomor Telepon Kontak Darurat');
     if (!ktpUploaded) missing.push('Unggah KTP');
     if (!kkUploaded) missing.push('Unggah Kartu Keluarga (KK)');
+    const domicileAddr = buildFullDomicileAddress(formData);
+    if (!domicileAddr?.trim()) missing.push('Alamat Domisili (lengkapi RT/RW, alamat, kecamatan, kabupaten, provinsi)');
 
     if (missing.length > 0) {
       const message = missing.length === 1
@@ -291,11 +421,16 @@ export default function OnboardingFormPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.submitOnboardingForm(token, {
+      const payload: Record<string, unknown> = {
         ...formData,
         declaration_checklist: declarationChecklist,
         data_reviewed: true,
-      });
+      };
+      if (formData.child_number !== '') {
+        const n = parseInt(formData.child_number, 10);
+        if (!isNaN(n)) payload.child_number = n;
+      }
+      await api.submitOnboardingForm(token, payload);
       setSubmitted(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Pengiriman gagal');
@@ -524,6 +659,7 @@ export default function OnboardingFormPage() {
                     <div className="flex gap-3 items-start">
                       <div className="flex-1">
                         <input
+                          ref={kkInputRef}
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,application/pdf"
                           onChange={handleKkFileChange}
@@ -559,6 +695,7 @@ export default function OnboardingFormPage() {
                     <div className="flex gap-3 items-start">
                       <div className="flex-1">
                         <input
+                          ref={skckInputRef}
                           type="file"
                           accept="image/jpeg,image/jpg,image/png,application/pdf"
                           onChange={handleSkckFileChange}
@@ -607,16 +744,50 @@ export default function OnboardingFormPage() {
                   <option value="female">Perempuan</option>
                 </Select>
                 <Input label="Agama" name="religion" value={formData.religion} onChange={handleInputChange} required placeholder="mis. Islam, Kristen" />
-                <Select label="Status Pernikahan" name="marital_status" value={formData.marital_status} onChange={handleInputChange} required>
+                <Select label="Status Pernikahan" name="marital_status" value={formData.marital_status === 'menikah' ? 'married' : formData.marital_status} onChange={handleInputChange} required>
                   <option value="single">Lajang</option>
                   <option value="married">Menikah</option>
                   <option value="divorced">Cerai</option>
                 </Select>
+                {(formData.marital_status === 'married' || formData.marital_status === 'menikah') && (
+                  <Input label="Jumlah Anak" name="child_number" type="number" min="0" value={formData.child_number} onChange={handleInputChange} placeholder="0" />
+                )}
+                <Input label="Nomor Telepon" name="phone_no" value={formData.phone_no} onChange={handleInputChange} placeholder="+62..." />
                 <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
-                <div className="md:col-span-2">
-                  <Textarea label="Alamat KTP/ID" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Alamat sesuai KTP..." />
-                <Textarea label="Alamat Domisili" name="domicile_address" value={formData.domicile_address} onChange={handleInputChange} rows={3} placeholder="Alamat domisili saat ini (jika berbeda dari KTP)..." />
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input label="RT/RW" name="ktp_rt_rw" value={formData.ktp_rt_rw} onChange={handleInputChange} placeholder="01/02" />
+                  <RegionSelect label="Provinsi" type="province" value={formData.ktp_province} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_province: name, ktp_district: '', ktp_sub_district: '' })); setKtpProvinceId(id ?? ''); setKtpDistrictId(''); }} required />
+                  <RegionSelect label="Kabupaten/Kota" type="district" provinceId={ktpProvinceId} value={formData.ktp_district} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_district: name, ktp_sub_district: '' })); setKtpDistrictId(id ?? ''); }} required />
+                  <RegionSelect label="Kecamatan" type="sub_district" districtId={ktpDistrictId} value={formData.ktp_sub_district} onChange={(name) => setFormData(p => ({ ...p, ktp_sub_district: name }))} required />
                 </div>
+                <div className="md:col-span-2">
+                  <Textarea label="Alamat (Jalan, Nomor)" name="address" value={formData.address} onChange={handleInputChange} required rows={3} placeholder="Alamat jalan dan nomor rumah sesuai KTP..." />
+                </div>
+                <div className="md:col-span-2 flex flex-col gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="domicile_same_as_ktp"
+                      checked={formData.domicile_same_as_ktp}
+                      onChange={handleInputChange}
+                      className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Alamat domisili sama dengan alamat KTP</span>
+                  </label>
+                </div>
+                {!formData.domicile_same_as_ktp && (
+                  <>
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Input label="RT/RW Domisili" name="domicile_rt_rw" value={formData.domicile_rt_rw} onChange={handleInputChange} placeholder="01/02" />
+                      <RegionSelect label="Provinsi Domisili" type="province" value={formData.domicile_province} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_province: name, domicile_district: '', domicile_sub_district: '' })); setDomicileProvinceId(id ?? ''); setDomicileDistrictId(''); }} required />
+                      <RegionSelect label="Kabupaten/Kota Domisili" type="district" provinceId={domicileProvinceId} value={formData.domicile_district} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_district: name, domicile_sub_district: '' })); setDomicileDistrictId(id ?? ''); }} required />
+                      <RegionSelect label="Kecamatan Domisili" type="sub_district" districtId={domicileDistrictId} value={formData.domicile_sub_district} onChange={(name) => setFormData(p => ({ ...p, domicile_sub_district: name }))} required />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Textarea label="Alamat Domisili (Jalan, Nomor)" name="domicile_address" value={formData.domicile_address} onChange={handleInputChange} required rows={3} placeholder="Alamat jalan dan nomor rumah domisili..." />
+                    </div>
+                  </>
+                )}
               </div>
             </CardBody>
           </Card>

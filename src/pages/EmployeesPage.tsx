@@ -1,15 +1,47 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Select from 'react-select';
 import { ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
-import { Select } from '../components/Select';
+import { Select as NativeSelect } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee } from '../services/api';
 import * as api from '../services/api';
+
+const clientSelectStyles = {
+  control: (base: object) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    border: '1px solid #e2e8f0',
+    padding: '2px',
+    boxShadow: 'none',
+    minWidth: 200,
+    '&:hover': { border: '1px solid #107BC7' },
+  }),
+  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+  }),
+  placeholder: (base: object) => ({
+    ...base,
+    fontSize: '0.875rem',
+    color: '#94a3b8',
+    fontWeight: '500',
+  }),
+  singleValue: (base: object) => ({
+    ...base,
+    fontSize: '0.875rem',
+    fontWeight: '600',
+    color: '#282828',
+  }),
+};
 
 export default function EmployeesPage() {
   const { t } = useTranslation('pages');
@@ -19,11 +51,17 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [clientId, setClientId] = useState<string>('');
+  const [clients, setClients] = useState<api.Client[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
+
+  useEffect(() => {
+    api.getClients().then(setClients).catch(() => {});
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -32,6 +70,7 @@ export default function EmployeesPage() {
       const res = await api.getEmployees({
         status: statusFilter || undefined,
         search: search.trim() || undefined,
+        client_id: clientId ? Number(clientId) : undefined,
         page,
         per_page: perPage,
       });
@@ -47,7 +86,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, search, page]);
+  }, [statusFilter, clientId, search, page]);
 
   return (
     <div className="space-y-8">
@@ -75,16 +114,36 @@ export default function EmployeesPage() {
           />
         </div>
         <div className="w-64">
-          <Select
+          <NativeSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">{t('employees.allStatuses')}</option>
             <option value="active">{t('employees.statusActive')}</option>
             <option value="terminated">{t('employees.statusTerminated')}</option>
             <option value="resigned">{t('employees.statusResigned')}</option>
             <option value="contract_ended">{t('employees.statusContractEnded')}</option>
-          </Select>
+          </NativeSelect>
+        </div>
+        <div className="w-64">
+          <Select
+            options={[
+              { value: '', label: t('employees.allClients') },
+              ...clients.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+            value={clientId ? { value: clientId, label: clients.find((c) => String(c.id) === clientId)?.name ?? clientId } : { value: '', label: t('employees.allClients') }}
+            onChange={(option: { value: string; label: string } | null) => {
+              setClientId(option?.value ?? '');
+              setPage(1);
+            }}
+            placeholder={t('employees.allClients')}
+            styles={clientSelectStyles}
+            isSearchable
+            isClearable
+          />
         </div>
       </div>
 

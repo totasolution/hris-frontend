@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
+import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { Pagination } from '../components/Pagination';
@@ -11,6 +12,29 @@ import { useToast } from '../components/Toast';
 import type { PayslipUpload } from '../services/api';
 import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
+
+/** Parse CSV text into rows; handles quoted fields with commas. */
+function parseCSV(text: string): string[][] {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  return lines.map((line) => {
+    const row: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        inQuotes = !inQuotes;
+      } else if (c === ',' && !inQuotes) {
+        row.push(current.trim());
+        current = '';
+      } else {
+        current += c;
+      }
+    }
+    row.push(current.trim());
+    return row;
+  });
+}
 
 const UPLOADS_PER_PAGE = 20;
 
@@ -22,6 +46,9 @@ export default function PayslipUploadsPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploads, setUploads] = useState<PayslipUpload[]>([]);
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewRows, setPreviewRows] = useState<string[][] | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -44,15 +71,58 @@ export default function PayslipUploadsPage() {
     loadUploads();
   }, [loadUploads]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) {
-      toast.error(t('pages:payslips.addRowError'));
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] ?? null;
+    if (!selected) {
+      setFile(null);
+      setPreviewFile(null);
+      setPreviewRows(null);
+      setPreviewError(null);
       return;
     }
+    setFile(selected);
+    setPreviewError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? '');
+        const rows = parseCSV(text);
+        if (rows.length === 0) {
+          setPreviewError(t('pages:payslipUploads.previewEmptyFile', 'File is empty or has no valid rows.'));
+          setPreviewFile(null);
+          setPreviewRows(null);
+          return;
+        }
+        setPreviewFile(selected);
+        setPreviewRows(rows);
+      } catch {
+        setPreviewError(t('pages:payslipUploads.previewParseError', 'Could not parse CSV.'));
+        setPreviewFile(null);
+        setPreviewRows(null);
+      }
+    };
+    reader.onerror = () => {
+      setPreviewError(t('pages:payslipUploads.previewReadError', 'Could not read file.'));
+      setPreviewFile(null);
+      setPreviewRows(null);
+    };
+    reader.readAsText(selected, 'utf-8');
+  };
+
+  const closePreview = () => {
+    setPreviewFile(null);
+    setPreviewRows(null);
+    setPreviewError(null);
+    setFile(null);
+    const input = document.getElementById('payslip-csv-input') as HTMLInputElement | null;
+    if (input) input.value = '';
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!previewFile) return;
     setUploading(true);
     try {
-      const res = await api.bulkUploadPayslipsFromCSV(file);
+      const res = await api.bulkUploadPayslipsFromCSV(previewFile);
       const created = res.count ?? 0;
       const failedCount = res.failed?.length ?? 0;
       if (failedCount > 0) {
@@ -76,7 +146,7 @@ export default function PayslipUploadsPage() {
       } else {
         toast.success(t('pages:payslips.payslipsUploaded'));
       }
-      setFile(null);
+      closePreview();
       setPage(1);
       try {
         const result = await api.listPayslipUploads({ page: 1, limit: UPLOADS_PER_PAGE });
@@ -91,6 +161,7 @@ export default function PayslipUploadsPage() {
       setUploading(false);
     }
   };
+
 
   const totalPages = Math.max(1, Math.ceil(total / UPLOADS_PER_PAGE));
 
@@ -113,11 +184,12 @@ export default function PayslipUploadsPage() {
                 'Upload a .csv file with columns: nik, year, month, city, print_date (YYYY-MM-DD), prepared_by, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, admin_bank, denda, rapel_potongan_bpjs, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id.'
               )}
             </p>
-            <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
+            <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-center gap-3">
               <input
+                id="payslip-csv-input"
                 type="file"
                 accept=".csv,text/csv"
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)}
+                onChange={handleFileSelect}
                 className="text-slate-600 max-w-xs text-sm"
               />
               <Button
@@ -141,13 +213,69 @@ export default function PayslipUploadsPage() {
               >
                 {t('pages:payslips.downloadTemplate', 'Download template')}
               </Button>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? t('pages:payslips.uploading') : t('pages:payslips.uploadPayslips')}
-              </Button>
             </form>
+            {previewError && (
+              <p className="text-sm text-amber-600 mt-2">{previewError}</p>
+            )}
           </div>
         </Card>
       )}
+
+      {/* CSV Preview Modal */}
+      <Modal
+        isOpen={!!previewFile && !!previewRows}
+        onClose={closePreview}
+        title={t('pages:payslipUploads.previewTitle', 'Review CSV content')}
+        size="xl"
+        footer={
+          <>
+            <Button variant="secondary" onClick={closePreview} disabled={uploading}>
+              {t('common:cancel', 'Cancel')}
+            </Button>
+            <Button onClick={handleConfirmUpload} disabled={uploading}>
+              {uploading ? t('pages:payslips.uploading') : t('pages:payslipUploads.confirmAndUpload', 'Confirm & Upload')}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            {t('pages:payslipUploads.previewSubtitle', 'Review the CSV content below. Click Confirm & Upload to proceed.')}
+          </p>
+          <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-200">
+            <table className="w-full text-sm border-collapse">
+              <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
+                <tr>
+                  {previewRows?.[0]?.map((cell, i) => (
+                    <th key={i} className="px-4 py-3 text-left font-semibold text-slate-700 whitespace-nowrap">
+                      {cell}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows?.slice(1).map((row, ri) => (
+                  <tr key={ri} className="border-b border-slate-100 hover:bg-slate-50/50">
+                    {row.map((cell, ci) => (
+                      <td key={ci} className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                        {cell}
+                      </td>
+                    ))}
+                    {previewRows[0] && row.length < previewRows[0].length && (
+                      <td colSpan={previewRows[0].length - row.length} />
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400">
+            {t('pages:payslipUploads.previewRowCount', '{{count}} rows (including header)', {
+              count: previewRows?.length ?? 0,
+            })}
+          </p>
+        </div>
+      </Modal>
 
       <Card>
         <div className="p-4 flex items-center justify-between border-b border-slate-100">

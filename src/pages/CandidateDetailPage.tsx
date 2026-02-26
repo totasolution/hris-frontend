@@ -34,7 +34,21 @@ export default function CandidateDetailPage() {
   const [onboardingEditForm, setOnboardingEditForm] = useState<Record<string, string>>({});
   const [onboardingSaveLoading, setOnboardingSaveLoading] = useState(false);
   const [editingEmploymentTerms, setEditingEmploymentTerms] = useState(false);
-  const [employmentTermsForm, setEmploymentTermsForm] = useState<{ start_date?: string; duration_months?: number; salary?: string }>({});
+  const [employmentTermsForm, setEmploymentTermsForm] = useState<{
+    start_date?: string;
+    duration_months?: number;
+    salary?: string;
+    positional_allowance?: string;
+    transport_allowance?: string;
+    comm_allowance?: string;
+    misc_allowance?: string;
+    bpjs_kes?: string;
+    bpjs_tku?: string;
+    bpjs_bpu?: string;
+    insurance_provider?: string;
+    insurance_no?: string;
+    overtime_nominal?: string;
+  }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const toast = useToast();
@@ -57,8 +71,8 @@ export default function CandidateDetailPage() {
       setCandidate(c);
       setDocuments(docs);
 
-      // Fetch onboarding data if status is relevant
-      if (['onboarding', 'onboarding_completed', 'ojt', 'contract_requested', 'hired'].includes(c.screening_status)) {
+      // Fetch onboarding data if status is relevant (including interview_passed for employment terms validation)
+      if (['interview_passed', 'onboarding', 'onboarding_completed', 'ojt', 'contract_requested', 'hired'].includes(c.screening_status)) {
         try {
           const data = await api.getOnboardingFormByCandidate(candidateId);
           setOnboardingData(data);
@@ -103,6 +117,14 @@ export default function CandidateDetailPage() {
 
   const handleCreateLink = async () => {
     if (!candidateId) return;
+    const hasEmploymentTerms =
+      onboardingData?.employment_start_date &&
+      onboardingData?.employment_duration_months &&
+      onboardingData?.employment_salary;
+    if (!hasEmploymentTerms) {
+      toast.error('Please complete Employment Terms (Start Date, Duration, and Salary) before generating the onboarding link.');
+      return;
+    }
     setLinkLoading(true);
     try {
       const link = await api.createOnboardingLink(candidateId);
@@ -378,8 +400,36 @@ function OverviewTab({
   submitHrdLoading: boolean;
   editingEmploymentTerms: boolean;
   setEditingEmploymentTerms: (v: boolean) => void;
-  employmentTermsForm: { start_date?: string; duration_months?: number; salary?: string };
-  setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{ start_date?: string; duration_months?: number; salary?: string }>>;
+  employmentTermsForm: {
+    start_date?: string;
+    duration_months?: number;
+    salary?: string;
+    positional_allowance?: string;
+    transport_allowance?: string;
+    comm_allowance?: string;
+    misc_allowance?: string;
+    bpjs_kes?: string;
+    bpjs_tku?: string;
+    bpjs_bpu?: string;
+    insurance_provider?: string;
+    insurance_no?: string;
+    overtime_nominal?: string;
+  };
+  setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{
+    start_date?: string;
+    duration_months?: number;
+    salary?: string;
+    positional_allowance?: string;
+    transport_allowance?: string;
+    comm_allowance?: string;
+    misc_allowance?: string;
+    bpjs_kes?: string;
+    bpjs_tku?: string;
+    bpjs_bpu?: string;
+    insurance_provider?: string;
+    insurance_no?: string;
+    overtime_nominal?: string;
+  }>>;
   employmentTermsSaveLoading: boolean;
   setEmploymentTermsSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setOnboardingData: React.Dispatch<React.SetStateAction<api.OnboardingFormData | null>>;
@@ -499,6 +549,16 @@ function OverviewTab({
                       start_date: onboardingData?.employment_start_date ?? '',
                       duration_months: onboardingData?.employment_duration_months ?? undefined,
                       salary: onboardingData?.employment_salary ?? '',
+                      positional_allowance: onboardingData?.employment_positional_allowance ?? '',
+                      transport_allowance: onboardingData?.employment_transport_allowance ?? '',
+                      comm_allowance: onboardingData?.employment_comm_allowance ?? '',
+                      misc_allowance: onboardingData?.employment_misc_allowance ?? '',
+                      bpjs_kes: onboardingData?.employment_bpjs_kes ?? '',
+                      bpjs_tku: onboardingData?.employment_bpjs_tku ?? '',
+                      bpjs_bpu: onboardingData?.employment_bpjs_bpu ?? '',
+                      insurance_provider: onboardingData?.employment_insurance_provider ?? '',
+                      insurance_no: onboardingData?.employment_insurance_no ?? '',
+                      overtime_nominal: onboardingData?.employment_overtime_nominal ?? '',
                     });
                     setEditingEmploymentTerms(true);
                   }}
@@ -519,6 +579,16 @@ function OverviewTab({
                         employment_start_date: employmentTermsForm.start_date || undefined,
                         employment_duration_months: employmentTermsForm.duration_months || undefined,
                         employment_salary: employmentTermsForm.salary || undefined,
+                        employment_positional_allowance: employmentTermsForm.positional_allowance || undefined,
+                        employment_transport_allowance: employmentTermsForm.transport_allowance || undefined,
+                        employment_comm_allowance: employmentTermsForm.comm_allowance || undefined,
+                        employment_misc_allowance: employmentTermsForm.misc_allowance || undefined,
+                        employment_bpjs_kes: employmentTermsForm.bpjs_kes || undefined,
+                        employment_bpjs_tku: employmentTermsForm.bpjs_tku || undefined,
+                        employment_bpjs_bpu: employmentTermsForm.bpjs_bpu || undefined,
+                        employment_insurance_provider: employmentTermsForm.insurance_provider || undefined,
+                        employment_insurance_no: employmentTermsForm.insurance_no || undefined,
+                        employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
                       });
                       setOnboardingData(updated);
                       setEditingEmploymentTerms(false);
@@ -557,6 +627,16 @@ function OverviewTab({
                         placeholder="e.g. Rp 5.000.000"
                       />
                     </div>
+                    <Input label="Tunjangan Jabatan" name="positional_allowance" value={employmentTermsForm.positional_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, positional_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
+                    <Input label="Tunjangan Transportasi" name="transport_allowance" value={employmentTermsForm.transport_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, transport_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
+                    <Input label="Tunjangan Komunikasi" name="comm_allowance" value={employmentTermsForm.comm_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, comm_allowance: e.target.value }))} placeholder="e.g. Rp 100.000" />
+                    <Input label="Tunjangan Lain-lain" name="misc_allowance" value={employmentTermsForm.misc_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, misc_allowance: e.target.value }))} placeholder="e.g. Rp 0" />
+                    <Input label="BPJS Kesehatan" name="bpjs_kes" value={employmentTermsForm.bpjs_kes ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_kes: e.target.value }))} placeholder="Nomor atau nilai" />
+                    <Input label="BPJS Ketenagakerjaan" name="bpjs_tku" value={employmentTermsForm.bpjs_tku ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_tku: e.target.value }))} placeholder="Nomor atau nilai" />
+                    <Input label="BPJS BPU" name="bpjs_bpu" value={employmentTermsForm.bpjs_bpu ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_bpu: e.target.value }))} placeholder="Nomor atau nilai" />
+                    <Input label="Asuransi (Provider)" name="insurance_provider" value={employmentTermsForm.insurance_provider ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_provider: e.target.value }))} placeholder="Nama provider" />
+                    <Input label="Nomor Polis Asuransi" name="insurance_no" value={employmentTermsForm.insurance_no ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_no: e.target.value }))} placeholder="Nomor polis" />
+                    <Input label="Lembur (Nominal)" name="overtime_nominal" value={employmentTermsForm.overtime_nominal ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, overtime_nominal: e.target.value }))} placeholder="e.g. Rp 25.000/jam" />
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <Button type="submit" disabled={employmentTermsSaveLoading}>
@@ -572,7 +652,17 @@ function OverviewTab({
                   {[
                     { label: 'Start Date', value: onboardingData?.employment_start_date },
                     { label: 'Duration (Months)', value: onboardingData?.employment_duration_months ? `${onboardingData.employment_duration_months} months` : null },
-                    { label: 'Salary', value: onboardingData?.employment_salary, full: true },
+                    { label: 'Salary', value: onboardingData?.employment_salary },
+                    { label: 'Tunjangan Jabatan', value: onboardingData?.employment_positional_allowance },
+                    { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance },
+                    { label: 'Tunjangan Komunikasi', value: onboardingData?.employment_comm_allowance },
+                    { label: 'Tunjangan Lain-lain', value: onboardingData?.employment_misc_allowance },
+                    { label: 'BPJS Kesehatan', value: onboardingData?.employment_bpjs_kes },
+                    { label: 'BPJS Ketenagakerjaan', value: onboardingData?.employment_bpjs_tku },
+                    { label: 'BPJS BPU', value: onboardingData?.employment_bpjs_bpu },
+                    { label: 'Asuransi (Provider)', value: onboardingData?.employment_insurance_provider },
+                    { label: 'Nomor Polis', value: onboardingData?.employment_insurance_no },
+                    { label: 'Lembur (Nominal)', value: onboardingData?.employment_overtime_nominal, full: true },
                   ].map((field, i) => (field.value != null && field.value !== '') ? (
                     <div key={i} className={(field as { full?: boolean }).full ? 'md:col-span-2' : ''}>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
@@ -594,7 +684,7 @@ function OverviewTab({
           </Card>
         </div>
 
-        {isOnboardingRelevant && (
+        {isOnboardingRelevant && !candidate.ojt_option && (
           <div className="space-y-8">
             {/* Onboarding Control */}
             <Card className="border-brand/20 bg-brand-lighter/20">
@@ -690,6 +780,27 @@ function OverviewTab({
   );
 }
 
+function buildFullKtpAddress(data: Record<string, string>): string {
+  const parts: string[] = [];
+  if (data.ktp_rt_rw?.trim()) parts.push(`RT/RW ${data.ktp_rt_rw.trim()}`);
+  if (data.address?.trim()) parts.push(data.address.trim());
+  if (data.ktp_sub_district?.trim()) parts.push(data.ktp_sub_district.trim());
+  if (data.ktp_district?.trim()) parts.push(data.ktp_district.trim());
+  if (data.ktp_province?.trim()) parts.push(data.ktp_province.trim());
+  return parts.join(', ');
+}
+
+function buildFullKtpAddressFromForm(d: api.OnboardingFormData | null): string {
+  if (!d) return '';
+  const parts: string[] = [];
+  if (d.ktp_rt_rw?.trim()) parts.push(`RT/RW ${d.ktp_rt_rw.trim()}`);
+  if (d.address?.trim()) parts.push(d.address.trim());
+  if (d.ktp_sub_district?.trim()) parts.push(d.ktp_sub_district.trim());
+  if (d.ktp_district?.trim()) parts.push(d.ktp_district.trim());
+  if (d.ktp_province?.trim()) parts.push(d.ktp_province.trim());
+  return parts.length > 0 ? parts.join(', ') : (d.address ?? '');
+}
+
 // Onboarding Tab Component
 function OnboardingTab({
   candidateId,
@@ -737,13 +848,20 @@ function OnboardingTab({
             onClick={() => {
               setOnboardingEditForm({
                 id_number: onboardingData.id_number ?? '',
+                ktp_rt_rw: onboardingData.ktp_rt_rw ?? '',
+                ktp_province: onboardingData.ktp_province ?? '',
+                ktp_district: onboardingData.ktp_district ?? '',
+                ktp_sub_district: onboardingData.ktp_sub_district ?? '',
                 address: onboardingData.address ?? '',
                 domicile_address: onboardingData.domicile_address ?? '',
+                domicile_same_as_ktp: onboardingData.domicile_same_as_ktp ? '1' : '0',
                 place_of_birth: onboardingData.place_of_birth ?? '',
                 date_of_birth: onboardingData.date_of_birth ?? '',
                 gender: onboardingData.gender ?? 'male',
                 religion: onboardingData.religion ?? '',
-                marital_status: onboardingData.marital_status ?? 'single',
+                marital_status: (onboardingData.marital_status === 'menikah' ? 'married' : onboardingData.marital_status) ?? 'single',
+                phone_no: onboardingData.phone_no ?? '',
+                child_number: onboardingData.child_number != null ? String(onboardingData.child_number) : '',
                 bank_name: onboardingData.bank_name ?? '',
                 bank_account_number: onboardingData.bank_account_number ?? '',
                 bank_account_holder: onboardingData.bank_account_holder ?? '',
@@ -767,7 +885,31 @@ function OnboardingTab({
               if (!candidateId) return;
               setOnboardingSaveLoading(true);
               try {
-                const updated = await api.updateOnboardingFormByCandidate(candidateId, onboardingEditForm as api.OnboardingFormDataEditable);
+                const payload: api.OnboardingFormDataEditable = {
+                  id_number: onboardingEditForm.id_number || undefined,
+                  ktp_rt_rw: onboardingEditForm.ktp_rt_rw || undefined,
+                  ktp_province: onboardingEditForm.ktp_province || undefined,
+                  ktp_district: onboardingEditForm.ktp_district || undefined,
+                  ktp_sub_district: onboardingEditForm.ktp_sub_district || undefined,
+                  address: onboardingEditForm.address || undefined,
+                  domicile_address: onboardingEditForm.domicile_address || undefined,
+                  domicile_same_as_ktp: onboardingEditForm.domicile_same_as_ktp === '1',
+                  place_of_birth: onboardingEditForm.place_of_birth || undefined,
+                  date_of_birth: onboardingEditForm.date_of_birth || undefined,
+                  gender: onboardingEditForm.gender || undefined,
+                  religion: onboardingEditForm.religion || undefined,
+                  marital_status: onboardingEditForm.marital_status || undefined,
+                  phone_no: onboardingEditForm.phone_no || undefined,
+                  child_number: onboardingEditForm.child_number !== '' ? (parseInt(onboardingEditForm.child_number, 10) || undefined) : undefined,
+                  bank_name: onboardingEditForm.bank_name || undefined,
+                  bank_account_number: onboardingEditForm.bank_account_number || undefined,
+                  bank_account_holder: onboardingEditForm.bank_account_holder || undefined,
+                  npwp_number: onboardingEditForm.npwp_number || undefined,
+                  emergency_contact_name: onboardingEditForm.emergency_contact_name || undefined,
+                  emergency_contact_relationship: onboardingEditForm.emergency_contact_relationship || undefined,
+                  emergency_contact_phone: onboardingEditForm.emergency_contact_phone || undefined,
+                };
+                const updated = await api.updateOnboardingFormByCandidate(candidateId, payload);
                 setOnboardingData(updated);
                 setEditingOnboarding(false);
                 toast.success('Onboarding data updated');
@@ -781,6 +923,7 @@ function OnboardingTab({
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="ID Number (KTP)" name="id_number" value={onboardingEditForm.id_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, id_number: e.target.value }))} placeholder="16-digit ID number" />
+              <Input label="Phone Number" name="phone_no" value={onboardingEditForm.phone_no ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, phone_no: e.target.value }))} placeholder="+62..." />
               <Input label="Place of Birth" name="place_of_birth" value={onboardingEditForm.place_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, place_of_birth: e.target.value }))} placeholder="City" />
               <Input label="Date of Birth" name="date_of_birth" type="date" value={onboardingEditForm.date_of_birth ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, date_of_birth: e.target.value }))} />
               <Select label="Gender" name="gender" value={onboardingEditForm.gender ?? 'male'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, gender: e.target.value }))}>
@@ -789,16 +932,58 @@ function OnboardingTab({
               </Select>
               <Input label="Religion" name="religion" value={onboardingEditForm.religion ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, religion: e.target.value }))} placeholder="e.g. Islam, Christian" />
               <Select label="Marital Status" name="marital_status" value={onboardingEditForm.marital_status ?? 'single'} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setOnboardingEditForm((p) => ({ ...p, marital_status: e.target.value }))}>
-                <option value="single">Single</option>
-                <option value="married">Married</option>
-                <option value="divorced">Divorced</option>
+                <option value="single">Lajang</option>
+                <option value="married">Menikah</option>
+                <option value="divorced">Cerai</option>
               </Select>
+              {(onboardingEditForm.marital_status === 'married' || onboardingEditForm.marital_status === 'menikah') && (
+                <Input label="Jumlah Anak" name="child_number" type="number" min="0" value={onboardingEditForm.child_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, child_number: e.target.value }))} placeholder="0" />
+              )}
               <Input label="NPWP Number" name="npwp_number" value={onboardingEditForm.npwp_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, npwp_number: e.target.value }))} placeholder="Tax ID (optional)" />
-              <div className="md:col-span-2">
-                <Textarea label="KTP/ID Address" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, address: e.target.value }))} rows={3} placeholder="Address as on ID..." />
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input label="RT/RW" name="ktp_rt_rw" value={onboardingEditForm.ktp_rt_rw ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
+                  const next = { ...p, ktp_rt_rw: e.target.value };
+                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
+                  return next;
+                })} placeholder="01/02" />
+                <Input label="Provinsi" name="ktp_province" value={onboardingEditForm.ktp_province ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
+                  const next = { ...p, ktp_province: e.target.value };
+                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
+                  return next;
+                })} placeholder="Provinsi" />
+                <Input label="Kabupaten/Kota" name="ktp_district" value={onboardingEditForm.ktp_district ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
+                  const next = { ...p, ktp_district: e.target.value };
+                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
+                  return next;
+                })} placeholder="Kabupaten atau Kota" />
+                <Input label="Kecamatan" name="ktp_sub_district" value={onboardingEditForm.ktp_sub_district ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
+                  const next = { ...p, ktp_sub_district: e.target.value };
+                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
+                  return next;
+                })} placeholder="Kecamatan" />
               </div>
               <div className="md:col-span-2">
-                <Textarea label="Domicile Address" name="domicile_address" value={onboardingEditForm.domicile_address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, domicile_address: e.target.value }))} rows={3} placeholder="Current domicile (if different from KTP)..." />
+                <Textarea label="Alamat (Jalan, Nomor)" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => {
+                  const next = { ...p, address: e.target.value };
+                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
+                  return next;
+                })} rows={3} placeholder="Alamat lengkap sesuai KTP..." />
+              </div>
+              <div className="md:col-span-2 flex flex-col gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={onboardingEditForm.domicile_same_as_ktp === '1'}
+                    onChange={(e) => setOnboardingEditForm((p) => {
+                      const next = { ...p, domicile_same_as_ktp: e.target.checked ? '1' : '0' };
+                      if (e.target.checked) next.domicile_address = buildFullKtpAddress(p);
+                      return next;
+                    })}
+                    className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                  />
+                  <span className="text-sm font-medium text-slate-700">Alamat domisili sama dengan alamat KTP</span>
+                </label>
+                <Textarea label="Alamat Domisili" name="domicile_address" value={onboardingEditForm.domicile_address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => ({ ...p, domicile_address: e.target.value }))} rows={3} placeholder="Alamat domisili saat ini (jika berbeda dari KTP)..." disabled={onboardingEditForm.domicile_same_as_ktp === '1'} />
               </div>
               <Input label="Bank Name" name="bank_name" value={onboardingEditForm.bank_name ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_name: e.target.value }))} placeholder="e.g. BCA, Mandiri" />
               <Input label="Account Number" name="bank_account_number" value={onboardingEditForm.bank_account_number ?? ''} onChange={(e) => setOnboardingEditForm((p) => ({ ...p, bank_account_number: e.target.value }))} placeholder="0000000000" />
@@ -825,13 +1010,15 @@ function OnboardingTab({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
               {[
                 { label: 'ID Number', value: onboardingData.id_number },
+                { label: 'Phone Number', value: onboardingData.phone_no },
                 { label: 'Place of Birth', value: onboardingData.place_of_birth },
                 { label: 'Date of Birth', value: onboardingData.date_of_birth },
                 { label: 'Gender', value: formatGender(onboardingData.gender) },
                 { label: 'Religion', value: onboardingData.religion },
                 { label: 'Marital Status', value: onboardingData.marital_status },
-                { label: 'KTP/ID Address', value: onboardingData.address, full: true },
-                { label: 'Domicile Address', value: onboardingData.domicile_address, full: true },
+                { label: 'Jumlah Anak', value: (onboardingData.marital_status === 'married' || onboardingData.marital_status === 'menikah') && onboardingData.child_number != null ? String(onboardingData.child_number) : null },
+                { label: 'Alamat KTP', value: buildFullKtpAddressFromForm(onboardingData) || onboardingData.address, full: true },
+                { label: 'Alamat Domisili', value: onboardingData.domicile_same_as_ktp ? (buildFullKtpAddressFromForm(onboardingData) || onboardingData.address) : onboardingData.domicile_address, full: true },
                 { label: 'Bank Name', value: onboardingData.bank_name },
                 { label: 'Bank Account Number', value: onboardingData.bank_account_number },
                 { label: 'Bank Account Holder', value: onboardingData.bank_account_holder },

@@ -8,6 +8,8 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   variant?: 'info' | 'danger' | 'warning' | 'success';
+  /** 'default' = max-w-lg, 'xl' = max-w-6xl for wide content (e.g. tables) */
+  size?: 'default' | 'xl';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -16,7 +18,8 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   footer,
-  variant = 'info'
+  variant = 'info',
+  size = 'default'
 }) => {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -43,7 +46,7 @@ export const Modal: React.FC<ModalProps> = ({
       />
       
       {/* Modal Content */}
-      <div className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all animate-in zoom-in-95 fade-in duration-300">
+      <div className={`relative bg-white rounded-[2.5rem] shadow-2xl w-full overflow-hidden transform transition-all animate-in zoom-in-95 fade-in duration-300 ${size === 'xl' ? 'max-w-6xl' : 'max-w-lg'}`}>
         <div className="p-10">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-black text-brand-dark font-headline tracking-tight leading-none">{title}</h3>

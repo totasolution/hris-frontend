@@ -7,7 +7,7 @@ import { Select as NativeSelect } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
-import { formatDateLong } from '../utils/formatDate';
+import { formatDateLong, formatContractDateIndonesian } from '../utils/formatDate';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -161,9 +161,9 @@ export default function ContractFormPage() {
       return;
     }
     
-    // Template mode: require template when creating
-    if (creationMode === 'template' && !isEdit && !templateId) {
-      toast.error('Please select a contract template');
+    // Template mode: require employee when creating (template is auto-selected by backend from employee employment type)
+    if (creationMode === 'template' && !isEdit && !employeeId) {
+      toast.error('Please select an employee first');
       return;
     }
 
@@ -172,7 +172,8 @@ export default function ContractFormPage() {
     try {
       const body: Partial<api.Contract> = {
         employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
-        template_id: templateId ? parseInt(templateId, 10) : undefined,
+        // template_id: send when editing to preserve; omit when creating (backend auto-picks from employee employment_contract_type)
+        template_id: isEdit && templateId ? parseInt(templateId, 10) : undefined,
         contract_number: contractNumber || undefined,
         status,
         contract_signed_url: creationMode === 'template' ? (contractSignedUrl || undefined) : undefined,
@@ -191,15 +192,22 @@ export default function ContractFormPage() {
   };
 
   const handlePreviewTemplate = async () => {
-    if (!templateId) {
-      toast.error('Please select a template first');
+    // Resolve template: use templateId when editing, or first matching template for employee's employment_contract_type when creating
+    let previewTemplateId = templateId;
+    if (!previewTemplateId && selectedEmployee?.employment_contract_type) {
+      const ct = selectedEmployee.employment_contract_type as api.ContractTemplateType;
+      const matching = contractTemplates.filter((t) => t.contract_type === ct);
+      if (matching.length > 0) previewTemplateId = String(matching[0].id);
+    }
+    if (!previewTemplateId) {
+      toast.error('Select an employee with employment type (PKWT or Mitra) to preview');
       return;
     }
     try {
-      // Get sample values for preview
+      // Get sample values for preview (must match backend placeholders for PKWT)
       const sampleValues: Record<string, string> = {
         contract_number: contractNumber || 'PKWT-2026-XXX',
-        contract_date: formatDateLong(new Date()),
+        contract_date: formatContractDateIndonesian(new Date()),
         company_name: 'PT Your Company',
         company_address: 'Company Address',
         company_representative: 'HR Director',
@@ -207,14 +215,16 @@ export default function ContractFormPage() {
         full_name: '[Candidate Name]',
         email: 'email@example.com',
         phone: '08123456789',
+        nip: '[NIP]',
         id_number: '[ID Number]',
-        address: '[Address]',
+        address: '[Alamat KTP]',
+        address_domisili: '[Alamat Domisili]',
         place_of_birth: '[Place of Birth]',
         date_of_birth: '[Date of Birth]',
-        gender: 'Laki-laki', // or Perempuan
+        gender: 'Laki-laki',
         religion: '[Religion]',
         marital_status: '[Marital Status]',
-        bank_name: '[Bank Name]',
+        bank_name: 'BANK BRI',
         bank_account_number: '[Account Number]',
         bank_account_holder: '[Account Holder]',
         npwp_number: '[NPWP]',
@@ -222,10 +232,16 @@ export default function ContractFormPage() {
         start_date: '[Start Date]',
         end_date: '[End Date]',
         salary: '[Salary]',
+        tunjangan_transportasi: '[Transport]',
+        tunjangan_pulsa: '[Pulsa]',
+        cutoff_start: '1',
+        cutoff_end: '25',
+        pay_date: '27',
+        service_name: '[Nama Jasa]',
         work_location: '[Work Location]',
         other_terms: '',
       };
-      const html = await api.previewContractTemplate(parseInt(templateId, 10), sampleValues);
+      const html = await api.previewContractTemplate(parseInt(previewTemplateId, 10), sampleValues);
       setPreviewHtml(html);
       setShowPreview(true);
     } catch (err) {
@@ -323,31 +339,22 @@ export default function ContractFormPage() {
             
             {creationMode === 'template' && (
               <FormGroup>
-                <Label>Contract Template <span className="text-red-500">*</span></Label>
-                <div className="flex gap-2">
-                  <NativeSelect
-                    value={templateId}
-                    onChange={(e) => setTemplateId(e.target.value)}
-                    className="flex-1"
-                    required={creationMode === 'template' && !isEdit}
-                  >
-                    <option value="">— Select Template —</option>
-                    {contractTemplates.map((t) => (
-                      <option key={t.id} value={String(t.id)}>
-                        {t.name} ({t.contract_type.toUpperCase()})
-                      </option>
-                    ))}
-                  </NativeSelect>
-                  {templateId && (
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-600">
+                      Template is auto-selected from the employee&apos;s employment type (PKWT or Mitra/Partnership).
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Select an employee above. Manage templates in{' '}
+                      <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
+                    </p>
+                  </div>
+                  {(templateId || (selectedEmployee && (selectedEmployee.employment_contract_type === 'pkwt' || selectedEmployee.employment_contract_type === 'partnership'))) && (
                     <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
                       Preview
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Select a template to use for this contract. You can manage templates in{' '}
-                  <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
-                </p>
               </FormGroup>
             )}
             
@@ -462,7 +469,7 @@ export default function ContractFormPage() {
                   submitting ||
                   uploading ||
                   (creationMode === 'manual' && !uploadFile && !isEdit) ||
-                  (creationMode === 'template' && !isEdit && !templateId)
+                  (creationMode === 'template' && !isEdit && !employeeId)
                 }
               >
                 {uploading ? 'Uploading...' : submitting ? 'Saving...' : isEdit ? 'Update Contract' : creationMode === 'manual' ? 'Upload Contract' : 'Create Contract'}

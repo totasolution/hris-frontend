@@ -645,25 +645,30 @@ export type RecruitmentStatistics = {
   by_status: Record<string, number>;
   by_client: { client_id?: number; client_name: string; count: number }[];
   by_pic: { pic_id?: number; pic_name: string; count: number }[];
+  by_pic_stages: { pic_id?: number; pic_name: string; screening: number; rejected: number; ojt: number; contract_requested: number }[];
   totals: {
     all: number;
     active: number;
     hired: number;
     rejected: number;
-    new_this_month: number;
-    hired_this_month: number;
+    new_this_period: number;
+    hired_this_period: number;
   };
 };
 
 export async function getRecruitmentStatistics(params?: {
   client_id?: number;
+  period?: 'week' | 'month';
   year?: number;
   month?: number;
+  week?: number;
 }): Promise<RecruitmentStatistics> {
   const q = new URLSearchParams();
   if (params?.client_id) q.set('client_id', String(params.client_id));
+  if (params?.period) q.set('period', params.period);
   if (params?.year) q.set('year', String(params.year));
   if (params?.month) q.set('month', String(params.month));
+  if (params?.week) q.set('week', String(params.week));
   const url = q.toString() ? `${API_BASE}/recruitment/statistics?${q}` : `${API_BASE}/recruitment/statistics`;
   const res = await authFetch(url);
   const data = await res.json();
@@ -741,13 +746,24 @@ export type OnboardingFormData = {
 
   // Personal Info
   id_number?: string;
-  address?: string;           // KTP/ID address
-  domicile_address?: string;  // Domicile address (alamat domisili)
+  ktp_rt_rw?: string;
+  ktp_province?: string;
+  ktp_district?: string;
+  ktp_sub_district?: string;
+  address?: string;               // KTP street/detail address
+  domicile_rt_rw?: string;
+  domicile_province?: string;
+  domicile_district?: string;
+  domicile_sub_district?: string;
+  domicile_address?: string;      // Domicile street/detail address
+  domicile_same_as_ktp?: boolean;
   place_of_birth?: string;
   date_of_birth?: string;
   gender?: string;
   religion?: string;
   marital_status?: string;
+  phone_no?: string;
+  child_number?: number;
 
   // Financial Info
   bank_name?: string;
@@ -764,6 +780,16 @@ export type OnboardingFormData = {
   employment_start_date?: string;
   employment_duration_months?: number;
   employment_salary?: string;
+  employment_positional_allowance?: string;
+  employment_transport_allowance?: string;
+  employment_comm_allowance?: string;
+  employment_misc_allowance?: string;
+  employment_bpjs_kes?: string;
+  employment_bpjs_tku?: string;
+  employment_bpjs_bpu?: string;
+  employment_insurance_provider?: string;
+  employment_insurance_no?: string;
+  employment_overtime_nominal?: string;
 
   submitted_at?: string;
   data_reviewed_at?: string;
@@ -808,6 +834,34 @@ export async function createOnboardingLink(candidateId: number): Promise<Onboard
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create link');
   return data;
+}
+
+// Regions (public - no auth, used by onboarding form)
+export type RegionItem = { id: string; name: string };
+export async function getRegionsProvinces(search?: string): Promise<RegionItem[]> {
+  const q = new URLSearchParams();
+  if (search?.trim()) q.set('search', search.trim());
+  const url = q.toString() ? `${API_BASE}/public/regions/provinces?${q}` : `${API_BASE}/public/regions/provinces`;
+  const res = await fetch(url, { credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch provinces');
+  return Array.isArray(data?.data) ? data.data : [];
+}
+export async function getRegionsDistricts(provinceId: string, search?: string): Promise<RegionItem[]> {
+  const q = new URLSearchParams({ province_id: provinceId });
+  if (search?.trim()) q.set('search', search.trim());
+  const res = await fetch(`${API_BASE}/public/regions/districts?${q}`, { credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch districts');
+  return Array.isArray(data?.data) ? data.data : [];
+}
+export async function getRegionsSubDistricts(districtId: string, search?: string): Promise<RegionItem[]> {
+  const q = new URLSearchParams({ district_id: districtId });
+  if (search?.trim()) q.set('search', search.trim());
+  const res = await fetch(`${API_BASE}/public/regions/sub-districts?${q}`, { credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch sub-districts');
+  return Array.isArray(data?.data) ? data.data : [];
 }
 
 export async function getOnboardingByToken(token: string): Promise<{ link: OnboardingLink; candidate: Candidate }> {
@@ -872,11 +926,16 @@ export type UploadDocumentResponse = {
   ocr_confidence?: number;
 };
 
+const ONBOARDING_MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
+
 export async function uploadOnboardingDocument(token: string, file: File, type: 'ktp' | 'kk' | 'skck' = 'ktp'): Promise<UploadDocumentResponse> {
+  if (file.size > ONBOARDING_MAX_FILE_BYTES) {
+    throw new Error(`Ukuran file maksimal 5MB. File Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+  }
   const formData = new FormData();
   formData.append('file', file);
   formData.append('type', type);
-  
+
   const res = await authFetch(`${API_BASE}/public/onboarding/${token}/upload-document`, {
     method: 'POST',
     credentials: 'include',
@@ -900,7 +959,8 @@ export async function getOnboardingFormByCandidate(candidateId: number): Promise
 /** Editable onboarding form fields (recruiter can review and update after candidate submission). */
 export type OnboardingFormDataEditable = Pick<
   OnboardingFormData,
-  | 'id_number' | 'address' | 'domicile_address' | 'place_of_birth' | 'date_of_birth' | 'gender' | 'religion' | 'marital_status'
+  | 'id_number' | 'ktp_rt_rw' | 'ktp_province' | 'ktp_district' | 'ktp_sub_district' | 'address' | 'domicile_address' | 'domicile_same_as_ktp'
+  | 'place_of_birth' | 'date_of_birth' | 'gender' | 'religion' | 'marital_status' | 'phone_no' | 'child_number'
   | 'bank_name' | 'bank_account_number' | 'bank_account_holder' | 'npwp_number'
   | 'emergency_contact_name' | 'emergency_contact_relationship' | 'emergency_contact_phone'
 >;
@@ -924,6 +984,16 @@ export type EmploymentTermsInput = {
   employment_start_date?: string;
   employment_duration_months?: number;
   employment_salary?: string;
+  employment_positional_allowance?: string;
+  employment_transport_allowance?: string;
+  employment_comm_allowance?: string;
+  employment_misc_allowance?: string;
+  employment_bpjs_kes?: string;
+  employment_bpjs_tku?: string;
+  employment_bpjs_bpu?: string;
+  employment_insurance_provider?: string;
+  employment_insurance_no?: string;
+  employment_overtime_nominal?: string;
 };
 
 export async function updateEmploymentTerms(
@@ -1055,6 +1125,7 @@ export type Employee = {
   user_id?: number;
   candidate_id?: number;
   employee_type: string;
+  employment_contract_type?: 'pkwt' | 'partnership' | null; // From candidate when hired; used for contract template auto-selection
   employee_number?: string;
   department_id?: number;
   client_id?: number;
@@ -1075,6 +1146,7 @@ export type Employee = {
   place_of_birth?: string;
   gender?: string;
   marital_status?: string;
+  child_number?: number;
   religion?: string;
   // Financial & Tax
   npwp?: string;
@@ -1088,6 +1160,7 @@ export type Employee = {
   emergency_phone?: string;
   // Address
   address?: string;           // KTP address (alamat sesuai KTP)
+  rt_rw?: string;             // RT/RW e.g. 01/02
   domicile_address?: string;  // Domicile address (alamat domisili)
   village?: string;
   sub_district?: string;
@@ -1100,6 +1173,17 @@ export type Employee = {
   // BPJS (Indonesian social security)
   bpjstk_id?: string;  // BPJS Tenaga Kerja ID
   bpjsks_id?: string;  // BPJS Kesehatan ID
+  bpjs_kes?: string;   // BPJS Kesehatan (nominal)
+  bpjs_tku?: string;   // BPJS Ketenagakerjaan (nominal)
+  bpjs_bpu?: string;   // BPJS BPU (nominal)
+  // Employment allowances
+  positional_allowance?: string;  // Tunjangan Jabatan
+  transport_allowance?: string;   // Tunjangan Transportasi
+  comm_allowance?: string;       // Tunjangan Komunikasi
+  misc_allowance?: string;       // Tunjangan Lain-lain
+  insurance_provider?: string;
+  insurance_no?: string;
+  overtime_nominal?: string;
   created_at: string;
   updated_at: string;
 };
@@ -1107,12 +1191,14 @@ export type Employee = {
 export async function getEmployees(params?: {
   status?: string;
   search?: string;
+  client_id?: number;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Employee>> {
   const q = new URLSearchParams();
   if (params?.status) q.set('status', params.status);
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.client_id != null) q.set('client_id', String(params.client_id));
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/employees?${q}` : `${API_BASE}/employees`;

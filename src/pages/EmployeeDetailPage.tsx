@@ -197,6 +197,16 @@ function OverviewTab({
                 {employee.employee_type}
               </p>
             </div>
+            {employee.employment_contract_type && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                  Contract Type
+                </p>
+                <p className="text-sm font-bold text-brand-dark capitalize">
+                  {employee.employment_contract_type === 'pkwt' ? 'PKWT' : employee.employment_contract_type === 'partnership' ? 'Mitra Kerja' : employee.employment_contract_type}
+                </p>
+              </div>
+            )}
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                 Employee Number
@@ -311,7 +321,7 @@ function OverviewTab({
         </Card>
 
         {/* Personal Information */}
-        {(employee.identification_id || employee.id_expired_date || employee.birthdate || employee.place_of_birth || employee.gender || employee.religion || employee.marital_status || employee.address || employee.domicile_address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
+        {(employee.identification_id || employee.id_expired_date || employee.birthdate || employee.place_of_birth || employee.gender || employee.religion || employee.marital_status || employee.child_number != null || employee.address || employee.rt_rw || employee.domicile_address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -379,7 +389,15 @@ function OverviewTab({
                   <p className="text-sm font-bold text-brand-dark capitalize">{employee.marital_status}</p>
                 </div>
               )}
-              {(employee.address || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
+              {employee.child_number != null && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Number of Children
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.child_number}</p>
+                </div>
+              )}
+              {(employee.address || employee.rt_rw || employee.village || employee.sub_district || employee.district || employee.province || employee.zip_code) && (
                 <div className="md:col-span-2">
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                     Address (KTP)
@@ -387,6 +405,7 @@ function OverviewTab({
                   <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
                     {[
                       employee.address,
+                      employee.rt_rw && `RT/RW ${employee.rt_rw}`,
                       employee.village && `Kel. ${employee.village}`,
                       employee.sub_district && `Kec. ${employee.sub_district}`,
                       employee.district && `Kab/Kota ${employee.district}`,
@@ -411,7 +430,7 @@ function OverviewTab({
         )}
 
         {/* Financial Information */}
-        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder || employee.bpjstk_id || employee.bpjsks_id) && (
+        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder || employee.bpjstk_id || employee.bpjsks_id || employee.bpjs_kes || employee.bpjs_tku || employee.bpjs_bpu || employee.positional_allowance || employee.transport_allowance || employee.comm_allowance || employee.misc_allowance || employee.insurance_provider || employee.insurance_no || employee.overtime_nominal) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -473,6 +492,86 @@ function OverviewTab({
                     BPJS Kesehatan ID
                   </p>
                   <p className="text-sm font-bold text-brand-dark">{employee.bpjsks_id}</p>
+                </div>
+              )}
+              {employee.bpjs_kes && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    BPJS Kesehatan (Nominal)
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.bpjs_kes}</p>
+                </div>
+              )}
+              {employee.bpjs_tku && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    BPJS Ketenagakerjaan (Nominal)
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.bpjs_tku}</p>
+                </div>
+              )}
+              {employee.bpjs_bpu && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    BPJS BPU (Nominal)
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.bpjs_bpu}</p>
+                </div>
+              )}
+              {employee.positional_allowance && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Tunjangan Jabatan
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.positional_allowance}</p>
+                </div>
+              )}
+              {employee.transport_allowance && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Tunjangan Transportasi
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.transport_allowance}</p>
+                </div>
+              )}
+              {employee.comm_allowance && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Tunjangan Komunikasi
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.comm_allowance}</p>
+                </div>
+              )}
+              {employee.misc_allowance && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Tunjangan Lain-lain
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.misc_allowance}</p>
+                </div>
+              )}
+              {employee.insurance_provider && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Insurance Provider
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.insurance_provider}</p>
+                </div>
+              )}
+              {employee.insurance_no && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Insurance No.
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.insurance_no}</p>
+                </div>
+              )}
+              {employee.overtime_nominal && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                    Overtime Nominal
+                  </p>
+                  <p className="text-sm font-bold text-brand-dark">{employee.overtime_nominal}</p>
                 </div>
               )}
             </CardBody>
