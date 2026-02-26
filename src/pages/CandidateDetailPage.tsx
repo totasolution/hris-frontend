@@ -631,9 +631,9 @@ function OverviewTab({
                     <Input label="Tunjangan Transportasi" name="transport_allowance" value={employmentTermsForm.transport_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, transport_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
                     <Input label="Tunjangan Komunikasi" name="comm_allowance" value={employmentTermsForm.comm_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, comm_allowance: e.target.value }))} placeholder="e.g. Rp 100.000" />
                     <Input label="Tunjangan Lain-lain" name="misc_allowance" value={employmentTermsForm.misc_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, misc_allowance: e.target.value }))} placeholder="e.g. Rp 0" />
-                    <Input label="BPJS Kesehatan" name="bpjs_kes" value={employmentTermsForm.bpjs_kes ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_kes: e.target.value }))} placeholder="Nomor atau nilai" />
-                    <Input label="BPJS Ketenagakerjaan" name="bpjs_tku" value={employmentTermsForm.bpjs_tku ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_tku: e.target.value }))} placeholder="Nomor atau nilai" />
-                    <Input label="BPJS BPU" name="bpjs_bpu" value={employmentTermsForm.bpjs_bpu ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_bpu: e.target.value }))} placeholder="Nomor atau nilai" />
+                    <Input label="BPJS Tenaga Kerja ID" name="bpjs_tku" value={employmentTermsForm.bpjs_tku ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_tku: e.target.value }))} placeholder="ID number" />
+                    <Input label="BPJS Kesehatan ID" name="bpjs_kes" value={employmentTermsForm.bpjs_kes ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_kes: e.target.value }))} placeholder="ID number" />
+                    <Input label="BPJS BPU ID" name="bpjs_bpu" value={employmentTermsForm.bpjs_bpu ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_bpu: e.target.value }))} placeholder="ID number" />
                     <Input label="Asuransi (Provider)" name="insurance_provider" value={employmentTermsForm.insurance_provider ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_provider: e.target.value }))} placeholder="Nama provider" />
                     <Input label="Nomor Polis Asuransi" name="insurance_no" value={employmentTermsForm.insurance_no ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_no: e.target.value }))} placeholder="Nomor polis" />
                     <Input label="Lembur (Nominal)" name="overtime_nominal" value={employmentTermsForm.overtime_nominal ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, overtime_nominal: e.target.value }))} placeholder="e.g. Rp 25.000/jam" />
@@ -657,9 +657,9 @@ function OverviewTab({
                     { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance },
                     { label: 'Tunjangan Komunikasi', value: onboardingData?.employment_comm_allowance },
                     { label: 'Tunjangan Lain-lain', value: onboardingData?.employment_misc_allowance },
-                    { label: 'BPJS Kesehatan', value: onboardingData?.employment_bpjs_kes },
-                    { label: 'BPJS Ketenagakerjaan', value: onboardingData?.employment_bpjs_tku },
-                    { label: 'BPJS BPU', value: onboardingData?.employment_bpjs_bpu },
+                    { label: 'BPJS Tenaga Kerja ID', value: onboardingData?.employment_bpjs_tku },
+                    { label: 'BPJS Kesehatan ID', value: onboardingData?.employment_bpjs_kes },
+                    { label: 'BPJS BPU ID', value: onboardingData?.employment_bpjs_bpu },
                     { label: 'Asuransi (Provider)', value: onboardingData?.employment_insurance_provider },
                     { label: 'Nomor Polis', value: onboardingData?.employment_insurance_no },
                     { label: 'Lembur (Nominal)', value: onboardingData?.employment_overtime_nominal, full: true },

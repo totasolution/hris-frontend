@@ -82,8 +82,6 @@ export default function EmployeeFormPage() {
   // BPJS
   const [bpjstkId, setBpjstkId] = useState('');
   const [bpjsksId, setBpjsksId] = useState('');
-  const [bpjsKes, setBpjsKes] = useState('');
-  const [bpjsTku, setBpjsTku] = useState('');
   const [bpjsBpu, setBpjsBpu] = useState('');
   // Employment allowances
   const [positionalAllowance, setPositionalAllowance] = useState('');
@@ -160,8 +158,6 @@ export default function EmployeeFormPage() {
         setPlacementLocation(e.placement_location ?? '');
         setBpjstkId(e.bpjstk_id ?? '');
         setBpjsksId(e.bpjsks_id ?? '');
-        setBpjsKes(e.bpjs_kes ?? '');
-        setBpjsTku(e.bpjs_tku ?? '');
         setBpjsBpu(e.bpjs_bpu ?? '');
         setPositionalAllowance(e.positional_allowance ?? '');
         setTransportAllowance(e.transport_allowance ?? '');
@@ -226,8 +222,6 @@ export default function EmployeeFormPage() {
         placement_location: placementLocation.trim() || undefined,
         bpjstk_id: bpjstkId.trim() || undefined,
         bpjsks_id: bpjsksId.trim() || undefined,
-        bpjs_kes: bpjsKes.trim() || undefined,
-        bpjs_tku: bpjsTku.trim() || undefined,
         bpjs_bpu: bpjsBpu.trim() || undefined,
         positional_allowance: positionalAllowance.trim() || undefined,
         transport_allowance: transportAllowance.trim() || undefined,
@@ -556,22 +550,10 @@ export default function EmployeeFormPage() {
                 placeholder="BPJS Kesehatan number"
               />
               <Input
-                label="BPJS Kesehatan (Nominal)"
-                value={bpjsKes}
-                onChange={(e) => setBpjsKes(e.target.value)}
-                placeholder="e.g. 150000"
-              />
-              <Input
-                label="BPJS Ketenagakerjaan (Nominal)"
-                value={bpjsTku}
-                onChange={(e) => setBpjsTku(e.target.value)}
-                placeholder="e.g. 100000"
-              />
-              <Input
-                label="BPJS BPU (Nominal)"
+                label="BPJS BPU ID"
                 value={bpjsBpu}
                 onChange={(e) => setBpjsBpu(e.target.value)}
-                placeholder="e.g. 50000"
+                placeholder="BPJS BPU number"
               />
               <Input
                 label="Tunjangan Jabatan"

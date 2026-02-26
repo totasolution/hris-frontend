@@ -430,7 +430,7 @@ function OverviewTab({
         )}
 
         {/* Financial Information */}
-        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder || employee.bpjstk_id || employee.bpjsks_id || employee.bpjs_kes || employee.bpjs_tku || employee.bpjs_bpu || employee.positional_allowance || employee.transport_allowance || employee.comm_allowance || employee.misc_allowance || employee.insurance_provider || employee.insurance_no || employee.overtime_nominal) && (
+        {(employee.npwp || employee.salary || employee.bank_name || employee.bank_account || employee.bank_account_holder || employee.bpjstk_id || employee.bpjsks_id || employee.bpjs_bpu || employee.positional_allowance || employee.transport_allowance || employee.comm_allowance || employee.misc_allowance || employee.insurance_provider || employee.insurance_no || employee.overtime_nominal) && (
           <Card>
             <CardHeader>
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -494,26 +494,10 @@ function OverviewTab({
                   <p className="text-sm font-bold text-brand-dark">{employee.bpjsks_id}</p>
                 </div>
               )}
-              {employee.bpjs_kes && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    BPJS Kesehatan (Nominal)
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.bpjs_kes}</p>
-                </div>
-              )}
-              {employee.bpjs_tku && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    BPJS Ketenagakerjaan (Nominal)
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.bpjs_tku}</p>
-                </div>
-              )}
               {employee.bpjs_bpu && (
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    BPJS BPU (Nominal)
+                    BPJS BPU ID
                   </p>
                   <p className="text-sm font-bold text-brand-dark">{employee.bpjs_bpu}</p>
                 </div>

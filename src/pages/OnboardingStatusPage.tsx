@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
+import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
+import { useToast } from '../components/Toast';
 import { Pagination } from '../components/Pagination';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Client, OnboardingStatusItem } from '../services/api';
@@ -37,6 +39,13 @@ function getOnboardingUrl(token: string): string {
 
 export default function OnboardingStatusPage() {
   const { t } = useTranslation(['pages', 'common']);
+  const toast = useToast();
+
+  const copyUrl = (token: string) => {
+    const url = getOnboardingUrl(token);
+    navigator.clipboard.writeText(url);
+    toast.info(t('pages:onboardingStatus.linkCopied'));
+  };
   const [list, setList] = useState<OnboardingStatusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +142,7 @@ export default function OnboardingStatusPage() {
                 <TH>{t('pages:onboardingStatus.pic')}</TH>
                 <TH>{t('pages:onboardingStatus.createdDate')}</TH>
                 <TH>{t('pages:onboardingStatus.status')}</TH>
-                <TH>{t('pages:onboardingStatus.onboardingUrl')}</TH>
+                <TH>{t('pages:onboardingStatus.link')}</TH>
               </TR>
             </THead>
             <TBody>
@@ -172,14 +181,13 @@ export default function OnboardingStatusPage() {
                       </span>
                     </TD>
                     <TD>
-                      <a
-                        href={getOnboardingUrl(item.token)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-brand text-sm font-medium hover:underline break-all"
+                      <Button
+                        onClick={() => copyUrl(item.token)}
+                        variant="secondary"
+                        className="!px-3 !py-1.5 !text-xs"
                       >
-                        {getOnboardingUrl(item.token)}
-                      </a>
+                        {t('pages:onboardingStatus.copyUrl')}
+                      </Button>
                     </TD>
                   </TR>
                 ))

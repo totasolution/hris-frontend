@@ -1173,9 +1173,7 @@ export type Employee = {
   // BPJS (Indonesian social security)
   bpjstk_id?: string;  // BPJS Tenaga Kerja ID
   bpjsks_id?: string;  // BPJS Kesehatan ID
-  bpjs_kes?: string;   // BPJS Kesehatan (nominal)
-  bpjs_tku?: string;   // BPJS Ketenagakerjaan (nominal)
-  bpjs_bpu?: string;   // BPJS BPU (nominal)
+  bpjs_bpu?: string;   // BPJS BPU ID
   // Employment allowances
   positional_allowance?: string;  // Tunjangan Jabatan
   transport_allowance?: string;   // Tunjangan Transportasi
