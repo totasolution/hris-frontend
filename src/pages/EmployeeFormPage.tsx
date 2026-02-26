@@ -190,7 +190,7 @@ export default function EmployeeFormPage() {
         phone: phone.trim() || undefined,
         // employee_number is auto-generated on create and read-only on edit; do not send
         employee_type: employeeType,
-        employment_contract_type: employmentContractType || undefined,
+        employment_contract_type: (employmentContractType === 'pkwt' || employmentContractType === 'partnership') ? employmentContractType : undefined,
         status,
         hire_date: hireDate || undefined,
         join_date: joinDate || undefined,

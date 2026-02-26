@@ -943,30 +943,25 @@ function OnboardingTab({
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="RT/RW" name="ktp_rt_rw" value={onboardingEditForm.ktp_rt_rw ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
                   const next = { ...p, ktp_rt_rw: e.target.value };
-                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
-                  return next;
+                  return p.domicile_same_as_ktp === '1' ? { ...next, domicile_address: buildFullKtpAddress(next) } : next;
                 })} placeholder="01/02" />
                 <Input label="Provinsi" name="ktp_province" value={onboardingEditForm.ktp_province ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
                   const next = { ...p, ktp_province: e.target.value };
-                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
-                  return next;
+                  return p.domicile_same_as_ktp === '1' ? { ...next, domicile_address: buildFullKtpAddress(next) } : next;
                 })} placeholder="Provinsi" />
                 <Input label="Kabupaten/Kota" name="ktp_district" value={onboardingEditForm.ktp_district ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
                   const next = { ...p, ktp_district: e.target.value };
-                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
-                  return next;
+                  return p.domicile_same_as_ktp === '1' ? { ...next, domicile_address: buildFullKtpAddress(next) } : next;
                 })} placeholder="Kabupaten atau Kota" />
                 <Input label="Kecamatan" name="ktp_sub_district" value={onboardingEditForm.ktp_sub_district ?? ''} onChange={(e) => setOnboardingEditForm((p) => {
                   const next = { ...p, ktp_sub_district: e.target.value };
-                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
-                  return next;
+                  return p.domicile_same_as_ktp === '1' ? { ...next, domicile_address: buildFullKtpAddress(next) } : next;
                 })} placeholder="Kecamatan" />
               </div>
               <div className="md:col-span-2">
                 <Textarea label="Alamat (Jalan, Nomor)" name="address" value={onboardingEditForm.address ?? ''} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setOnboardingEditForm((p) => {
                   const next = { ...p, address: e.target.value };
-                  if (p.domicile_same_as_ktp === '1') next.domicile_address = buildFullKtpAddress(next);
-                  return next;
+                  return p.domicile_same_as_ktp === '1' ? { ...next, domicile_address: buildFullKtpAddress(next) } : next;
                 })} rows={3} placeholder="Alamat lengkap sesuai KTP..." />
               </div>
               <div className="md:col-span-2 flex flex-col gap-3">
@@ -976,8 +971,7 @@ function OnboardingTab({
                     checked={onboardingEditForm.domicile_same_as_ktp === '1'}
                     onChange={(e) => setOnboardingEditForm((p) => {
                       const next = { ...p, domicile_same_as_ktp: e.target.checked ? '1' : '0' };
-                      if (e.target.checked) next.domicile_address = buildFullKtpAddress(p);
-                      return next;
+                      return e.target.checked ? { ...next, domicile_address: buildFullKtpAddress(p) } : next;
                     })}
                     className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
                   />
