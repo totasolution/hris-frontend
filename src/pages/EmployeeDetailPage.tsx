@@ -756,6 +756,7 @@ function DocumentsTab({
   toast,
   onPaklaringUploaded,
   canDeletePaklaring,
+  onPreview,
 }: { 
   paklaringDocs: PaklaringDocument[]; 
   warnings: WarningLetter[];

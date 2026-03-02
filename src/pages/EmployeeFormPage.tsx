@@ -136,7 +136,11 @@ export default function EmployeeFormPage() {
         setCompanyEmail(e.company_email ?? '');
         setPhone(e.phone ?? '');
         setEmployeeNumber(e.employee_number ?? '');
-        setEmployeeType(e.employee_type ?? 'external');
+        setEmployeeType(
+          e.employee_type === 'internal' || e.employee_type === 'external'
+            ? e.employee_type
+            : 'external',
+        );
         setEmploymentContractType(e.employment_contract_type ?? '');
         setStatus(e.status ?? 'active');
         setHireDate(e.hire_date?.slice(0, 10) ?? '');
@@ -442,13 +446,17 @@ export default function EmployeeFormPage() {
                     <option value="resignation">Employee Resignation</option>
                     <option value="contract_end">Contract End</option>
                   </Select>
-                  <Input
-                    label="Last Working Date"
-                    type="date"
-                    value={lastWorkingDate}
-                    onChange={(e) => setLastWorkingDate(e.target.value)}
-                    helperText="After this date, employee login will be blocked."
-                  />
+                  <div>
+                    <Input
+                      label="Last Working Date"
+                      type="date"
+                      value={lastWorkingDate}
+                      onChange={(e) => setLastWorkingDate(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      After this date, employee login will be blocked.
+                    </p>
+                  </div>
                 </div>
                 <Textarea
                   label="Termination Reason"
