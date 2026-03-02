@@ -73,7 +73,8 @@ export function HRDWidgets({ permissions }: HRDWidgetsProps) {
             { label: 'Request Contract', path: '/onboarding/pending-hrd', variant: 'primary', permission: 'rc:view' },
             { label: 'Create Warning', path: '/warnings/new', variant: 'secondary', permission: 'warning:create' },
             { label: 'View Contracts', path: '/contracts', variant: 'secondary', permission: 'contract:read' },
-            { label: 'Manage Employees', path: '/employees', variant: 'secondary', permission: 'employee:read' },
+            { label: 'Internal Employees', path: '/employees/internal', variant: 'secondary', permission: 'employee_internal:read' },
+            { label: 'External Employees', path: '/employees/external', variant: 'secondary', permission: 'employee_external:read' },
           ]}
           userPermissions={permissions}
         />

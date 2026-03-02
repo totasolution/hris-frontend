@@ -95,11 +95,14 @@ export default function RolePermissionsPage() {
     </div>
   );
 
-  const byResource = permissions.reduce<Record<string, Permission[]>>((acc, p) => {
-    if (!acc[p.resource]) acc[p.resource] = [];
-    acc[p.resource].push(p);
-    return acc;
-  }, {});
+  // Group permissions by resource, excluding legacy employee resource (we now use employee_internal / employee_external).
+  const byResource = permissions
+    .filter((p) => p.resource !== 'employee')
+    .reduce<Record<string, Permission[]>>((acc, p) => {
+      if (!acc[p.resource]) acc[p.resource] = [];
+      acc[p.resource].push(p);
+      return acc;
+    }, {});
 
   const resourceDisplayName: Record<string, string> = {
     rc: 'Request Contract',

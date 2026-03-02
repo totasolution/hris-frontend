@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { Select } from '../components/Select';
 import { ConfirmModal } from '../components/Modal';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -147,6 +148,28 @@ export default function CandidateDetailPage() {
       await downloadFromUrl(url, filename);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to get download URL');
+    }
+  };
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async (docId: number) => {
+    const doc = documents.find((d) => d.id === docId);
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(doc ? `${formatDocumentType(doc.type)} - ${doc.file_name}` : `Document #${docId}`);
+    try {
+      const url = await api.getCandidateDocumentUrl(candidateId, docId);
+      setPreviewUrl(url);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load document');
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -331,6 +354,7 @@ export default function CandidateDetailPage() {
             canDelete={canDeleteCandidateDoc}
             onUpload={handleUpload}
             onDownload={handleDownload}
+            onPreview={handlePreview}
             onDelete={handleDeleteDocument}
           />
         )}
@@ -347,6 +371,14 @@ export default function CandidateDetailPage() {
         <p>Are you sure you want to request a contract for <span className="font-bold text-brand-dark">{candidate.full_name}</span>?</p>
         <p className="mt-2 text-sm">This will notify the HRD team to begin the contract generation process.</p>
       </ConfirmModal>
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }
@@ -1117,6 +1149,7 @@ function DocumentsTab({
   canDelete,
   onUpload,
   onDownload,
+  onPreview,
   onDelete,
 }: {
   candidateId: number;
@@ -1126,6 +1159,7 @@ function DocumentsTab({
   canDelete: boolean;
   onUpload: (file: File, documentType: api.CandidateDocumentType) => void;
   onDownload: (docId: number) => void;
+  onPreview: (docId: number) => void;
   onDelete: (docId: number) => void;
 }) {
   const [uploadType, setUploadType] = useState<api.CandidateDocumentType>('cv');
@@ -1268,6 +1302,15 @@ function DocumentsTab({
                   <TD className="text-sm text-slate-600">{doc.file_name}</TD>
                   <TD className="text-right">
                     <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => onPreview(doc.id)}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Preview"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </button>
                       <button
                         onClick={() => onDownload(doc.id)}
                         className="p-2 text-slate-400 hover:text-brand transition-colors"

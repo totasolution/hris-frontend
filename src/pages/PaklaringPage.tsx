@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -68,6 +69,27 @@ export default function PaklaringPage() {
       await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
     } catch {
       toast.error(t('pages:paklaring.failedToOpenDocument'));
+    }
+  };
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async (doc: PaklaringDocument) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(doc.document_number ? `Paklaring ${doc.document_number}` : `Paklaring #${doc.id}`);
+    try {
+      const url = await api.getPaklaringPresignedUrl(doc.id);
+      setPreviewUrl(url);
+    } catch {
+      toast.error(t('pages:paklaring.failedToOpenDocument'));
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -163,6 +185,16 @@ export default function PaklaringPage() {
                       <div className="flex items-center justify-end gap-0">
                         <button
                           type="button"
+                          onClick={() => handlePreview(doc)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('common:preview')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleDownload(doc)}
                           className="p-2 text-slate-400 hover:text-brand transition-colors"
                           title={t('common:download')}
@@ -199,6 +231,14 @@ export default function PaklaringPage() {
           />
         </Card>
       )}
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

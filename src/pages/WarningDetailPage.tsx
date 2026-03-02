@@ -3,6 +3,7 @@ import { Link, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,6 +23,11 @@ export default function WarningDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [acknowledging, setAcknowledging] = useState(false);
 
   const warningId = id ? parseInt(id, 10) : 0;
   const stateFrom = (location.state as { from?: string } | null)?.from;
@@ -63,6 +69,33 @@ export default function WarningDetailPage() {
     }
   };
 
+  const openPreview = async (getUrl: () => Promise<string>, title: string) => {
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(title);
+    setPreviewLoading(true);
+    try {
+      const url = await getUrl();
+      setPreviewUrl(url);
+    } catch {
+      toast.error(t('pages:warnings.downloadFailed'));
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handlePreview = () => {
+    if (!warning?.id) return;
+    openPreview(() => api.getWarningPresignedUrl(warning!.id), t('pages:warningDetail.warningLetter'));
+  };
+
+  const handlePreviewAttachment = (type: 'company_policy' | 'additional_reference') => {
+    if (!warning?.id) return;
+    const title = type === 'company_policy' ? t('pages:warningDetail.companyPolicy') : t('pages:warningDetail.additionalReference');
+    openPreview(() => api.getWarningAttachmentPresignedUrl(warning!.id, type), title);
+  };
+
   const handleRegenerate = async () => {
     if (!warning?.id) return;
     setRegenerating(true);
@@ -74,6 +107,21 @@ export default function WarningDetailPage() {
       toast.error(t('pages:warnings.regenerateFailed'));
     } finally {
       setRegenerating(false);
+    }
+  };
+
+  const handleAcknowledge = async () => {
+    if (!warning?.id) return;
+    setAcknowledging(true);
+    try {
+      const updated = await api.acknowledgeWarning(warning.id);
+      setWarning(updated);
+      toast.success(t('pages:warningDetail.acknowledgeSuccess', 'Warning letter has been signed'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('pages:warningDetail.acknowledgeFailed', 'Failed to acknowledge warning');
+      toast.error(msg);
+    } finally {
+      setAcknowledging(false);
     }
   };
 
@@ -113,6 +161,12 @@ export default function WarningDetailPage() {
       ? 'bg-red-100 text-red-700'
       : 'bg-amber-100 text-amber-700';
 
+  const isSigned = warning.status === 'signed';
+  // Treat viewers without generate_document permission as the issued employee,
+  // and allow them to acknowledge while the warning is still in draft.
+  const isEmployeeView = !canGenerateDocument;
+  const canAcknowledge = isEmployeeView && !isSigned;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <PageHeader
@@ -134,7 +188,18 @@ export default function WarningDetailPage() {
 
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-bold text-slate-800">{t('pages:warningDetail.details')}</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-slate-800">{t('pages:warningDetail.details')}</h2>
+            {warning.status && (
+              <span
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
+                  isSigned ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {isSigned ? t('pages:warningDetail.statusSigned', 'Signed') : t('pages:warningDetail.statusDraft', 'Draft')}
+              </span>
+            )}
+          </div>
         </CardHeader>
         <CardBody className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -178,6 +243,22 @@ export default function WarningDetailPage() {
               </dd>
             </div>
             <div>
+              <dt className="text-sm font-medium text-slate-500">{t('pages:warningDetail.statusLabel', 'Status')}</dt>
+              <dd className="mt-1 text-slate-800">
+                {isSigned ? t('pages:warningDetail.statusSigned', 'Signed') : t('pages:warningDetail.statusDraft', 'Draft')}
+              </dd>
+            </div>
+            {warning.employee_acknowledged_at && (
+              <div>
+                <dt className="text-sm font-medium text-slate-500">
+                  {t('pages:warningDetail.acknowledgedAt', 'Acknowledged at')}
+                </dt>
+                <dd className="mt-1 text-slate-800">
+                  {formatDate(warning.employee_acknowledged_at)}
+                </dd>
+              </div>
+            )}
+            <div>
               <dt className="text-sm font-medium text-slate-500">{t('pages:warningDetail.durationMonths')}</dt>
               <dd className="mt-1 text-slate-800">
                 {warning.duration_months != null ? `${warning.duration_months} ${t('pages:warningDetail.months')}` : '—'}
@@ -208,13 +289,19 @@ export default function WarningDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   {warning.file_path ? (
                     <>
+                      <Button variant="outline" onClick={handlePreview}>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        {t('common:preview')}
+                      </Button>
                       <Button variant="outline" onClick={handleDownload}>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         {t('pages:warnings.downloadDocument')}
                       </Button>
-                      {canGenerateDocument && (
+                      {canGenerateDocument && !isSigned && (
                         <Button variant="ghost" onClick={handleRegenerate} disabled={regenerating}>
                           {regenerating ? (
                             <span className="inline-block w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -226,10 +313,15 @@ export default function WarningDetailPage() {
                           {t('pages:warnings.regenerateDocument')}
                         </Button>
                       )}
+                      {canGenerateDocument && isSigned && (
+                        <span className="text-xs text-slate-500">
+                          {t('pages:warningDetail.cannotRegenerateSigned', 'Document already signed and cannot be regenerated')}
+                        </span>
+                      )}
                     </>
                   ) : (
                     canGenerateDocument && (
-                      <Button variant="primary" onClick={handleRegenerate} disabled={regenerating}>
+                      <Button variant="primary" onClick={handleRegenerate} disabled={regenerating || isSigned}>
                         {regenerating ? (
                           <span className="inline-block w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                         ) : null}
@@ -242,26 +334,69 @@ export default function WarningDetailPage() {
               {warning.company_policy_file_path && (
                 <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
                   <span className="font-medium text-slate-800">{t('pages:warningDetail.companyPolicy')}</span>
-                  <Button variant="outline" onClick={() => handleDownloadAttachment('company_policy')}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    {t('pages:warnings.downloadDocument')}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" onClick={() => handlePreviewAttachment('company_policy')}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {t('common:preview')}
+                    </Button>
+                    <Button variant="outline" onClick={() => handleDownloadAttachment('company_policy')}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      {t('pages:warnings.downloadDocument')}
+                    </Button>
+                  </div>
                 </li>
               )}
               {warning.additional_reference_file_path && (
                 <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
                   <span className="font-medium text-slate-800">{t('pages:warningDetail.additionalReference')}</span>
-                  <Button variant="outline" onClick={() => handleDownloadAttachment('additional_reference')}>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    {t('pages:warnings.downloadDocument')}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" onClick={() => handlePreviewAttachment('additional_reference')}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      {t('common:preview')}
+                    </Button>
+                    <Button variant="outline" onClick={() => handleDownloadAttachment('additional_reference')}>
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      {t('pages:warnings.downloadDocument')}
+                    </Button>
+                  </div>
                 </li>
               )}
             </ul>
+            {canAcknowledge && warning.file_path && (
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-100 bg-amber-50/70 p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-800">
+                    {t('pages:warningDetail.acknowledgeTitle', 'Please confirm this warning letter')}
+                  </p>
+                  <p className="text-xs text-amber-700">
+                    {t(
+                      'pages:warningDetail.acknowledgeDescription',
+                      'By confirming, you acknowledge that you have read and understood the content of this warning letter. The document will be marked as signed and can no longer be changed.'
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="primary"
+                    onClick={handleAcknowledge}
+                    disabled={acknowledging}
+                  >
+                    {acknowledging && (
+                      <span className="inline-block w-4 h-4 mr-2 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    )}
+                    {t('pages:warningDetail.acknowledgeButton', 'I have read & confirm')}
+                  </Button>
+                </div>
+              </div>
+            )}
             {!warning.file_path && !warning.company_policy_file_path && !warning.additional_reference_file_path && (
               <p className="mt-2 text-sm text-slate-500">
                 {t('pages:warningDetail.documentNotGenerated')}
@@ -270,6 +405,14 @@ export default function WarningDetailPage() {
           </div>
         </CardBody>
       </Card>
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

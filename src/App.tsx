@@ -4,6 +4,7 @@ import { ToastProvider } from './components/Toast';
 import AppLayout from './components/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import ClientFormPage from './pages/ClientFormPage';
+import ClientDetailPage from './pages/ClientDetailPage';
 import ClientsPage from './pages/ClientsPage';
 import DepartmentFormPage from './pages/DepartmentFormPage';
 import DepartmentsPage from './pages/DepartmentsPage';
@@ -23,7 +24,8 @@ import ContractSigningPage from './pages/ContractSigningPage';
 import PendingHRDPage from './pages/PendingHRDPage';
 import PendingHRDContractCreatePage from './pages/PendingHRDContractCreatePage';
 import OnboardingStatusPage from './pages/OnboardingStatusPage';
-import EmployeesPage from './pages/EmployeesPage';
+import InternalEmployeesPage from './pages/InternalEmployeesPage';
+import ExternalEmployeesPage from './pages/ExternalEmployeesPage';
 import EmployeeFormPage from './pages/EmployeeFormPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import ContractsPage from './pages/ContractsPage';
@@ -34,6 +36,7 @@ import WarningsPage from './pages/WarningsPage';
 import WarningDetailPage from './pages/WarningDetailPage';
 import WarningFormPage from './pages/WarningFormPage';
 import MySpaceLayout, { MyProfilePage, MyContractsPage, MyDocumentsPage, MyPayslipsPage, MyTicketsOutlet } from './pages/MySpacePage';
+import MyWarningsPage from './pages/MyWarningsPage';
 import TicketsPage from './pages/TicketsPage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import NewTicketPage from './pages/NewTicketPage';
@@ -88,6 +91,7 @@ function AppRoutes() {
         <Route path="departments/:id/edit" element={<DepartmentFormPage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="clients/new" element={<ClientFormPage />} />
+        <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="clients/:id/edit" element={<ClientFormPage />} />
         <Route path="roles" element={<RolesPage />} />
         <Route path="roles/new" element={<RoleFormPage />} />
@@ -105,8 +109,11 @@ function AppRoutes() {
         <Route path="onboarding/status" element={<OnboardingStatusPage />} />
         <Route path="onboarding/pending-hrd" element={<PendingHRDPage />} />
         <Route path="onboarding/pending-hrd/create-contract" element={<PendingHRDContractCreatePage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="employees/new" element={<EmployeeFormPage />} />
+        <Route path="employees" element={<Navigate to="/employees/internal" replace />} />
+        <Route path="employees/internal" element={<InternalEmployeesPage />} />
+        <Route path="employees/external" element={<ExternalEmployeesPage />} />
+        <Route path="employees/internal/new" element={<EmployeeFormPage />} />
+        <Route path="employees/external/new" element={<EmployeeFormPage />} />
         <Route path="employees/:id" element={<EmployeeDetailPage />} />
         <Route path="employees/:id/edit" element={<EmployeeFormPage />} />
         <Route path="contracts" element={<ContractsPage />} />
@@ -139,6 +146,7 @@ function AppRoutes() {
           <Route path="profile" element={<MyProfilePage />} />
           <Route path="contracts" element={<MyContractsPage />} />
           <Route path="documents" element={<MyDocumentsPage />} />
+          <Route path="warnings" element={<MyWarningsPage />} />
           <Route path="payslips" element={<MyPayslipsPage />} />
           <Route path="tickets" element={<MyTicketsOutlet />} />
         </Route>

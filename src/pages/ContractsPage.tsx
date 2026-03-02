@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
@@ -23,6 +24,10 @@ export default function ContractsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const toast = useToast();
 
   const load = async () => {
@@ -54,6 +59,22 @@ export default function ContractsPage() {
       await api.downloadContractDocument(c.id);
     } catch (e) {
       toast.error(t('pages:contracts.downloadFailed'));
+    }
+  };
+
+  const handlePreview = async (c: Contract) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(c.contract_number || `Contract #${c.id}`);
+    try {
+      const url = await api.getContractPresignedUrl(c.id);
+      setPreviewUrl(url);
+    } catch (e) {
+      toast.error(t('pages:contracts.downloadFailed'));
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -161,15 +182,26 @@ export default function ContractsPage() {
                           </svg>
                         </Link>
                         {c.file_path && (
-                          <button
-                            onClick={() => handleDownload(c)}
-                            className="p-2 text-slate-400 hover:text-brand transition-colors"
-                            title={t('pages:contracts.downloadDocument')}
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handlePreview(c)}
+                              className="p-2 text-slate-400 hover:text-brand transition-colors"
+                              title={t('common:preview')}
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDownload(c)}
+                              className="p-2 text-slate-400 hover:text-brand transition-colors"
+                              title={t('pages:contracts.downloadDocument')}
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
+                          </>
                         )}
                       </div>
                     </TD>
@@ -187,6 +219,14 @@ export default function ContractsPage() {
           />
         </Card>
       )}
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

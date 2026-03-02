@@ -43,10 +43,11 @@ const clientSelectStyles = {
   }),
 };
 
-export default function EmployeesPage() {
+export default function ExternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
-  const canEditEmployee = permissions.includes('employee:update');
+  const canEdit = permissions.includes('employee_external:update');
+  const canCreate = permissions.includes('employee_external:create');
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function EmployeesPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     api.getClients().then(setClients).catch(() => {});
@@ -68,6 +70,7 @@ export default function EmployeesPage() {
     setError(null);
     try {
       const res = await api.getEmployees({
+        employee_type: 'external',
         status: statusFilter || undefined,
         search: search.trim() || undefined,
         client_id: clientId ? Number(clientId) : undefined,
@@ -88,15 +91,46 @@ export default function EmployeesPage() {
     load();
   }, [statusFilter, clientId, search, page]);
 
+  const handleDownload = async () => {
+    if (!clientId) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      await api.downloadEmployees(Number(clientId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('employees.downloadEmployeesError'));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <PageHeader
-        title={t('employees.title')}
-        subtitle={t('employees.subtitle')}
+        title={t('employees.externalTitle')}
+        subtitle={t('employees.externalSubtitle')}
         actions={
-          permissions.includes('employee:create') ? (
-            <ButtonLink to="/employees/new">{t('employees.addEmployee')}</ButtonLink>
-          ) : undefined
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={!clientId || downloading}
+              title={!clientId ? t('employees.downloadEmployeesHint') : t('employees.downloadEmployees')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {downloading ? (
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-500" />
+              ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              {t('employees.downloadEmployees')}
+            </button>
+            {canCreate && (
+              <ButtonLink to="/employees/external/new">{t('employees.addEmployee')}</ButtonLink>
+            )}
+          </div>
         }
       />
 
@@ -206,7 +240,7 @@ export default function EmployeesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </Link>
-                        {canEditEmployee && (
+                        {canEdit && (
                           <Link
                             to={`/employees/${e.id}/edit`}
                             className="p-2 text-slate-400 hover:text-blue-500 transition-colors inline-block"

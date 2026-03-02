@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -27,6 +28,27 @@ export default function MyDocumentsPage() {
       await downloadFromUrl(url, `document-${id}.pdf`);
     } catch {
       toast.error(t('pages:myDocuments.downloadFailed'));
+    }
+  };
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const preview = async (id: number) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(t('pages:myDocuments.employmentReference'));
+    try {
+      const url = await api.getPaklaringPresignedUrl(id);
+      setPreviewUrl(url);
+    } catch {
+      toast.error(t('pages:myDocuments.downloadFailed'));
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -71,15 +93,26 @@ export default function MyDocumentsPage() {
                     <TD className="font-bold text-[#0f172a]">{t('pages:myDocuments.employmentReference')}</TD>
                     <TD>{d.generated_at ? new Date(d.generated_at).toLocaleString() : '—'}</TD>
                     <TD className="text-right">
-                      <button
-                        onClick={() => download(d.id)}
-                        className="p-2 text-slate-400 hover:text-brand transition-colors inline-block"
-                        title={t('pages:myDocuments.downloadPdf')}
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
+                      <div className="flex justify-end gap-0">
+                        <button
+                          onClick={() => preview(d.id)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('common:preview')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => download(d.id)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('pages:myDocuments.downloadPdf')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                      </div>
                     </TD>
                   </TR>
                 ))
@@ -88,6 +121,14 @@ export default function MyDocumentsPage() {
           </Table>
         </Card>
       )}
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

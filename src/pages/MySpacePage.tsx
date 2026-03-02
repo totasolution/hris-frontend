@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Outlet, useOutletContext } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -711,6 +712,27 @@ function MySpacePayslipsTab({
   payslips: Payslip[];
   toast: ReturnType<typeof useToast>;
 }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const handlePreview = async (p: Payslip) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(p.period_label ? `Payslip ${p.period_label}` : `Payslip #${p.id}`);
+    try {
+      const url = await api.getPayslipPresignedUrl(p.id);
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to open payslip');
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleDownload = async (p: Payslip) => {
     try {
       await api.downloadPayslipDocument(p.id, `payslip-${p.period_label || p.id}.pdf`);
@@ -718,6 +740,7 @@ function MySpacePayslipsTab({
       toast.error('Failed to open payslip');
     }
   };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -748,22 +771,41 @@ function MySpacePayslipsTab({
                   {formatDate(p.created_at)}
                 </TD>
                 <TD className="text-right">
-                  <button
-                    type="button"
-                    onClick={() => handleDownload(p)}
-                    className="p-2 text-slate-400 hover:text-brand transition-colors"
-                    title="Download"
-                  >
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
+                  <div className="flex justify-end gap-0">
+                    <button
+                      type="button"
+                      onClick={() => handlePreview(p)}
+                      className="p-2 text-slate-400 hover:text-brand transition-colors"
+                      title="Preview"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(p)}
+                      className="p-2 text-slate-400 hover:text-brand transition-colors"
+                      title="Download"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </button>
+                  </div>
                 </TD>
               </TR>
             ))
           )}
         </TBody>
       </Table>
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </Card>
   );
 }
@@ -784,6 +826,26 @@ function MySpaceDocumentsTab({
   onDocumentsChange: () => void;
 }) {
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
+
+  const openPreview = async (getUrl: () => Promise<string>, title: string) => {
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(title);
+    setPreviewLoading(true);
+    try {
+      const url = await getUrl();
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to load document');
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const handleDelete = async (docId: number) => {
     if (!confirm('Are you sure you want to delete this document?')) return;
@@ -837,10 +899,20 @@ function MySpaceDocumentsTab({
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
+                        onClick={() => openPreview(() => api.getEmployeeDocumentUrl(employeeId, doc.id), doc.file_name || `Document ${doc.type}`)}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Preview"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
                         onClick={async () => {
                           try {
                             const url = await api.getEmployeeDocumentUrl(employeeId, doc.id);
-                            await downloadFromUrl(url, `document-${doc.id}.pdf`);
+                            await downloadFromUrl(url, doc.file_name || `document-${doc.id}.pdf`);
                           } catch {
                             toast.error('Failed to open document');
                           }
@@ -899,23 +971,35 @@ function MySpaceDocumentsTab({
                     {formatDateLong(doc.generated_at)}
                   </TD>
                   <TD className="text-right">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const url = await api.getPaklaringPresignedUrl(doc.id);
-                          await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
-                        } catch {
-                          toast.error('Failed to open document');
-                        }
-                      }}
-                      className="p-2 text-slate-400 hover:text-brand transition-colors"
-                      title="Download paklaring"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
+                    <div className="flex justify-end gap-0">
+                      <button
+                        type="button"
+                        onClick={() => openPreview(() => api.getPaklaringPresignedUrl(doc.id), doc.document_number ? `Paklaring ${doc.document_number}` : `Paklaring #${doc.id}`)}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Preview"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const url = await api.getPaklaringPresignedUrl(doc.id);
+                            await downloadFromUrl(url, `paklaring-${doc.id}.pdf`);
+                          } catch {
+                            toast.error('Failed to open document');
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Download paklaring"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                    </div>
                   </TD>
                 </TR>
               ))
@@ -987,6 +1071,14 @@ function MySpaceDocumentsTab({
           </TBody>
         </Table>
       </Card>
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

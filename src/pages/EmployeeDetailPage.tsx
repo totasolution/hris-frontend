@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardBody, CardHeader } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -26,9 +27,34 @@ export default function EmployeeDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const toast = useToast();
+
+  const openPreview = async (getUrl: () => Promise<string>, title: string) => {
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(title);
+    setPreviewLoading(true);
+    try {
+      const url = await getUrl();
+      setPreviewUrl(url);
+    } catch {
+      toast.error('Failed to load document');
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
   const { permissions = [] } = useAuth();
-  const canEditEmployee = permissions.includes('employee:update');
+  const canEditEmployee = (emp: Employee | null) => {
+    if (!emp) return false;
+    if (emp.employee_type === 'internal' && permissions.includes('employee_internal:update')) return true;
+    if (emp.employee_type === 'external' && permissions.includes('employee_external:update')) return true;
+    return false;
+  };
   const canDeletePaklaring = permissions.includes('paklaring:delete');
 
   const employeeId = id ? parseInt(id, 10) : 0;
@@ -86,7 +112,7 @@ export default function EmployeeDetailPage() {
         title={employee.full_name}
         subtitle={employee.email}
         actions={
-          canEditEmployee ? (
+          canEditEmployee(employee) ? (
             <ButtonLink to={`/employees/${employee.id}/edit?return=${encodeURIComponent(`/employees/${employee.id}`)}`} variant="secondary">
               Edit Profile
             </ButtonLink>
@@ -131,7 +157,7 @@ export default function EmployeeDetailPage() {
         )}
 
         {activeTab === 'contracts' && (
-          <ContractsTab contracts={contracts} employeeId={employeeId} toast={toast} returnTo={`/employees/${employeeId}`} />
+          <ContractsTab contracts={contracts} employeeId={employeeId} toast={toast} returnTo={`/employees/${employeeId}`} onPreview={openPreview} />
         )}
 
         {activeTab === 'documents' && (
@@ -143,6 +169,7 @@ export default function EmployeeDetailPage() {
             employeeId={employeeId}
             toast={toast}
             onPaklaringUploaded={load}
+            onPreview={openPreview}
           />
         )}
 
@@ -150,6 +177,14 @@ export default function EmployeeDetailPage() {
           <HistoryTab employee={employee} contracts={contracts} warnings={warnings} />
         )}
       </div>
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }
@@ -285,20 +320,22 @@ function OverviewTab({
                 </p>
               </div>
             )}
-            {employee.termination_date && (
+            {(employee.last_working_date || employee.termination_type) && (
               <>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Termination Date
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">
-                    {formatDate(employee.termination_date)}
-                  </p>
-                </div>
+                {employee.last_working_date && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                      Last Working Date
+                    </p>
+                    <p className="text-sm font-bold text-brand-dark">
+                      {formatDate(employee.last_working_date)}
+                    </p>
+                  </div>
+                )}
                 {employee.termination_type && (
                   <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                      Termination Type
+                      Offboarding Type
                     </p>
                     <p className="text-sm font-bold text-brand-dark capitalize">
                       {String(employee.termination_type).replace(/_/g, ' ')}
@@ -600,11 +637,13 @@ function ContractsTab({
   employeeId,
   toast,
   returnTo,
+  onPreview,
 }: { 
   contracts: Contract[]; 
   employeeId: number;
   toast: ReturnType<typeof useToast>;
   returnTo: string;
+  onPreview: (getUrl: () => Promise<string>, title: string) => void;
 }) {
   return (
     <Card className="overflow-hidden">
@@ -665,22 +704,37 @@ function ContractsTab({
                       </svg>
                     </Link>
                     {contract.file_path && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            await api.downloadContractDocument(contract.id);
-                          } catch {
-                            toast.error('Failed to open document');
-                          }
-                        }}
-                        className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title="Download document"
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onPreview(
+                            () => api.getContractPresignedUrl(contract.id),
+                            contract.contract_number || `Contract #${contract.id}`
+                          )}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title="Preview"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await api.downloadContractDocument(contract.id);
+                            } catch {
+                              toast.error('Failed to open document');
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title="Download document"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                      </>
                     )}
                   </div>
                 </TD>
@@ -710,6 +764,7 @@ function DocumentsTab({
   toast: ReturnType<typeof useToast>;
   onPaklaringUploaded?: () => void;
   canDeletePaklaring?: boolean;
+  onPreview: (getUrl: () => Promise<string>, title: string) => void;
 }) {
   return (
     <div className="space-y-8">
@@ -749,23 +804,38 @@ function DocumentsTab({
                     {formatDate(doc.created_at)}
                   </TD>
                   <TD className="text-right">
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const url = await api.getEmployeeDocumentUrl(employeeId, doc.id);
-                          await downloadFromUrl(url, `document-${doc.id}.pdf`);
-                        } catch {
-                          toast.error('Failed to open document');
-                        }
-                      }}
-                      className="p-2 text-slate-400 hover:text-brand transition-colors"
-                      title="Download document"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </button>
+                    <div className="flex justify-end gap-0">
+                      <button
+                        type="button"
+                        onClick={() => onPreview(
+                          () => api.getEmployeeDocumentUrl(employeeId, doc.id),
+                          doc.file_name || `Document ${doc.type}`
+                        )}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Preview"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const url = await api.getEmployeeDocumentUrl(employeeId, doc.id);
+                            await downloadFromUrl(url, doc.file_name || `document-${doc.id}.pdf`);
+                          } catch {
+                            toast.error('Failed to open document');
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Download document"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                      </button>
+                    </div>
                   </TD>
                 </TR>
               ))
@@ -811,6 +881,19 @@ function DocumentsTab({
                   </TD>
                   <TD className="text-right">
                     <div className="flex items-center justify-end gap-0">
+                      <button
+                        type="button"
+                        onClick={() => onPreview(
+                          () => api.getPaklaringPresignedUrl(doc.id),
+                          doc.document_number ? `Paklaring ${doc.document_number}` : `Paklaring #${doc.id}`
+                        )}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="Preview"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </button>
                       <button
                         type="button"
                         onClick={async () => {
@@ -977,12 +1060,12 @@ function HistoryTab({
     });
   });
 
-  // Add termination
-  if (employee.termination_date) {
+  // Add termination (use last working date if available, otherwise skip)
+  if (employee.last_working_date) {
     events.push({
-      date: new Date(employee.termination_date),
+      date: new Date(employee.last_working_date),
       type: 'termination',
-      title: 'Employment Terminated',
+      title: 'Employment Ended',
       description: employee.termination_reason || `Type: ${employee.termination_type || 'N/A'}`,
     });
   }

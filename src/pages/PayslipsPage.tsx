@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '../components/Card';
+import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -31,7 +32,27 @@ export default function PayslipsPage() {
   const [employeeNameSearch, setEmployeeNameSearch] = useState('');
   const [page, setPage] = useState(1);
   const perPage = 20;
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
   const toast = useToast();
+
+  const handlePreview = async (p: Payslip) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewUrl(null);
+    setPreviewTitle(p.period_label ? `Payslip ${p.period_label}` : `Payslip #${p.id}`);
+    try {
+      const url = await api.getPayslipPresignedUrl(p.id);
+      setPreviewUrl(url);
+    } catch {
+      toast.error(t('pages:payslips.failedToOpenPayslip'));
+      setPreviewOpen(false);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -156,16 +177,28 @@ export default function PayslipsPage() {
                       {formatDate(p.created_at)}
                     </TD>
                     <TD className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(p)}
-                        className="p-2 text-slate-400 hover:text-brand transition-colors"
-                        title={t('pages:payslips.download')}
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                      </button>
+                      <div className="flex justify-end gap-0">
+                        <button
+                          type="button"
+                          onClick={() => handlePreview(p)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('common:preview')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(p)}
+                          className="p-2 text-slate-400 hover:text-brand transition-colors"
+                          title={t('pages:payslips.download')}
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                      </div>
                     </TD>
                   </TR>
                 ))
@@ -183,6 +216,14 @@ export default function PayslipsPage() {
           )}
         </Card>
       )}
+
+      <DocumentPreviewModal
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={previewTitle}
+        src={previewUrl}
+        isLoading={previewLoading}
+      />
     </div>
   );
 }

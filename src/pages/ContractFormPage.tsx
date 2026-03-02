@@ -204,6 +204,20 @@ export default function ContractFormPage() {
       return;
     }
     try {
+      // Use client payroll fields when employee has placement client
+      let cutoffStart = '1';
+      let cutoffEnd = '25';
+      let payDate = '27';
+      if (selectedEmployee?.client_id) {
+        try {
+          const client = await api.getClient(selectedEmployee.client_id);
+          if (client.payroll_cut_off_start != null) cutoffStart = String(client.payroll_cut_off_start);
+          if (client.payroll_cut_off_end != null) cutoffEnd = String(client.payroll_cut_off_end);
+          if (client.payment_date != null) payDate = String(client.payment_date);
+        } catch {
+          /* fallback to defaults */
+        }
+      }
       // Get sample values for preview (must match backend placeholders for PKWT)
       const sampleValues: Record<string, string> = {
         contract_number: contractNumber || 'PKWT-2026-XXX',
@@ -234,9 +248,9 @@ export default function ContractFormPage() {
         salary: '[Salary]',
         tunjangan_transportasi: '[Transport]',
         tunjangan_pulsa: '[Pulsa]',
-        cutoff_start: '1',
-        cutoff_end: '25',
-        pay_date: '27',
+        cutoff_start: cutoffStart,
+        cutoff_end: cutoffEnd,
+        pay_date: payDate,
         service_name: '[Nama Jasa]',
         work_location: '[Work Location]',
         other_terms: '',

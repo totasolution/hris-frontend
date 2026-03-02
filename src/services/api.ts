@@ -231,10 +231,31 @@ export type Client = {
   id: number;
   tenant_id: number;
   name: string;
+  company_phone?: string;
+  company_email?: string;
+  company_website?: string;
   contact_name?: string;
   contact_email?: string;
   contact_phone?: string;
   address?: string;
+  address_unit?: string;
+  rt_rw?: string;
+  province?: string;
+  district?: string;
+  sub_district?: string;
+  kelurahan?: string;
+  zip_code?: string;
+  agreement_start_date?: string;
+  agreement_end_date?: string;
+  spk_number?: string;
+  spk_document_url?: string;
+  npwp_number?: string;
+  npwp_document_url?: string;
+  nib_number?: string;
+  nib_document_url?: string;
+  payroll_cut_off_start?: number;
+  payroll_cut_off_end?: number;
+  payment_date?: number;
   logo_url?: string;
   status: string;
   created_at: string;
@@ -255,7 +276,7 @@ export async function getClient(id: number): Promise<Client> {
   return data;
 }
 
-export async function createClient(body: Partial<Client> & { name: string }): Promise<Client> {
+export async function createClient(body: { name: string; company_phone?: string; company_email?: string; company_website?: string; status?: string }): Promise<Client> {
   const res = await authFetch(`${API_BASE}/clients`, {
     method: 'POST',
     credentials: 'include',
@@ -264,6 +285,18 @@ export async function createClient(body: Partial<Client> & { name: string }): Pr
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create client');
+  return data;
+}
+
+export async function patchClient(id: number, body: Partial<Client>): Promise<Client> {
+  const res = await authFetch(`${API_BASE}/clients/${id}`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update client');
   return data;
 }
 
@@ -277,6 +310,28 @@ export async function updateClient(id: number, body: Partial<Client> & { name: s
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update client');
   return data;
+}
+
+export type ClientDocType = 'spk' | 'npwp' | 'nib';
+
+export async function uploadClientDocument(clientId: number, docType: ClientDocType, file: File): Promise<{ document_url: string }> {
+  const form = new FormData();
+  form.append('doc_type', docType);
+  form.append('file', file);
+  const res = await authFetch(`${API_BASE}/clients/${clientId}/documents`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to upload document');
+  return data;
+}
+
+export async function getClientDocumentURL(clientId: number, docType: ClientDocType): Promise<string> {
+  const res = await authFetch(`${API_BASE}/clients/${clientId}/documents/${docType}/url`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to get document URL');
+  return data.url ?? '';
 }
 
 export async function deleteClient(id: number): Promise<void> {
@@ -1138,6 +1193,7 @@ export type Employee = {
   join_date?: string;
   termination_type?: string;
   termination_date?: string;
+  last_working_date?: string;
   termination_reason?: string;
   // Personal Information
   identification_id?: string;
@@ -1187,6 +1243,7 @@ export type Employee = {
 };
 
 export async function getEmployees(params?: {
+  employee_type?: 'internal' | 'external';
   status?: string;
   search?: string;
   client_id?: number;
@@ -1194,6 +1251,7 @@ export async function getEmployees(params?: {
   per_page?: number;
 }): Promise<PaginatedResponse<Employee>> {
   const q = new URLSearchParams();
+  if (params?.employee_type) q.set('employee_type', params.employee_type);
   if (params?.status) q.set('status', params.status);
   if (params?.search?.trim()) q.set('search', params.search.trim());
   if (params?.client_id != null) q.set('client_id', String(params.client_id));
@@ -1241,6 +1299,22 @@ export async function updateEmployee(id: number, body: Partial<Employee>): Promi
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update employee');
   return data;
+}
+
+/** Download employees as CSV for the given client (client_id required). Includes all employee data. */
+export async function downloadEmployees(clientId: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/employees/download?client_id=${clientId}`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.csv`;
+  downloadBlob(blob, filename);
 }
 
 // Employee Documents
@@ -1721,6 +1795,7 @@ export type WarningLetter = {
   employee_id: number;
   employee_name?: string;
   type: string;
+  status?: string;
   document_number?: string | null;
   warning_date: string;
   duration_months?: number;
@@ -1728,6 +1803,8 @@ export type WarningLetter = {
   file_path?: string;
   company_policy_file_path?: string;
   additional_reference_file_path?: string;
+  employee_acknowledged_at?: string;
+  employee_acknowledged_by?: number;
   created_by?: number;
   created_at: string;
 };
@@ -1802,6 +1879,32 @@ export async function getMyWarnings(): Promise<WarningLetter[]> {
   return data.data ?? [];
 }
 
+/** Get presigned URL for warning letter PDF (for preview in new tab). */
+export async function getWarningPresignedUrl(id: number): Promise<string> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/url`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Failed to get URL');
+  }
+  return (data as { url?: string }).url ?? '';
+}
+
+/** Get presigned URL for a warning attachment (company_policy or additional_reference). */
+export async function getWarningAttachmentPresignedUrl(
+  id: number,
+  type: 'company_policy' | 'additional_reference'
+): Promise<string> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/attachments/${type}/url`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Failed to get URL');
+  }
+  return (data as { url?: string }).url ?? '';
+}
+
 /** Download warning letter PDF. Triggers file save in browser. */
 export async function downloadWarningDocument(id: number): Promise<void> {
   const res = await authFetch(`${API_BASE}/warnings/${id}/download`, { credentials: 'include', headers: authHeaders() });
@@ -1844,6 +1947,20 @@ export async function downloadWarningAttachment(
   const disposition = res.headers.get('Content-Disposition');
   const filename = parseFilenameFromDisposition(disposition) ?? `warning-${id}-${type}.pdf`;
   downloadBlob(blob, filename);
+}
+
+/** Acknowledge (sign) a warning letter as the warned employee. */
+export async function acknowledgeWarning(id: number): Promise<WarningLetter> {
+  const res = await authFetch(`${API_BASE}/warnings/${id}/acknowledge`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Failed to acknowledge warning');
+  }
+  return data as WarningLetter;
 }
 
 // Payslips

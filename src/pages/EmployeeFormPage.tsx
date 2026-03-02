@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+
+type EmployeeType = 'internal' | 'external';
 import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
@@ -17,11 +19,18 @@ function getReturnPath(search: string): string | null {
   return returnTo;
 }
 
+/** Get employee type from URL path (e.g. /employees/internal/new -> internal). */
+function getEmployeeTypeFromPath(pathname: string): EmployeeType {
+  if (pathname.includes('/employees/internal/')) return 'internal';
+  return 'external';
+}
+
 export default function EmployeeFormPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const returnTo = getReturnPath(location.search);
   const isEdit = id !== 'new' && id != null;
+  const employeeTypeFromPath = getEmployeeTypeFromPath(location.pathname);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -31,7 +40,7 @@ export default function EmployeeFormPage() {
   const [companyEmail, setCompanyEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [employeeNumber, setEmployeeNumber] = useState('');
-  const [employeeType, setEmployeeType] = useState('external');
+  const [employeeType, setEmployeeType] = useState<EmployeeType>(employeeTypeFromPath);
   const [employmentContractType, setEmploymentContractType] = useState('');
   const [status, setStatus] = useState('active');
   const [hireDate, setHireDate] = useState('');
@@ -39,10 +48,10 @@ export default function EmployeeFormPage() {
   const [departmentId, setDepartmentId] = useState('');
   const [clientId, setClientId] = useState('');
 
-  // Termination
+  // Offboarding
   const [terminationType, setTerminationType] = useState('');
-  const [terminationDate, setTerminationDate] = useState('');
   const [terminationReason, setTerminationReason] = useState('');
+  const [lastWorkingDate, setLastWorkingDate] = useState('');
 
   // Personal
   const [identificationId, setIdentificationId] = useState('');
@@ -109,6 +118,12 @@ export default function EmployeeFormPage() {
   }, []);
 
   useEffect(() => {
+    if (!isEdit) {
+      setEmployeeType(employeeTypeFromPath);
+    }
+  }, [isEdit, employeeTypeFromPath]);
+
+  useEffect(() => {
     if (!isEdit || !id) {
       setLoading(false);
       return;
@@ -129,8 +144,8 @@ export default function EmployeeFormPage() {
         setDepartmentId(e.department_id ? String(e.department_id) : '');
         setClientId(e.client_id ? String(e.client_id) : '');
         setTerminationType(e.termination_type ?? '');
-        setTerminationDate(e.termination_date?.slice(0, 10) ?? '');
         setTerminationReason(e.termination_reason ?? '');
+        setLastWorkingDate(e.last_working_date?.slice(0, 10) ?? '');
         setIdentificationId(e.identification_id ?? '');
         setIdExpiredDate(e.id_expired_date?.slice(0, 10) ?? '');
         setBirthdate(e.birthdate?.slice(0, 10) ?? '');
@@ -193,7 +208,7 @@ export default function EmployeeFormPage() {
         department_id: departmentId ? parseInt(departmentId, 10) : undefined,
         client_id: clientId ? parseInt(clientId, 10) : undefined,
         termination_type: terminationType || undefined,
-        termination_date: terminationDate || undefined,
+        last_working_date: lastWorkingDate || undefined,
         termination_reason: terminationReason.trim() || undefined,
         identification_id: identificationId.trim() || undefined,
         id_expired_date: idExpiredDate || undefined,
@@ -237,7 +252,10 @@ export default function EmployeeFormPage() {
         await api.createEmployee({ ...body, full_name: fullName.trim(), email: email.trim() });
       }
       toast.success(isEdit ? 'Employee updated' : 'Employee created');
-      navigate(returnTo ?? '/employees', { replace: true });
+      const defaultReturn = isEdit
+        ? (employeeType === 'internal' ? '/employees/internal' : '/employees/external')
+        : (employeeType === 'internal' ? '/employees/internal' : '/employees/external');
+      navigate(returnTo ?? defaultReturn, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
       toast.error('Save failed');
@@ -316,14 +334,23 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+62..."
               />
-              <Select
-                label="Employee Type"
-                value={employeeType}
-                onChange={(e) => setEmployeeType(e.target.value)}
-              >
-                <option value="internal">Internal Staff</option>
-                <option value="external">External Contractor</option>
-              </Select>
+              {isEdit ? (
+                <Input
+                  label="Employee Type"
+                  value={employeeType === 'internal' ? 'Internal Staff' : 'External Contractor'}
+                  readOnly
+                  disabled
+                />
+              ) : (
+                <Select
+                  label="Employee Type"
+                  value={employeeType}
+                  onChange={(e) => setEmployeeType(e.target.value as EmployeeType)}
+                >
+                  <option value="internal">Internal Staff</option>
+                  <option value="external">External Contractor</option>
+                </Select>
+              )}
               <Select
                 label="Contract Type"
                 value={employmentContractType}
@@ -406,7 +433,7 @@ export default function EmployeeFormPage() {
               <div className="pt-6 border-t border-slate-100 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Select
-                    label="Termination Type"
+                    label="Offboarding Type"
                     value={terminationType}
                     onChange={(e) => setTerminationType(e.target.value)}
                   >
@@ -416,10 +443,11 @@ export default function EmployeeFormPage() {
                     <option value="contract_end">Contract End</option>
                   </Select>
                   <Input
-                    label="Termination Date"
+                    label="Last Working Date"
                     type="date"
-                    value={terminationDate}
-                    onChange={(e) => setTerminationDate(e.target.value)}
+                    value={lastWorkingDate}
+                    onChange={(e) => setLastWorkingDate(e.target.value)}
+                    helperText="After this date, employee login will be blocked."
                   />
                 </div>
                 <Textarea
@@ -689,7 +717,7 @@ export default function EmployeeFormPage() {
             {submitting ? 'Saving...' : isEdit ? 'Update Employee' : 'Create Employee'}
           </Button>
           <Link
-            to={returnTo ?? '/employees'}
+            to={returnTo ?? (employeeType === 'internal' ? '/employees/internal' : '/employees/external')}
             className="text-sm font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest transition-colors"
           >
             Cancel

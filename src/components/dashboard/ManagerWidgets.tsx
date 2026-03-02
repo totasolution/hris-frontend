@@ -148,7 +148,7 @@ export function ManagerWidgets({ permissions, userId }: ManagerWidgetsProps) {
 
       <QuickActions
         actions={[
-          { label: 'View Team', path: '/employees', variant: 'primary', permission: 'employee:read' },
+          { label: 'View Team', path: '/employees/internal', variant: 'primary', permission: 'employee_internal:read' },
           { label: 'Respond to Tickets', path: '/tickets', variant: 'secondary', permission: 'ticket:respond' },
         ]}
         userPermissions={permissions}
