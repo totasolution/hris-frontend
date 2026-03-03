@@ -98,42 +98,126 @@ export default function ContractTemplateFormPage() {
       return;
     }
     try {
-      // Generate sample values for preview (contract + paklaring placeholders)
-      const sampleValues: Record<string, string> = {
-        contract_number: 'PKWT-2026-001',
-        contract_date: formatDateLong(new Date()),
-        company_name: 'PT Example Company',
-        company_address: 'Jl. Sudirman No. 123, Jakarta',
-        company_representative: 'John Director',
-        representative_position: 'Human Resources Director',
-        full_name: 'Jane Doe',
-        employee_name: 'Jane Doe',
-        email: 'jane.doe@example.com',
-        phone: '08123456789',
-        id_number: '3201234567890001',
-        address: 'Jl. Contoh No. 456, Bandung',
-        place_of_birth: 'Jakarta',
-        date_of_birth: '15 Januari 1990',
-        gender: 'Perempuan',
-        religion: 'Islam',
-        marital_status: 'Single',
-        bank_name: 'BCA',
-        bank_account_number: '1234567890',
-        bank_account_holder: 'Jane Doe',
-        npwp_number: '12.345.678.9-012.345',
-        position: 'Software Engineer',
-        start_date: '1 Februari 2026',
-        start_working_date: '1 Februari 2026',
-        end_date: '31 Januari 2027',
-        last_working_date: '31 Januari 2027',
-        document_number: 'PAK-2026-001',
-        document_date: formatDateLong(new Date()),
-        salary: '15.000.000',
-        work_location: 'Jakarta Office',
-        penempatan: 'Jakarta Office',
-        bpjs_id: '1234567890123',
-        other_terms: 'Subject to company policy and regulations.',
-      };
+      // Generate sample values for preview based on known placeholders.
+      // This keeps preview working even when backend adds new placeholders.
+      const todayLong = formatDateLong(new Date());
+      const sampleValues: Record<string, string> = {};
+
+      placeholders.forEach((p) => {
+        switch (p) {
+          // Company / tenant info
+          case 'company_name':
+            sampleValues[p] = 'PT Example Company';
+            break;
+          case 'company_address':
+            sampleValues[p] = 'Jl. Sudirman No. 123, Jakarta';
+            break;
+          case 'company_representative':
+          case 'representative_name':
+            sampleValues[p] = 'John Director';
+            break;
+          case 'representative_position':
+            sampleValues[p] = 'Human Resources Director';
+            break;
+
+          // Employee / candidate
+          case 'full_name':
+          case 'employee_name':
+            sampleValues[p] = 'Jane Doe';
+            break;
+          case 'email':
+            sampleValues[p] = 'jane.doe@example.com';
+            break;
+          case 'phone':
+            sampleValues[p] = '08123456789';
+            break;
+          case 'id_number':
+          case 'identification_id':
+            sampleValues[p] = '3201234567890001';
+            break;
+          case 'address':
+            sampleValues[p] = 'Jl. Contoh No. 456, Bandung';
+            break;
+          case 'place_of_birth':
+            sampleValues[p] = 'Jakarta';
+            break;
+          case 'date_of_birth':
+            sampleValues[p] = '15 Januari 1990';
+            break;
+          case 'gender':
+            sampleValues[p] = 'Perempuan';
+            break;
+          case 'religion':
+            sampleValues[p] = 'Islam';
+            break;
+          case 'marital_status':
+            sampleValues[p] = 'Belum Menikah';
+            break;
+
+          // Employment / contract
+          case 'contract_number':
+            sampleValues[p] = 'PKWT-2026-001';
+            break;
+          case 'contract_date':
+          case 'document_date':
+            sampleValues[p] = todayLong;
+            break;
+          case 'position':
+            sampleValues[p] = 'Sales Representative';
+            break;
+          case 'work_location':
+          case 'penempatan':
+            sampleValues[p] = 'Jakarta Office';
+            break;
+          case 'start_date':
+          case 'start_working_date':
+            sampleValues[p] = '1 Februari 2026';
+            break;
+          case 'end_date':
+            sampleValues[p] = '31 Januari 2027';
+            break;
+          case 'last_working_date':
+            sampleValues[p] = '31 Januari 2027';
+            break;
+          case 'salary':
+            sampleValues[p] = '8.500.000';
+            break;
+          case 'other_terms':
+            sampleValues[p] = 'Ketentuan lain mengikuti peraturan perusahaan yang berlaku.';
+            break;
+
+          // Bank / tax
+          case 'bank_name':
+            sampleValues[p] = 'BCA';
+            break;
+          case 'bank_account_number':
+          case 'bank_account':
+            sampleValues[p] = '1234567890';
+            break;
+          case 'bank_account_holder':
+            sampleValues[p] = 'Jane Doe';
+            break;
+          case 'npwp_number':
+          case 'npwp':
+            sampleValues[p] = '12.345.678.9-012.345';
+            break;
+          case 'bpjs_id':
+          case 'bpjstk_id':
+            sampleValues[p] = '1234567890123';
+            break;
+
+          // Warning / paklaring specific
+          case 'document_number':
+            sampleValues[p] = 'DOC-2026-001';
+            break;
+
+          default:
+            // Generic fallback for any future placeholder.
+            sampleValues[p] = `Contoh ${p.replace(/_/g, ' ')}`;
+            break;
+        }
+      });
+
       const html = await api.previewContractTemplate(parseInt(id, 10), sampleValues);
       setPreviewHtml(html);
       setShowPreview(true);

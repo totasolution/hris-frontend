@@ -591,9 +591,11 @@ export default function OnboardingFormPage() {
                     onChange={(e) => setFinalDeclarationChecked(e.target.checked)}
                     className="mt-1 h-5 w-5 rounded border-slate-300 text-brand focus:ring-brand shrink-0"
                   />
-                  <span className="text-sm text-slate-700 leading-relaxed">
-                    {declarationChecklist.finalDeclaration.text}
-                  </span>
+                  <div className="text-sm text-slate-700 leading-relaxed space-y-3">
+                    {declarationChecklist.finalDeclaration.text.split('\n\n').map((para) => (
+                      <p key={para}>{para}</p>
+                    ))}
+                  </div>
                 </label>
               </CardBody>
             </Card>

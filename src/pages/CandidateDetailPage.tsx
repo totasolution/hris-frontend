@@ -239,11 +239,19 @@ export default function CandidateDetailPage() {
     );
   }
 
-  const formLinkUrl = onboardingLink
-    ? `${window.location.origin}/onboarding/${onboardingLink.token}`
+  const now = new Date();
+  const hasActiveOnboardingLink =
+    onboardingLink != null &&
+    new Date(onboardingLink.expires_at) > now &&
+    !onboardingLink.used_at;
+
+  const formLinkUrl = hasActiveOnboardingLink
+    ? `${window.location.origin}/onboarding/${onboardingLink!.token}`
     : null;
 
-  const showGenerateLink = candidate.screening_status === 'interview_passed';
+  const showGenerateLink =
+    candidate.screening_status === 'interview_passed' ||
+    (candidate.screening_status === 'onboarding' && !hasActiveOnboardingLink);
   const showRequestContract =
     candidate.screening_status === 'onboarding_completed' ||
     candidate.screening_status === 'ojt' ||

@@ -115,7 +115,7 @@ export function getDefaultDeclarationChecklist(): DeclarationChecklistData {
       },
     ],
     finalDeclaration: {
-      text: 'Dengan menyetujui ini, saya menyatakan telah menerima seluruh informasi dan/atau penjelasan, dan saya mengerti, memahami dan berjanji akan mentaati seluruh peraturan milik Perusahaan. Pernyataan ini saya nyatakan dengan secara sadar, sehat, dan tanpa paksaan dari pihak manapun. Surat On Boarding ini telah saya setujui, maka saya tidak akan melakukan tuntutan dalam hal apapun dikemudian hari.',
+      text: 'Dengan ini saya menyatakan telah membaca, menerima, dan memahami seluruh informasi dan/atau penjelasan dari Perusahaan. Saya berjanji dan berkomitmen untuk mentaati Perjanjian Kerja yang merupakan satu kesatuan dengan Surat On Boarding.\n\nPernyataan ini saya nyatakan dan setujui secara sadar, sehat, dan tanpa ada paksaan dari pihak manapun. Dengan ini melepaskan hak untuk mengajukan keberatan, tuntutan, gugatan, atau klaim dalam bentuk apapun di kemudian hari terhadap Perusahaan sehubungan dengan ketentuan yang telah saya setujui dalam Surat On Boarding ini.',
       checked: false,
     },
   };

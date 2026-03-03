@@ -2078,6 +2078,22 @@ export async function getPayslips(params?: {
   return data.data ?? [];
 }
 
+export async function deletePayslipsByPeriod(year: number, month: number): Promise<{ deleted: number }> {
+  const q = new URLSearchParams();
+  q.set('year', String(year));
+  q.set('month', String(month));
+  const res = await authFetch(`${API_BASE}/payslips/period?${q.toString()}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.error?.message ?? 'Failed to delete payslips for period');
+  }
+  return { deleted: data?.deleted ?? 0 };
+}
+
 export async function getMyPayslips(): Promise<Payslip[]> {
   const res = await authFetch(`${API_BASE}/me/payslips`, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();

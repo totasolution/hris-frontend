@@ -71,6 +71,51 @@ export default function PayslipsPage() {
     }
   }, [year, month, t]);
 
+  const handleDeletePeriod = async () => {
+    const parsedYear = parseInt(year, 10);
+    const parsedMonth = month ? parseInt(month, 10) : NaN;
+    if (!parsedYear || Number.isNaN(parsedMonth)) {
+      toast.error(t('pages:payslips.deletePeriodMissing', 'Please select a valid year and month.'));
+      return;
+    }
+    const label = `${MONTHS.find((m) => m.value === month)?.label ?? month}/${parsedYear}`;
+    const confirmed = window.confirm(
+      t(
+        'pages:payslips.confirmDeletePeriod',
+        'Delete all payslips for period {{period}}? This action cannot be undone.',
+        { period: label }
+      )
+    );
+    if (!confirmed) return;
+
+    try {
+      const result = await api.deletePayslipsByPeriod(parsedYear, parsedMonth);
+      if (result.deleted === 0) {
+        toast.warning(
+          t(
+            'pages:payslips.deletePeriodNoRows',
+            'No payslips found for the selected period.'
+          )
+        );
+      } else {
+        toast.success(
+          t(
+            'pages:payslips.deletePeriodSuccess',
+            '{{count}} payslips deleted for {{period}}.',
+            { count: result.deleted, period: label }
+          )
+        );
+      }
+      await load();
+    } catch (e) {
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : t('pages:payslips.deletePeriodFailed', 'Failed to delete payslips for this period.')
+      );
+    }
+  };
+
   useEffect(() => {
     load();
   }, [load]);
@@ -109,7 +154,7 @@ export default function PayslipsPage() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Filters + period actions */}
       <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
         <input
           type="text"
@@ -134,6 +179,31 @@ export default function PayslipsPage() {
               <option key={m.value || 'all'} value={m.value}>{m.value === '' ? t('pages:payslips.allMonths') : m.label}</option>
             ))}
           </Select>
+        </div>
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={handleDeletePeriod}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-xs font-semibold uppercase tracking-wide text-red-700 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!month}
+          >
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 6h18" />
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+              <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" />
+            </svg>
+            {t('pages:payslips.deletePeriodButton', 'Delete payslips for period')}
+          </button>
         </div>
       </div>
 
