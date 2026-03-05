@@ -28,6 +28,7 @@ export default function WarningDetailPage() {
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
+  const [hasPreviewedWarning, setHasPreviewedWarning] = useState(false);
 
   const warningId = id ? parseInt(id, 10) : 0;
   const stateFrom = (location.state as { from?: string } | null)?.from;
@@ -87,7 +88,13 @@ export default function WarningDetailPage() {
 
   const handlePreview = () => {
     if (!warning?.id) return;
-    openPreview(() => api.getWarningPresignedUrl(warning!.id), t('pages:warningDetail.warningLetter'));
+    openPreview(() => api.getWarningPresignedUrl(warning!.id), t('pages:warningDetail.warningLetter'))
+      .then(() => {
+        setHasPreviewedWarning(true);
+      })
+      .catch(() => {
+        // errors are already handled inside openPreview
+      });
   };
 
   const handlePreviewAttachment = (type: 'company_policy' | 'additional_reference') => {
@@ -162,10 +169,11 @@ export default function WarningDetailPage() {
       : 'bg-amber-100 text-amber-700';
 
   const isSigned = warning.status === 'signed';
-  // Treat viewers without generate_document permission as the issued employee,
-  // and allow them to acknowledge while the warning is still in draft.
+  // Treat viewers without generate_document permission as the issued employee.
   const isEmployeeView = !canGenerateDocument;
-  const canAcknowledge = isEmployeeView && !isSigned;
+  // Employees can only acknowledge once the document exists, is not yet signed,
+  // and they have opened the warning letter preview at least once.
+  const canAcknowledge = isEmployeeView && !isSigned && hasPreviewedWarning && !!warning.file_path;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -289,18 +297,22 @@ export default function WarningDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   {warning.file_path ? (
                     <>
-                      <Button variant="outline" onClick={handlePreview}>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        {t('common:preview')}
-                      </Button>
-                      <Button variant="outline" onClick={handleDownload}>
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        {t('pages:warnings.downloadDocument')}
-                      </Button>
+                      {(!isEmployeeView || isSigned) && (
+                        <>
+                          <Button variant="outline" onClick={handlePreview}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            {t('common:preview')}
+                          </Button>
+                          <Button variant="outline" onClick={handleDownload}>
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            {t('pages:warnings.downloadDocument')}
+                          </Button>
+                        </>
+                      )}
                       {canGenerateDocument && !isSigned && (
                         <Button variant="ghost" onClick={handleRegenerate} disabled={regenerating}>
                           {regenerating ? (
@@ -370,7 +382,7 @@ export default function WarningDetailPage() {
                 </li>
               )}
             </ul>
-            {canAcknowledge && warning.file_path && (
+            {isEmployeeView && !isSigned && warning.file_path && (
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-100 bg-amber-50/70 p-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-amber-800">
@@ -387,7 +399,7 @@ export default function WarningDetailPage() {
                   <Button
                     variant="primary"
                     onClick={handleAcknowledge}
-                    disabled={acknowledging}
+                    disabled={acknowledging || !hasPreviewedWarning}
                   >
                     {acknowledging && (
                       <span className="inline-block w-4 h-4 mr-2 rounded-full border-2 border-white border-t-transparent animate-spin" />

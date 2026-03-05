@@ -1144,6 +1144,8 @@ export type OnboardingStatusItem = {
   candidate_name: string;
   client_name: string;
   pic_name?: string;
+  /** Candidate recruitment screening status (e.g. onboarding, hired, rejected). Used for UI conditions only. */
+  screening_status?: string;
   token: string;
   created_at: string;
   status: 'new' | 'need_follow_up';
