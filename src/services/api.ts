@@ -1255,6 +1255,7 @@ export type Employee = {
   place_of_birth?: string;
   gender?: string;
   marital_status?: string;
+  tax_status?: string;
   child_number?: number;
   religion?: string;
   // Financial & Tax
@@ -1270,7 +1271,12 @@ export type Employee = {
   // Address
   address?: string;           // KTP address (alamat sesuai KTP)
   rt_rw?: string;             // RT/RW e.g. 01/02
-  domicile_address?: string;  // Domicile address (alamat domisili)
+  domicile_address?: string;  // Domicile street / full
+  domicile_rt_rw?: string;
+  domicile_province?: string;
+  domicile_district?: string;
+  domicile_sub_district?: string;
+  domicile_zip_code?: string;
   village?: string;
   sub_district?: string;
   district?: string;

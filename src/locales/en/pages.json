@@ -29,6 +29,7 @@
     "statusContractEnded": "Contract Ended",
     "fullName": "Full Name",
     "employeeNumber": "Employee No.",
+    "taxStatus": "Tax Status",
     "emailAddress": "Email Address",
     "noEmployeesFound": "No employees found.",
     "loadError": "Failed to load employees.",

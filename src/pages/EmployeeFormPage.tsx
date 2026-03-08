@@ -6,6 +6,7 @@ import { Button } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
+import { RegionSelect } from '../components/RegionSelect';
 import { Select } from '../components/Select';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
@@ -23,6 +24,14 @@ function getReturnPath(search: string): string | null {
 function getEmployeeTypeFromPath(pathname: string): EmployeeType {
   if (pathname.includes('/employees/internal/')) return 'internal';
   return 'external';
+}
+
+/** Normalize stored marital_status to select value (single | married) for display. */
+function normalizeMaritalStatusForSelect(maritalStatus: string): string {
+  const lower = maritalStatus.trim().toLowerCase();
+  if (lower === 'married' || lower === 'kawin' || lower === 'menikah') return 'married';
+  if (lower === 'single' || lower === 'belum kawin' || lower === 'belum menikah') return 'single';
+  return maritalStatus.trim() || '';
 }
 
 export default function EmployeeFormPage() {
@@ -60,6 +69,7 @@ export default function EmployeeFormPage() {
   const [placeOfBirth, setPlaceOfBirth] = useState('');
   const [gender, setGender] = useState('');
   const [maritalStatus, setMaritalStatus] = useState('');
+  const [taxStatus, setTaxStatus] = useState('');
   const [childNumber, setChildNumber] = useState('');
   const [religion, setReligion] = useState('');
 
@@ -74,15 +84,25 @@ export default function EmployeeFormPage() {
   const [emergencyContact, setEmergencyContact] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
 
-  // Address
+  // Address (KTP)
   const [address, setAddress] = useState('');
   const [rtRw, setRtRw] = useState('');
-  const [domicileAddress, setDomicileAddress] = useState('');
   const [village, setVillage] = useState('');
-  const [subDistrict, setSubDistrict] = useState('');
-  const [district, setDistrict] = useState('');
   const [province, setProvince] = useState('');
+  const [provinceId, setProvinceId] = useState('');
+  const [district, setDistrict] = useState('');
+  const [districtId, setDistrictId] = useState('');
+  const [subDistrict, setSubDistrict] = useState('');
   const [zipCode, setZipCode] = useState('');
+  // Domicile (structured, same as KTP)
+  const [domicileAddress, setDomicileAddress] = useState('');
+  const [domicileRtRw, setDomicileRtRw] = useState('');
+  const [domicileProvince, setDomicileProvince] = useState('');
+  const [domicileProvinceId, setDomicileProvinceId] = useState('');
+  const [domicileDistrict, setDomicileDistrict] = useState('');
+  const [domicileDistrictId, setDomicileDistrictId] = useState('');
+  const [domicileSubDistrict, setDomicileSubDistrict] = useState('');
+  const [domicileZipCode, setDomicileZipCode] = useState('');
 
   // Role & placement
   const [position, setPosition] = useState('');
@@ -124,6 +144,52 @@ export default function EmployeeFormPage() {
     }
   }, [isEdit, employeeTypeFromPath]);
 
+  // Resolve KTP province/district names to IDs so RegionSelect can cascade when editing
+  useEffect(() => {
+    if (!province?.trim()) {
+      setProvinceId('');
+      setDistrictId('');
+      return;
+    }
+    api.getRegionsProvinces(province.trim()).then((list) => {
+      const first = list[0];
+      if (first) setProvinceId(first.id);
+    }).catch(() => {});
+  }, [province]);
+  useEffect(() => {
+    if (!provinceId || !district?.trim()) {
+      setDistrictId('');
+      return;
+    }
+    api.getRegionsDistricts(provinceId, district.trim()).then((list) => {
+      const first = list[0];
+      if (first) setDistrictId(first.id);
+    }).catch(() => {});
+  }, [provinceId, district]);
+
+  // Resolve domicile province/district names to IDs for RegionSelect cascade when editing
+  useEffect(() => {
+    if (!domicileProvince?.trim()) {
+      setDomicileProvinceId('');
+      setDomicileDistrictId('');
+      return;
+    }
+    api.getRegionsProvinces(domicileProvince.trim()).then((list) => {
+      const first = list[0];
+      if (first) setDomicileProvinceId(first.id);
+    }).catch(() => {});
+  }, [domicileProvince]);
+  useEffect(() => {
+    if (!domicileProvinceId || !domicileDistrict?.trim()) {
+      setDomicileDistrictId('');
+      return;
+    }
+    api.getRegionsDistricts(domicileProvinceId, domicileDistrict.trim()).then((list) => {
+      const first = list[0];
+      if (first) setDomicileDistrictId(first.id);
+    }).catch(() => {});
+  }, [domicileProvinceId, domicileDistrict]);
+
   useEffect(() => {
     if (!isEdit || !id) {
       setLoading(false);
@@ -156,7 +222,8 @@ export default function EmployeeFormPage() {
         setBirthdate(e.birthdate?.slice(0, 10) ?? '');
         setPlaceOfBirth(e.place_of_birth ?? '');
         setGender(e.gender ?? '');
-        setMaritalStatus(e.marital_status ?? '');
+        setMaritalStatus(normalizeMaritalStatusForSelect(e.marital_status ?? ''));
+        setTaxStatus(e.tax_status ?? '');
         setChildNumber(e.child_number != null ? String(e.child_number) : '');
         setReligion(e.religion ?? '');
         setNpwp(e.npwp ?? '');
@@ -168,12 +235,17 @@ export default function EmployeeFormPage() {
         setEmergencyPhone(e.emergency_phone ?? '');
         setAddress(e.address ?? '');
         setRtRw(e.rt_rw ?? '');
-        setDomicileAddress(e.domicile_address ?? '');
         setVillage(e.village ?? '');
-        setSubDistrict(e.sub_district ?? '');
-        setDistrict(e.district ?? '');
         setProvince(e.province ?? '');
+        setDistrict(e.district ?? '');
+        setSubDistrict(e.sub_district ?? '');
         setZipCode(e.zip_code ?? '');
+        setDomicileAddress(e.domicile_address ?? '');
+        setDomicileRtRw(e.domicile_rt_rw ?? '');
+        setDomicileProvince(e.domicile_province ?? '');
+        setDomicileDistrict(e.domicile_district ?? '');
+        setDomicileSubDistrict(e.domicile_sub_district ?? '');
+        setDomicileZipCode(e.domicile_zip_code ?? '');
         setPosition(e.position ?? '');
         setPlacementLocation(e.placement_location ?? '');
         setBranch(e.branch ?? '');
@@ -222,6 +294,7 @@ export default function EmployeeFormPage() {
         place_of_birth: placeOfBirth.trim() || undefined,
         gender: gender || undefined,
         marital_status: maritalStatus.trim() || undefined,
+        tax_status: taxStatus.trim() || undefined,
         child_number: childNumber !== '' ? (parseInt(childNumber, 10) || undefined) : undefined,
         religion: religion.trim() || undefined,
         npwp: npwp.trim() || undefined,
@@ -233,12 +306,17 @@ export default function EmployeeFormPage() {
         emergency_phone: emergencyPhone.trim() || undefined,
         address: address.trim() || undefined,
         rt_rw: rtRw.trim() || undefined,
-        domicile_address: domicileAddress.trim() || undefined,
         village: village.trim() || undefined,
-        sub_district: subDistrict.trim() || undefined,
-        district: district.trim() || undefined,
         province: province.trim() || undefined,
+        district: district.trim() || undefined,
+        sub_district: subDistrict.trim() || undefined,
         zip_code: zipCode.trim() || undefined,
+        domicile_address: domicileAddress.trim() || undefined,
+        domicile_rt_rw: domicileRtRw.trim() || undefined,
+        domicile_province: domicileProvince.trim() || undefined,
+        domicile_district: domicileDistrict.trim() || undefined,
+        domicile_sub_district: domicileSubDistrict.trim() || undefined,
+        domicile_zip_code: domicileZipCode.trim() || undefined,
         position: position.trim() || undefined,
         placement_location: placementLocation.trim() || undefined,
         branch: branch.trim() || undefined,
@@ -520,12 +598,16 @@ export default function EmployeeFormPage() {
                 <option value="male">Laki-laki</option>
                 <option value="female">Perempuan</option>
               </Select>
-              <Input
+              <Select
                 label="Marital Status"
                 value={maritalStatus}
                 onChange={(e) => setMaritalStatus(e.target.value)}
-                placeholder="e.g. Single, Married"
-              />
+              >
+                <option value="">— Select —</option>
+                <option value="single">Single / Belum Kawin</option>
+                <option value="married">Married / Kawin</option>
+                <option value="divorced">Divorced / Cerai</option>
+              </Select>
               <Input
                 label="Religion"
                 value={religion}
@@ -553,6 +635,12 @@ export default function EmployeeFormPage() {
           </CardHeader>
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Input
+                label="Tax Status"
+                value={taxStatus}
+                onChange={(e) => setTaxStatus(e.target.value)}
+                placeholder="e.g. TK/0, TK/1, K/0"
+              />
               <Input
                 label="NPWP"
                 value={npwp}
@@ -696,20 +784,38 @@ export default function EmployeeFormPage() {
                 value={village}
                 onChange={(e) => setVillage(e.target.value)}
               />
-              <Input
-                label="Kecamatan / Sub-District"
-                value={subDistrict}
-                onChange={(e) => setSubDistrict(e.target.value)}
-              />
-              <Input
-                label="Kabupaten / Kota"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-              />
-              <Input
+              <RegionSelect
                 label="Province"
+                type="province"
                 value={province}
-                onChange={(e) => setProvince(e.target.value)}
+                onChange={(name, id) => {
+                  setProvince(name);
+                  setProvinceId(id ?? '');
+                  setDistrict('');
+                  setDistrictId('');
+                  setSubDistrict('');
+                }}
+                placeholder="Cari provinsi..."
+              />
+              <RegionSelect
+                label="Kabupaten / Kota"
+                type="district"
+                provinceId={provinceId}
+                value={district}
+                onChange={(name, id) => {
+                  setDistrict(name);
+                  setDistrictId(id ?? '');
+                  setSubDistrict('');
+                }}
+                placeholder="Cari kabupaten/kota..."
+              />
+              <RegionSelect
+                label="Kecamatan / Sub-District"
+                type="sub_district"
+                districtId={districtId}
+                value={subDistrict}
+                onChange={(name) => setSubDistrict(name)}
+                placeholder="Cari kecamatan..."
               />
               <Input
                 label="Zip Code"
@@ -717,14 +823,64 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setZipCode(e.target.value)}
                 placeholder="e.g. 12345"
               />
-              <Textarea
-                label="Domicile Address"
-                value={domicileAddress}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDomicileAddress(e.target.value)}
-                rows={2}
-                className="md:col-span-2"
-                placeholder="Alamat domisili (if different from KTP)"
-              />
+              <div className="md:col-span-2 border-t border-slate-200 pt-6 mt-2">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Domicile Address (Alamat Domisili)</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Textarea
+                    label="Street (Jalan, Nomor)"
+                    value={domicileAddress}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDomicileAddress(e.target.value)}
+                    rows={2}
+                    className="md:col-span-2"
+                    placeholder="Alamat jalan dan nomor rumah domisili"
+                  />
+                  <Input
+                    label="RT/RW"
+                    value={domicileRtRw}
+                    onChange={(e) => setDomicileRtRw(e.target.value)}
+                    placeholder="e.g. 01/02"
+                  />
+                  <RegionSelect
+                    label="Province"
+                    type="province"
+                    value={domicileProvince}
+                    onChange={(name, id) => {
+                      setDomicileProvince(name);
+                      setDomicileProvinceId(id ?? '');
+                      setDomicileDistrict('');
+                      setDomicileDistrictId('');
+                      setDomicileSubDistrict('');
+                    }}
+                    placeholder="Cari provinsi..."
+                  />
+                  <RegionSelect
+                    label="Kabupaten / Kota"
+                    type="district"
+                    provinceId={domicileProvinceId}
+                    value={domicileDistrict}
+                    onChange={(name, id) => {
+                      setDomicileDistrict(name);
+                      setDomicileDistrictId(id ?? '');
+                      setDomicileSubDistrict('');
+                    }}
+                    placeholder="Cari kabupaten/kota..."
+                  />
+                  <RegionSelect
+                    label="Kecamatan / Sub-District"
+                    type="sub_district"
+                    districtId={domicileDistrictId}
+                    value={domicileSubDistrict}
+                    onChange={(name) => setDomicileSubDistrict(name)}
+                    placeholder="Cari kecamatan..."
+                  />
+                  <Input
+                    label="Zip Code"
+                    value={domicileZipCode}
+                    onChange={(e) => setDomicileZipCode(e.target.value)}
+                    placeholder="e.g. 12345"
+                  />
+                </div>
+              </div>
             </div>
           </CardBody>
         </Card>

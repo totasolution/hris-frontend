@@ -29,6 +29,7 @@
     "statusContractEnded": "Kontrak Berakhir",
     "fullName": "Nama Lengkap",
     "employeeNumber": "No. Karyawan",
+    "taxStatus": "Status Pajak",
     "emailAddress": "Email",
     "noEmployeesFound": "Tidak ada karyawan ditemukan.",
     "loadError": "Gagal memuat karyawan.",

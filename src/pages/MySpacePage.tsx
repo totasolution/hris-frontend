@@ -3,6 +3,7 @@ import { Link, Outlet, useOutletContext } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
+import { EmployeeOverviewContent } from '../components/EmployeeOverviewContent';
 import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
@@ -11,7 +12,6 @@ import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocu
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate, formatDateLong, addMonths } from '../utils/formatDate';
-import { formatGender } from '../utils/formatGender';
 import MyTicketsPage from './MyTicketsPage';
 
 export type MySpaceContext = {
@@ -162,7 +162,7 @@ export function MyProfilePage() {
           </button>
         </nav>
       </div>
-      {tab === 'profile' && <ProfileTab employee={ctx.employee} />}
+      {tab === 'profile' && <EmployeeOverviewContent employee={ctx.employee} />}
       {tab === 'password' && <AccountTab toast={ctx.toast} />}
     </div>
   );
@@ -219,252 +219,6 @@ function NoEmployeeMessage() {
 }
 
 export default MySpaceLayout;
-
-function ProfileTab({ employee }: { employee: Employee }) {
-  const displayDate = employee.join_date || employee.hire_date;
-
-  return (
-    <div className="space-y-8">
-      <Card>
-          <CardHeader>
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-              Employee Information
-            </h3>
-          </CardHeader>
-          <CardBody className="grid grid-cols-2 gap-8">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                Employee Status
-              </p>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  employee.status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : employee.status === 'terminated'
-                      ? 'bg-red-100 text-red-700'
-                      : employee.status === 'resigned'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {employee.status.replace(/_/g, ' ')}
-              </span>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                Employee Type
-              </p>
-              <p className="text-sm font-bold text-brand-dark capitalize">{employee.employee_type}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                Phone Number
-              </p>
-              <p className="text-sm font-bold text-brand-dark">{employee.phone ?? '—'}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                Join Date
-              </p>
-              <p className="text-sm font-bold text-brand-dark">
-                {displayDate ? formatDate(displayDate) : '—'}
-              </p>
-            </div>
-            {(employee.company_email || employee.email) && (
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                  {employee.company_email ? 'Company Email' : 'Email'}
-                </p>
-                <p className="text-sm font-bold text-brand-dark">{employee.company_email ?? employee.email}</p>
-              </div>
-            )}
-            {employee.employee_number && (
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                  Employee Number
-                </p>
-                <p className="text-sm font-bold text-brand-dark">{employee.employee_number}</p>
-              </div>
-            )}
-            {employee.termination_date && (
-              <>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Termination Date
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">
-                    {formatDate(employee.termination_date)}
-                  </p>
-                </div>
-                {employee.termination_type && (
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                      Termination Type
-                    </p>
-                    <p className="text-sm font-bold text-brand-dark capitalize">
-                      {employee.termination_type.replace(/_/g, ' ')}
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
-            {employee.termination_reason && (
-              <div className="col-span-2">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                  Termination Reason
-                </p>
-                <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
-                  {employee.termination_reason}
-                </p>
-              </div>
-            )}
-          </CardBody>
-        </Card>
-
-        {(employee.identification_id ||
-          employee.birthdate ||
-          employee.place_of_birth ||
-          employee.gender ||
-          employee.religion ||
-          employee.marital_status ||
-          employee.address) && (
-          <Card>
-            <CardHeader>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-                Personal Information
-              </h3>
-            </CardHeader>
-            <CardBody className="grid grid-cols-2 gap-8">
-              {employee.identification_id && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    ID Number (KTP)
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.identification_id}</p>
-                </div>
-              )}
-              {employee.place_of_birth && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Place of Birth
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.place_of_birth}</p>
-                </div>
-              )}
-              {employee.birthdate && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Date of Birth
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">
-                    {formatDate(employee.birthdate)}
-                  </p>
-                </div>
-              )}
-              {employee.gender && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Gender
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{formatGender(employee.gender)}</p>
-                </div>
-              )}
-              {employee.religion && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Religion
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.religion}</p>
-                </div>
-              )}
-              {employee.marital_status && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Marital Status
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark capitalize">{employee.marital_status}</p>
-                </div>
-              )}
-              {employee.address && (
-                <div className="col-span-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Address
-                  </p>
-                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl">
-                    {employee.address}
-                  </p>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
-
-        {(employee.npwp || employee.bank_account || employee.bank_account_holder) && (
-          <Card>
-            <CardHeader>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-                Financial Information
-              </h3>
-            </CardHeader>
-            <CardBody className="grid grid-cols-2 gap-8">
-              {employee.npwp && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    NPWP Number
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.npwp}</p>
-                </div>
-              )}
-              {employee.bank_account && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Bank Account Number
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.bank_account}</p>
-                </div>
-              )}
-              {employee.bank_account_holder && (
-                <div className="col-span-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Bank Account Holder
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.bank_account_holder}</p>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
-
-        {(employee.emergency_contact || employee.emergency_phone) && (
-          <Card>
-            <CardHeader>
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-                Emergency Contact
-              </h3>
-            </CardHeader>
-            <CardBody className="grid grid-cols-2 gap-8">
-              {employee.emergency_contact && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Contact Name
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.emergency_contact}</p>
-                </div>
-              )}
-              {employee.emergency_phone && (
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                    Contact Phone
-                  </p>
-                  <p className="text-sm font-bold text-brand-dark">{employee.emergency_phone}</p>
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        )}
-    </div>
-  );
-}
 
 function AccountTab({ toast }: { toast: ReturnType<typeof useToast> }) {
   const [currentPassword, setCurrentPassword] = useState('');
