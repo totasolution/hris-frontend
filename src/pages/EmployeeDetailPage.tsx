@@ -300,6 +300,14 @@ function OverviewTab({
                 <p className="text-sm font-bold text-brand-dark">{employee.placement_location}</p>
               </div>
             )}
+            {employee.branch && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                  Branch
+                </p>
+                <p className="text-sm font-bold text-brand-dark">{employee.branch}</p>
+              </div>
+            )}
             {employee.department_id && (
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">

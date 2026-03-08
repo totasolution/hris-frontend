@@ -5,16 +5,24 @@ import { ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
 import { ConfirmModal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
+import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Client } from '../services/api';
 import * as api from '../services/api';
+
+const PER_PAGE = 10;
 
 export default function ClientsPage() {
   const { t } = useTranslation(['pages', 'common']);
   const [list, setList] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<{ id: number; name: string } | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -24,8 +32,14 @@ export default function ClientsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getClients();
-      setList(data);
+      const res = await api.getClientsPaginated({
+        page,
+        per_page: PER_PAGE,
+        search: search.trim() || undefined,
+      });
+      setList(res.data);
+      setTotal(res.total);
+      setTotalPages(res.total_pages);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('pages:clients.loadError'));
     } finally {
@@ -35,7 +49,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, search]);
 
   const handleDelete = async () => {
     if (!clientToDelete) return;
@@ -60,6 +74,26 @@ export default function ClientsPage() {
         subtitle={t('pages:clients.subtitle')}
         actions={<ButtonLink to="/clients/new">{t('pages:clients.addClient')}</ButtonLink>}
       />
+
+      <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="w-64">
+          <input
+            type="text"
+            placeholder={t('pages:clients.searchPlaceholder', 'Search by name or contact...')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && setSearch(searchInput)}
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setSearch(searchInput)}
+          className="px-4 py-2.5 rounded-xl bg-brand text-white text-sm font-medium hover:opacity-90 transition-opacity"
+        >
+          {t('common:search', 'Search')}
+        </button>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-100 rounded-xl p-4 flex items-center gap-3">
@@ -147,6 +181,13 @@ export default function ClientsPage() {
               )}
             </TBody>
           </Table>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            perPage={PER_PAGE}
+            onPageChange={setPage}
+          />
         </Card>
       )}
 

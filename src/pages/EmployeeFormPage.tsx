@@ -87,6 +87,7 @@ export default function EmployeeFormPage() {
   // Role & placement
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
+  const [branch, setBranch] = useState('');
 
   // BPJS
   const [bpjstkId, setBpjstkId] = useState('');
@@ -175,6 +176,7 @@ export default function EmployeeFormPage() {
         setZipCode(e.zip_code ?? '');
         setPosition(e.position ?? '');
         setPlacementLocation(e.placement_location ?? '');
+        setBranch(e.branch ?? '');
         setBpjstkId(e.bpjstk_id ?? '');
         setBpjsksId(e.bpjsks_id ?? '');
         setBpjsBpu(e.bpjs_bpu ?? '');
@@ -239,6 +241,7 @@ export default function EmployeeFormPage() {
         zip_code: zipCode.trim() || undefined,
         position: position.trim() || undefined,
         placement_location: placementLocation.trim() || undefined,
+        branch: branch.trim() || undefined,
         bpjstk_id: bpjstkId.trim() || undefined,
         bpjsks_id: bpjsksId.trim() || undefined,
         bpjs_bpu: bpjsBpu.trim() || undefined,
@@ -411,6 +414,12 @@ export default function EmployeeFormPage() {
                 value={placementLocation}
                 onChange={(e) => setPlacementLocation(e.target.value)}
                 placeholder="e.g. Jakarta"
+              />
+              <Input
+                label="Branch"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                placeholder="Branch name"
               />
               <Select
                 label="Department"

@@ -40,9 +40,19 @@ export default function CandidateFormPage() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState('');
   const [clients, setClients] = useState<api.Client[]>([]);
-  const [provinces, setProvinces] = useState<api.Province[]>([]);
   const [provinceSearch, setProvinceSearch] = useState('');
   const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
+  const [provinceId, setProvinceId] = useState<string>('');
+  const [districtId, setDistrictId] = useState<string>('');
+  const [subDistrictId, setSubDistrictId] = useState<string>('');
+  const [branch, setBranch] = useState('');
+  const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
+  const [districts, setDistricts] = useState<api.RegionItem[]>([]);
+  const [subDistricts, setSubDistricts] = useState<api.RegionItem[]>([]);
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [districtDropdownOpen, setDistrictDropdownOpen] = useState(false);
+  const [subDistrictSearch, setSubDistrictSearch] = useState('');
+  const [subDistrictDropdownOpen, setSubDistrictDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +60,12 @@ export default function CandidateFormPage() {
   useEffect(() => {
     async function loadInitial() {
       try {
-        const [cList, pList] = await Promise.all([api.getClients(), api.getProvinces().catch(() => [])]);
+        const [cList, regionProvincesList] = await Promise.all([
+          api.getClients({ activeOnly: true }),
+          api.getRegionsProvinces().catch(() => []),
+        ]);
         setClients(cList);
-        setProvinces(pList);
+        setRegionProvinces(regionProvincesList);
 
         if (isEdit && id) {
           const c = await api.getCandidate(parseInt(id, 10));
@@ -63,10 +76,14 @@ export default function CandidateFormPage() {
           setEmploymentType((c.employment_type as api.CandidateEmploymentType) ?? '');
           setOjtOption(c.ojt_option ?? false);
           setPosition(c.position ?? '');
-          setPlacementLocation(c.placement_location ?? '');
+          setProvinceId(c.province_id ?? '');
+          setDistrictId(c.district_id ?? '');
+          setSubDistrictId(c.sub_district_id ?? '');
+          setBranch(c.branch ?? '');
           setScreeningStatus(c.screening_status ?? 'new');
           setScreeningNotes(c.screening_notes ?? '');
           setScreeningRating(c.screening_rating != null ? String(c.screening_rating) : '');
+          setPlacementLocation(c.placement_location ?? '');
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load data');
@@ -77,11 +94,50 @@ export default function CandidateFormPage() {
     loadInitial();
   }, [isEdit, id]);
 
+  useEffect(() => {
+    if (!provinceId) {
+      setDistricts([]);
+      setDistrictId('');
+      setSubDistrictId('');
+      setSubDistricts([]);
+      return;
+    }
+    api.getRegionsDistricts(provinceId).then((list) => {
+      setDistricts(list);
+      setDistrictId((prev) => (list.some((d) => d.id === prev) ? prev : ''));
+      // Don't clear subDistrictId here so edit-mode restore keeps it; districtId effect will clear if districtId changed
+    }).catch(() => { setDistricts([]); setDistrictId(''); setSubDistrictId(''); setSubDistricts([]); });
+  }, [provinceId]);
+
+  useEffect(() => {
+    if (!districtId) {
+      setSubDistricts([]);
+      setSubDistrictId('');
+      return;
+    }
+    api.getRegionsSubDistricts(districtId).then((list) => {
+      setSubDistricts(list);
+      setSubDistrictId((prev) => (list.some((s) => s.id === prev) ? prev : ''));
+    }).catch(() => { setSubDistricts([]); setSubDistrictId(''); });
+  }, [districtId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!isEdit && !cvFile) {
       setError('CV / resume is required when creating a candidate. Please upload a PDF or document.');
+      return;
+    }
+    if (!districtId.trim()) {
+      setError('District is required.');
+      return;
+    }
+    if (!subDistrictId.trim()) {
+      setError('Sub-district is required.');
+      return;
+    }
+    if (!branch.trim()) {
+      setError('Branch is required.');
       return;
     }
     setSubmitting(true);
@@ -94,6 +150,10 @@ export default function CandidateFormPage() {
         ojt_option: ojtOption,
         position: position.trim() || undefined,
         placement_location: placementLocation.trim() || undefined,
+        province_id: provinceId.trim() || undefined,
+        district_id: districtId.trim(),
+        sub_district_id: subDistrictId.trim(),
+        branch: branch.trim(),
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
@@ -106,7 +166,7 @@ export default function CandidateFormPage() {
       if (isEdit && id) {
         await api.updateCandidate(parseInt(id, 10), body);
       } else {
-        const createBody = { ...body, employment_type: body.employment_type ?? undefined };
+        const createBody = { ...body, employment_type: body.employment_type ?? undefined, district_id: body.district_id, sub_district_id: body.sub_district_id, branch: body.branch };
         const created = await api.createCandidate(createBody);
         if (cvFile) {
           await api.uploadCandidateDocument(created.id, cvFile, 'cv');
@@ -268,7 +328,7 @@ export default function CandidateFormPage() {
                   />
                   {provinceDropdownOpen && (
                     <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
-                      {provinces
+                      {regionProvinces
                         .filter(
                           (p) =>
                             !provinceSearch.trim() ||
@@ -282,6 +342,7 @@ export default function CandidateFormPage() {
                             onMouseDown={(e) => {
                               e.preventDefault();
                               setPlacementLocation(p.name);
+                              setProvinceId(p.id);
                               setProvinceSearch('');
                               setProvinceDropdownOpen(false);
                             }}
@@ -290,7 +351,7 @@ export default function CandidateFormPage() {
                             {p.name}
                           </li>
                         ))}
-                      {provinces.filter(
+                      {regionProvinces.filter(
                         (p) =>
                           !provinceSearch.trim() ||
                           p.name.toLowerCase().includes(provinceSearch.trim().toLowerCase())
@@ -301,6 +362,129 @@ export default function CandidateFormPage() {
                   )}
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  District <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={districtDropdownOpen ? districtSearch : (districts.find((d) => d.id === districtId)?.name ?? '')}
+                    onChange={(e) => {
+                      setDistrictSearch(e.target.value);
+                      if (!districtDropdownOpen) setDistrictDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setDistrictSearch(districts.find((d) => d.id === districtId)?.name ?? '');
+                      setDistrictDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setDistrictDropdownOpen(false), 150);
+                    }}
+                    placeholder="Search or select district..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                  />
+                  {districtDropdownOpen && provinceId && (
+                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                      {districts
+                        .filter(
+                          (d) =>
+                            !districtSearch.trim() ||
+                            d.name.toLowerCase().includes(districtSearch.trim().toLowerCase())
+                        )
+                        .slice(0, 50)
+                        .map((d) => (
+                          <li
+                            key={d.id}
+                            role="option"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setDistrictId(d.id);
+                              setDistrictSearch('');
+                              setDistrictDropdownOpen(false);
+                            }}
+                            className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                          >
+                            {d.name}
+                          </li>
+                        ))}
+                      {districts.filter(
+                        (d) =>
+                          !districtSearch.trim() ||
+                          d.name.toLowerCase().includes(districtSearch.trim().toLowerCase())
+                      ).length === 0 && (
+                        <li className="px-4 py-2 text-sm text-slate-500">No district found</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Sub-district <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={subDistrictDropdownOpen ? subDistrictSearch : (subDistricts.find((s) => s.id === subDistrictId)?.name ?? '')}
+                    onChange={(e) => {
+                      setSubDistrictSearch(e.target.value);
+                      if (!subDistrictDropdownOpen) setSubDistrictDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setSubDistrictSearch(subDistricts.find((s) => s.id === subDistrictId)?.name ?? '');
+                      setSubDistrictDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setSubDistrictDropdownOpen(false), 150);
+                    }}
+                    placeholder="Search or select sub-district..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                  />
+                  {subDistrictDropdownOpen && districtId && (
+                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                      {subDistricts
+                        .filter(
+                          (s) =>
+                            !subDistrictSearch.trim() ||
+                            s.name.toLowerCase().includes(subDistrictSearch.trim().toLowerCase())
+                        )
+                        .slice(0, 50)
+                        .map((s) => (
+                          <li
+                            key={s.id}
+                            role="option"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setSubDistrictId(s.id);
+                              setSubDistrictSearch('');
+                              setSubDistrictDropdownOpen(false);
+                            }}
+                            className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                          >
+                            {s.name}
+                          </li>
+                        ))}
+                      {subDistricts.filter(
+                        (s) =>
+                          !subDistrictSearch.trim() ||
+                          s.name.toLowerCase().includes(subDistrictSearch.trim().toLowerCase())
+                      ).length === 0 && (
+                        <li className="px-4 py-2 text-sm text-slate-500">No sub-district found</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <Input
+                label="Branch"
+                value={branch}
+                onChange={(e) => setBranch(e.target.value)}
+                required
+                placeholder="Enter branch name"
+              />
             </div>
 
             <div className="flex items-center gap-3">

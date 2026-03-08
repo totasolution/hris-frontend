@@ -456,6 +456,15 @@ export default function OnboardingFormPage() {
     }));
   };
 
+  /** Check all ketentuan and sanksi (final declaration remains unchecked). */
+  const handleSetujuiSemua = () => {
+    setDeclarationChecklist((prev) => ({
+      ...prev,
+      ketentuan: prev.ketentuan.map((i) => ({ ...i, checked: true })),
+      sanksi: prev.sanksi.map((i) => ({ ...i, checked: true })),
+    }));
+  };
+
   // Full-page loading: initial load or any document processing
   if (loading || uploadingKtp || uploadingKk || uploadingSkck) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6">
@@ -533,6 +542,11 @@ export default function OnboardingFormPage() {
 
         {step === 2 ? (
           <form onSubmit={handleSubmitDeclaration} className="space-y-8">
+            <div className="flex justify-end">
+              <Button type="button" variant="secondary" onClick={handleSetujuiSemua} className="!py-2 !text-sm">
+                Setujui semua
+              </Button>
+            </div>
             <Card>
               <CardBody className="space-y-6">
                 <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">KETENTUAN</h3>

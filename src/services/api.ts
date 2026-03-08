@@ -262,11 +262,36 @@ export type Client = {
   updated_at: string;
 };
 
-export async function getClients(): Promise<Client[]> {
-  const res = await authFetch(`${API_BASE}/clients`, { credentials: 'include', headers: authHeaders() });
+export async function getClients(options?: { activeOnly?: boolean }): Promise<Client[]> {
+  const path = options?.activeOnly ? `${API_BASE}/clients?active_only=true` : `${API_BASE}/clients`;
+  const res = await authFetch(path, { credentials: 'include', headers: authHeaders() });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch clients');
   return data.data ?? [];
+}
+
+export async function getClientsPaginated(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  active_only?: boolean;
+}): Promise<PaginatedResponse<Client>> {
+  const q = new URLSearchParams();
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.per_page) q.set('per_page', String(params.per_page));
+  if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.active_only) q.set('active_only', 'true');
+  const url = q.toString() ? `${API_BASE}/clients?${q}` : `${API_BASE}/clients`;
+  const res = await authFetch(url, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch clients');
+  return {
+    data: data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    per_page: data.per_page ?? 10,
+    total_pages: data.total_pages ?? 1,
+  };
 }
 
 export async function getClient(id: number): Promise<Client> {
@@ -555,6 +580,11 @@ export type Candidate = {
   ojt_option?: boolean;
   position?: string | null;
   placement_location?: string | null;
+  province_id?: string | null;
+  district_id?: string | null;
+  sub_district_id?: string | null;
+  branch?: string | null;
+  package?: string | null; // Comma-separated: bpjskes,bpjsket,bpjsbpu,insurance,overtime
   screening_status: string;
   screening_notes?: string;
   screening_rating?: number;
@@ -644,6 +674,11 @@ export async function createCandidate(body: {
   ojt_option?: boolean;
   position?: string;
   placement_location?: string;
+  province_id?: string;
+  district_id: string;
+  sub_district_id: string;
+  branch: string;
+  package?: string;
 }): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates`, {
     method: 'POST',
@@ -667,6 +702,11 @@ export async function updateCandidate(
     ojt_option: boolean;
     position: string;
     placement_location: string;
+    province_id: string;
+    district_id: string;
+    sub_district_id: string;
+    branch: string;
+    package: string;
     screening_status: string;
     screening_notes: string;
     screening_rating: number;
@@ -846,6 +886,9 @@ export type OnboardingFormData = {
   employment_insurance_no?: string;
   employment_overtime_nominal?: string;
 
+  /** Candidate packages (from candidates.package), included in GET onboarding-form response */
+  package?: string;
+
   submitted_at?: string;
   data_reviewed_at?: string;
   locked_at?: string;
@@ -891,32 +934,35 @@ export async function createOnboardingLink(candidateId: number): Promise<Onboard
   return data;
 }
 
-// Regions (public - no auth, used by onboarding form)
+// Regions from DB (public - no auth): provinces, districts, sub-districts.
 export type RegionItem = { id: string; name: string };
 export async function getRegionsProvinces(search?: string): Promise<RegionItem[]> {
   const q = new URLSearchParams();
   if (search?.trim()) q.set('search', search.trim());
-  const url = q.toString() ? `${API_BASE}/public/regions/provinces?${q}` : `${API_BASE}/public/regions/provinces`;
+  const url = q.toString() ? `${API_BASE}/provinces?${q}` : `${API_BASE}/provinces`;
   const res = await fetch(url, { credentials: 'include' });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch provinces');
-  return Array.isArray(data?.data) ? data.data : [];
+  const list = Array.isArray(data?.data) ? data.data : [];
+  return list.map((p: { id: number; name: string }) => ({ id: String(p.id), name: p.name }));
 }
 export async function getRegionsDistricts(provinceId: string, search?: string): Promise<RegionItem[]> {
   const q = new URLSearchParams({ province_id: provinceId });
   if (search?.trim()) q.set('search', search.trim());
-  const res = await fetch(`${API_BASE}/public/regions/districts?${q}`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/districts?${q}`, { credentials: 'include' });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch districts');
-  return Array.isArray(data?.data) ? data.data : [];
+  const list = Array.isArray(data?.data) ? data.data : [];
+  return list.map((d: { id: number; name: string }) => ({ id: String(d.id), name: d.name }));
 }
 export async function getRegionsSubDistricts(districtId: string, search?: string): Promise<RegionItem[]> {
   const q = new URLSearchParams({ district_id: districtId });
   if (search?.trim()) q.set('search', search.trim());
-  const res = await fetch(`${API_BASE}/public/regions/sub-districts?${q}`, { credentials: 'include' });
+  const res = await fetch(`${API_BASE}/sub-districts?${q}`, { credentials: 'include' });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch sub-districts');
-  return Array.isArray(data?.data) ? data.data : [];
+  const list = Array.isArray(data?.data) ? data.data : [];
+  return list.map((s: { id: number; name: string }) => ({ id: String(s.id), name: s.name }));
 }
 
 export async function getOnboardingByToken(token: string): Promise<{ link: OnboardingLink; candidate: Candidate }> {
@@ -1097,11 +1143,15 @@ export async function requestContract(candidateId: number): Promise<void> {
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to request contract');
 }
 
-export async function approveCandidate(candidateId: number): Promise<void> {
+export async function approveCandidate(
+  candidateId: number,
+  body?: { contract_number?: string; status?: string }
+): Promise<void> {
   const res = await authFetch(`${API_BASE}/candidates/${candidateId}/approve`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to approve');
@@ -1228,6 +1278,9 @@ export type Employee = {
   // Role & placement
   position?: string;
   placement_location?: string;
+  placement_district_id?: string;
+  placement_sub_district_id?: string;
+  branch?: string;
   // BPJS (Indonesian social security)
   bpjstk_id?: string;  // BPJS Tenaga Kerja ID
   bpjsks_id?: string;  // BPJS Kesehatan ID

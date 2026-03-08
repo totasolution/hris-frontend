@@ -156,15 +156,9 @@ export default function OnboardingStatusPage() {
                 list.map((item) => (
                   <TR key={`${item.candidate_id}-${item.token}`}>
                     <TD className="font-bold text-[#0f172a]">
-                      {item.screening_status === 'onboarding' ? (
-                        <Link to={`/candidates/${item.candidate_id}`} className="text-brand hover:underline">
-                          {item.candidate_name || `Candidate #${item.candidate_id}`}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-800">
-                          {item.candidate_name || `Candidate #${item.candidate_id}`}
-                        </span>
-                      )}
+                      <Link to={`/candidates/${item.candidate_id}`} className="text-brand hover:underline">
+                        {item.candidate_name || `Candidate #${item.candidate_id}`}
+                      </Link>
                     </TD>
                     <TD className="text-slate-600 text-sm">
                       {item.pic_name || '—'}

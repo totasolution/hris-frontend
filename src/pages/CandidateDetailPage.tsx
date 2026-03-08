@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { Input, Textarea } from '../components/Input';
@@ -13,13 +13,28 @@ import type { Candidate, CandidateDocument } from '../services/api';
 import * as api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { downloadFromUrl } from '../utils/download.ts';
+import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate } from '../utils/formatDate';
 import { formatGender } from '../utils/formatGender';
 
 type TabType = 'overview' | 'onboarding' | 'documents';
 
+const PACKAGE_OPTIONS: { key: string; label: string }[] = [
+  { key: 'bpjskes', label: 'BPJS Kesehatan' },
+  { key: 'bpjsket', label: 'BPJS Ketenagakerjaan' },
+  { key: 'bpjsbpu', label: 'BPJS BPU' },
+  { key: 'insurance', label: 'Asuransi' },
+  { key: 'overtime', label: 'Lembur' },
+];
+function defaultPackagesForEmploymentType(t: api.CandidateEmploymentType | null): string[] {
+  if (t === 'pkwt') return ['bpjskes', 'bpjsket'];
+  if (t === 'partnership') return ['bpjsbpu'];
+  return [];
+}
+
 export default function CandidateDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [documents, setDocuments] = useState<CandidateDocument[]>([]);
   const [onboardingLink, setOnboardingLink] = useState<api.OnboardingLink | null>(null);
@@ -51,6 +66,7 @@ export default function CandidateDetailPage() {
     overtime_nominal?: string;
   }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
+  const [packageKeys, setPackageKeys] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const toast = useToast();
   const { permissions = [] } = useAuth();
@@ -276,6 +292,16 @@ export default function CandidateDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 font-body">
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-brand transition-colors"
+        >
+          <span aria-hidden>←</span>
+          Back
+        </button>
+      </div>
       <PageHeader
         title={candidate.full_name}
         subtitle={candidate.email}
@@ -334,6 +360,9 @@ export default function CandidateDetailPage() {
             employmentTermsSaveLoading={employmentTermsSaveLoading}
             setEmploymentTermsSaveLoading={setEmploymentTermsSaveLoading}
             setOnboardingData={setOnboardingData}
+            packageKeys={packageKeys}
+            setPackageKeys={setPackageKeys}
+            setCandidate={setCandidate}
             toast={toast}
           />
         )}
@@ -418,6 +447,9 @@ function OverviewTab({
   employmentTermsSaveLoading,
   setEmploymentTermsSaveLoading,
   setOnboardingData,
+  packageKeys,
+  setPackageKeys,
+  setCandidate,
   toast,
 }: {
   candidate: Candidate;
@@ -473,6 +505,9 @@ function OverviewTab({
   employmentTermsSaveLoading: boolean;
   setEmploymentTermsSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
   setOnboardingData: React.Dispatch<React.SetStateAction<api.OnboardingFormData | null>>;
+  packageKeys: string[];
+  setPackageKeys: React.Dispatch<React.SetStateAction<string[]>>;
+  setCandidate: React.Dispatch<React.SetStateAction<Candidate | null>>;
   toast: ReturnType<typeof useToast>;
 }) {
   return (
@@ -526,6 +561,30 @@ function OverviewTab({
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">PIC / Recruiter</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.pic_name ?? '—'}</p>
               </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Position</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.position ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Placement Location</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.placement_location ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Branch</p>
+                <p className="text-sm font-bold text-brand-dark">{candidate.branch ?? '—'}</p>
+              </div>
+              {candidate.screening_rating != null && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Screening Rating</p>
+                  <p className="text-sm font-bold text-brand-dark">{candidate.screening_rating}</p>
+                </div>
+              )}
+              {candidate.submitted_to_client_at && (
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Submitted to Client</p>
+                  <p className="text-sm font-bold text-brand-dark">{formatDate(candidate.submitted_to_client_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              )}
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Created At</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.created_at ? formatDate(candidate.created_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
@@ -600,6 +659,9 @@ function OverviewTab({
                       insurance_no: onboardingData?.employment_insurance_no ?? '',
                       overtime_nominal: onboardingData?.employment_overtime_nominal ?? '',
                     });
+                    const packageStr = onboardingData?.package ?? candidate?.package;
+                    const fromCandidate = packageStr ? packageStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
+                    setPackageKeys(fromCandidate.length ? fromCandidate : defaultPackagesForEmploymentType(candidate?.employment_type ?? null));
                     setEditingEmploymentTerms(true);
                   }}
                 >
@@ -615,22 +677,26 @@ function OverviewTab({
                     if (!candidateId) return;
                     setEmploymentTermsSaveLoading(true);
                     try {
-                      const updated = await api.updateEmploymentTerms(candidateId, {
-                        employment_start_date: employmentTermsForm.start_date || undefined,
-                        employment_duration_months: employmentTermsForm.duration_months || undefined,
-                        employment_salary: employmentTermsForm.salary || undefined,
-                        employment_positional_allowance: employmentTermsForm.positional_allowance || undefined,
-                        employment_transport_allowance: employmentTermsForm.transport_allowance || undefined,
-                        employment_comm_allowance: employmentTermsForm.comm_allowance || undefined,
-                        employment_misc_allowance: employmentTermsForm.misc_allowance || undefined,
-                        employment_bpjs_kes: employmentTermsForm.bpjs_kes || undefined,
-                        employment_bpjs_tku: employmentTermsForm.bpjs_tku || undefined,
-                        employment_bpjs_bpu: employmentTermsForm.bpjs_bpu || undefined,
-                        employment_insurance_provider: employmentTermsForm.insurance_provider || undefined,
-                        employment_insurance_no: employmentTermsForm.insurance_no || undefined,
-                        employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
-                      });
-                      setOnboardingData(updated);
+                      const [updatedOnboarding, updatedCandidate] = await Promise.all([
+                        api.updateEmploymentTerms(candidateId, {
+                          employment_start_date: employmentTermsForm.start_date || undefined,
+                          employment_duration_months: employmentTermsForm.duration_months || undefined,
+                          employment_salary: employmentTermsForm.salary || undefined,
+                          employment_positional_allowance: employmentTermsForm.positional_allowance || undefined,
+                          employment_transport_allowance: employmentTermsForm.transport_allowance || undefined,
+                          employment_comm_allowance: employmentTermsForm.comm_allowance || undefined,
+                          employment_misc_allowance: employmentTermsForm.misc_allowance || undefined,
+                          employment_bpjs_kes: employmentTermsForm.bpjs_kes || undefined,
+                          employment_bpjs_tku: employmentTermsForm.bpjs_tku || undefined,
+                          employment_bpjs_bpu: employmentTermsForm.bpjs_bpu || undefined,
+                          employment_insurance_provider: employmentTermsForm.insurance_provider || undefined,
+                          employment_insurance_no: employmentTermsForm.insurance_no || undefined,
+                          employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
+                        }),
+                        api.updateCandidate(candidateId, { package: packageKeys.length ? packageKeys.join(',') : undefined }),
+                      ]);
+                      setOnboardingData(updatedOnboarding);
+                      if (updatedCandidate) setCandidate(updatedCandidate);
                       setEditingEmploymentTerms(false);
                       toast.success('Employment terms updated');
                     } catch (err) {
@@ -667,16 +733,30 @@ function OverviewTab({
                         placeholder="e.g. Rp 5.000.000"
                       />
                     </div>
+                    <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-headline">Packages</p>
+                      <div className="flex flex-col gap-2">
+                        {PACKAGE_OPTIONS.map((opt) => (
+                          <label key={opt.key} className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={packageKeys.includes(opt.key)}
+                              onChange={() => {
+                                setPackageKeys((prev) =>
+                                  prev.includes(opt.key) ? prev.filter((k) => k !== opt.key) : [...prev, opt.key]
+                                );
+                              }}
+                              className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                            />
+                            <span className="text-sm text-slate-700">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                     <Input label="Tunjangan Jabatan" name="positional_allowance" value={employmentTermsForm.positional_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, positional_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
                     <Input label="Tunjangan Transportasi" name="transport_allowance" value={employmentTermsForm.transport_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, transport_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
                     <Input label="Tunjangan Komunikasi" name="comm_allowance" value={employmentTermsForm.comm_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, comm_allowance: e.target.value }))} placeholder="e.g. Rp 100.000" />
                     <Input label="Tunjangan Lain-lain" name="misc_allowance" value={employmentTermsForm.misc_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, misc_allowance: e.target.value }))} placeholder="e.g. Rp 0" />
-                    <Input label="BPJS Tenaga Kerja ID" name="bpjs_tku" value={employmentTermsForm.bpjs_tku ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_tku: e.target.value }))} placeholder="ID number" />
-                    <Input label="BPJS Kesehatan ID" name="bpjs_kes" value={employmentTermsForm.bpjs_kes ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_kes: e.target.value }))} placeholder="ID number" />
-                    <Input label="BPJS BPU ID" name="bpjs_bpu" value={employmentTermsForm.bpjs_bpu ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, bpjs_bpu: e.target.value }))} placeholder="ID number" />
-                    <Input label="Asuransi (Provider)" name="insurance_provider" value={employmentTermsForm.insurance_provider ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_provider: e.target.value }))} placeholder="Nama provider" />
-                    <Input label="Nomor Polis Asuransi" name="insurance_no" value={employmentTermsForm.insurance_no ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, insurance_no: e.target.value }))} placeholder="Nomor polis" />
-                    <Input label="Lembur (Nominal)" name="overtime_nominal" value={employmentTermsForm.overtime_nominal ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, overtime_nominal: e.target.value }))} placeholder="e.g. Rp 25.000/jam" />
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <Button type="submit" disabled={employmentTermsSaveLoading}>
@@ -689,27 +769,34 @@ function OverviewTab({
                 </form>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                  <div className="md:col-span-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Packages</p>
+                    {(onboardingData?.package ?? candidate?.package)?.trim() ? (
+                      <ul className="text-sm text-brand-dark list-none space-y-1">
+                        {(onboardingData?.package ?? candidate?.package ?? '').split(',').map((k) => k.trim()).filter(Boolean).map((key) => {
+                          const opt = PACKAGE_OPTIONS.find((o) => o.key === key);
+                          return opt ? <li key={key}>• {opt.label}</li> : <li key={key}>• {key}</li>;
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500">—</p>
+                    )}
+                  </div>
                   {[
-                    { label: 'Start Date', value: onboardingData?.employment_start_date },
-                    { label: 'Duration (Months)', value: onboardingData?.employment_duration_months ? `${onboardingData.employment_duration_months} months` : null },
-                    { label: 'Salary', value: onboardingData?.employment_salary },
-                    { label: 'Tunjangan Jabatan', value: onboardingData?.employment_positional_allowance },
-                    { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance },
-                    { label: 'Tunjangan Komunikasi', value: onboardingData?.employment_comm_allowance },
-                    { label: 'Tunjangan Lain-lain', value: onboardingData?.employment_misc_allowance },
-                    { label: 'BPJS Tenaga Kerja ID', value: onboardingData?.employment_bpjs_tku },
-                    { label: 'BPJS Kesehatan ID', value: onboardingData?.employment_bpjs_kes },
-                    { label: 'BPJS BPU ID', value: onboardingData?.employment_bpjs_bpu },
-                    { label: 'Asuransi (Provider)', value: onboardingData?.employment_insurance_provider },
-                    { label: 'Nomor Polis', value: onboardingData?.employment_insurance_no },
-                    { label: 'Lembur (Nominal)', value: onboardingData?.employment_overtime_nominal, full: true },
+                    { label: 'Start Date', value: onboardingData?.employment_start_date, currency: false },
+                    { label: 'Duration (Months)', value: onboardingData?.employment_duration_months ? `${onboardingData.employment_duration_months} months` : null, currency: false },
+                    { label: 'Salary', value: onboardingData?.employment_salary, currency: true },
+                    { label: 'Tunjangan Jabatan', value: onboardingData?.employment_positional_allowance, currency: true },
+                    { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance, currency: true },
+                    { label: 'Tunjangan Komunikasi', value: onboardingData?.employment_comm_allowance, currency: true },
+                    { label: 'Tunjangan Lain-lain', value: onboardingData?.employment_misc_allowance, currency: true },
                   ].map((field, i) => (field.value != null && field.value !== '') ? (
                     <div key={i} className={(field as { full?: boolean }).full ? 'md:col-span-2' : ''}>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
                         {field.label}
                       </p>
                       <p className="text-sm font-bold text-brand-dark">
-                        {field.value}
+                        {field.currency ? formatCurrency(field.value as string) : field.value}
                       </p>
                     </div>
                   ) : null)}

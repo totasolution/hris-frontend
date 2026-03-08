@@ -8,7 +8,6 @@ import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../services/api';
-import { formatDateLong } from '../utils/formatDate';
 
 const PENDING_HRD_RETURN = '/onboarding/pending-hrd';
 
@@ -24,23 +23,10 @@ export default function PendingHRDContractCreatePage() {
   const [candidateId, setCandidateId] = useState<string>(candidateIdParam ?? '');
   const [contractNumber, setContractNumber] = useState<string>('');
   const [status, setStatus] = useState('draft');
-  const [templates, setTemplates] = useState<api.ContractTemplate[]>([]);
   const [candidate, setCandidate] = useState<api.Candidate | null>(null);
   const [loading, setLoading] = useState(!!candidateIdParam);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
-  const [creationMode, setCreationMode] = useState<'template' | 'manual'>('template');
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
-  }, []);
-
-  // Only show contract templates (exclude payslip) when creating a contract
-  const contractTemplates = templates.filter((t) => t.contract_type !== 'payslip');
 
   useEffect(() => {
     if (!candidateIdParam || !candidateIdNum) {
@@ -64,97 +50,23 @@ export default function PendingHRDContractCreatePage() {
       return;
     }
 
-    if (creationMode === 'manual' && uploadFile) {
-      setUploading(true);
-      try {
-        await api.uploadManualContract(uploadFile, {
-          contract_number: contractNumber || undefined,
-          status,
-        });
-        await api.approveCandidate(cid);
-        toast.success('Contract created and request approved');
-        navigate(PENDING_HRD_RETURN, { replace: true });
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Upload failed');
-      } finally {
-        setUploading(false);
-      }
-      return;
-    }
-
-    // Template mode: auto-pick from candidate employment_type (pkwt | partnership)
-    let resolvedTemplateId: number | undefined;
-    if (creationMode === 'template' && candidate?.employment_type) {
-      const ct = candidate.employment_type as api.ContractTemplateType;
-      const matching = contractTemplates.filter((t) => t.contract_type === ct);
-      if (matching.length > 0) resolvedTemplateId = matching[0].id;
-      else resolvedTemplateId = contractTemplates.find((t) => t.contract_type === 'pkwt')?.id;
-    }
-    if (creationMode === 'template' && !resolvedTemplateId) {
-      toast.error('Candidate must have employment type (PKWT or Mitra) set, or add a PKWT template');
+    if (!candidate?.employment_type) {
+      toast.error('Candidate must have employment type (PKWT or Mitra) set');
       return;
     }
 
     setSubmitting(true);
     try {
-      await api.createContract({
-        template_id: resolvedTemplateId,
-        contract_number: contractNumber || undefined,
-        status,
+      await api.approveCandidate(cid, {
+        contract_number: contractNumber.trim() || undefined,
+        status: status || undefined,
       });
-      await api.approveCandidate(cid);
       toast.success('Contract created and request approved');
       navigate(PENDING_HRD_RETURN, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handlePreviewTemplate = async () => {
-    // Resolve template from candidate employment_type
-    const ct = candidate?.employment_type as api.ContractTemplateType | undefined;
-    const matching = contractTemplates.filter((t) => t.contract_type === (ct ?? 'pkwt'));
-    const previewTemplateId = matching[0]?.id ?? contractTemplates.find((t) => t.contract_type === 'pkwt')?.id;
-    if (!previewTemplateId) {
-      toast.error('No template available for preview. Add a PKWT or Partnership template.');
-      return;
-    }
-    try {
-      const sampleValues: Record<string, string> = {
-        contract_number: contractNumber || 'PKWT-2026-XXX',
-        contract_date: formatDateLong(new Date()),
-        company_name: 'PT Your Company',
-        company_address: 'Company Address',
-        company_representative: 'HR Director',
-        representative_position: 'Human Resources Director',
-        full_name: '[Candidate Name]',
-        email: 'email@example.com',
-        phone: '08123456789',
-        id_number: '[ID Number]',
-        address: '[Address]',
-        place_of_birth: '[Place of Birth]',
-        date_of_birth: '[Date of Birth]',
-        gender: 'Laki-laki', // or Perempuan
-        religion: '[Religion]',
-        marital_status: '[Marital Status]',
-        bank_name: '[Bank Name]',
-        bank_account_number: '[Account Number]',
-        bank_account_holder: '[Account Holder]',
-        npwp_number: '[NPWP]',
-        position: '[Position]',
-        start_date: '[Start Date]',
-        end_date: '[End Date]',
-        salary: '[Salary]',
-        work_location: '[Work Location]',
-        other_terms: '',
-      };
-      const html = await api.previewContractTemplate(previewTemplateId, sampleValues);
-      setPreviewHtml(html);
-      setShowPreview(true);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Preview failed');
     }
   };
 
@@ -216,95 +128,26 @@ export default function PendingHRDContractCreatePage() {
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormGroup>
-              <Label>Creation Method</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="creationMode"
-                    value="template"
-                    checked={creationMode === 'template'}
-                    onChange={(e) => setCreationMode(e.target.value as 'template' | 'manual')}
-                    className="w-4 h-4 text-brand"
-                  />
-                  <span className="text-sm font-medium">Use Template</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="creationMode"
-                    value="manual"
-                    checked={creationMode === 'manual'}
-                    onChange={(e) => setCreationMode(e.target.value as 'template' | 'manual')}
-                    className="w-4 h-4 text-brand"
-                  />
-                  <span className="text-sm font-medium">Upload File Manually</span>
-                </label>
-              </div>
-              <p className="text-xs text-slate-400 mt-1">
-                Choose to create from a template or upload an existing contract file. After saving, the contract request will be marked as approved.
-              </p>
+              <Label>Contract number <span className="text-red-500">*</span></Label>
+              <Input
+                value={contractNumber}
+                onChange={(e) => setContractNumber(e.target.value)}
+                placeholder="e.g., PKWT-2026-001"
+                required
+              />
             </FormGroup>
-
-            {creationMode === 'manual' && (
-              <FormGroup>
-                <Label>Upload Contract File <span className="text-red-500">*</span></Label>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.html"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) setUploadFile(e.target.files[0]);
-                  }}
-                  className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
-                />
-                <p className="text-xs text-slate-400 mt-1">Accepted formats: PDF, DOC, DOCX, HTML</p>
-                {uploadFile && (
-                  <p className="text-xs text-green-600 mt-1">
-                    Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
-                  </p>
-                )}
-              </FormGroup>
-            )}
-
-            {creationMode === 'template' && (
-              <FormGroup>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-600">
-                      Template is auto-selected from the candidate&apos;s employment type ({candidate?.employment_type === 'pkwt' ? 'PKWT' : candidate?.employment_type === 'partnership' ? 'Mitra' : candidate?.employment_type ?? '—'}).
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Manage templates in <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
-                    </p>
-                  </div>
-                  <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
-                    Preview
-                  </Button>
-                </div>
-              </FormGroup>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormGroup>
-                <Label>Contract Number</Label>
-                <Input
-                  value={contractNumber}
-                  onChange={(e) => setContractNumber(e.target.value)}
-                  placeholder="e.g., PKWT-2026-001"
-                />
-              </FormGroup>
-              <FormGroup>
-                <Label>Related Candidate</Label>
-                <Input
-                  value={candidate ? `${candidate.full_name} (${candidate.email})` : candidateId ? `Candidate #${candidateId}` : '—'}
-                  readOnly
-                  disabled
-                  className="bg-slate-50 cursor-not-allowed"
-                />
-                <p className="text-xs text-slate-400 mt-1">Fixed from the approval request.</p>
-              </FormGroup>
+            <FormGroup>
+              <Label>Related candidate</Label>
+              <Input
+                value={candidate ? `${candidate.full_name} (${candidate.email})` : candidateId ? `Candidate #${candidateId}` : '—'}
+                readOnly
+                disabled
+                className="bg-slate-50 cursor-not-allowed"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>Contract status</Label>
               <Select
-                label="Contract Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
               >
@@ -314,19 +157,23 @@ export default function PendingHRDContractCreatePage() {
                 <option value="expired">Expired</option>
                 <option value="cancelled">Cancelled</option>
               </Select>
-            </div>
+            </FormGroup>
 
-            <div className="flex items-center gap-4 pt-4">
+            <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100">
+              {candidateIdNum && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate(`/candidates/${candidateIdNum}`)}
+                >
+                  Preview Candidate
+                </Button>
+              )}
               <Button
                 type="submit"
-                disabled={
-                  submitting ||
-                  uploading ||
-                  (creationMode === 'manual' && !uploadFile) ||
-                  (creationMode === 'template' && !candidate?.employment_type)
-                }
+                disabled={submitting || !candidate?.employment_type || !contractNumber.trim()}
               >
-                {uploading ? 'Uploading...' : submitting ? 'Saving...' : creationMode === 'manual' ? 'Create Contract & Approve Request' : 'Create Contract & Approve Request'}
+                {submitting ? 'Saving...' : 'Approve'}
               </Button>
               <Link
                 to={PENDING_HRD_RETURN}
@@ -338,43 +185,6 @@ export default function PendingHRDContractCreatePage() {
           </form>
         </CardBody>
       </Card>
-
-      {showPreview && previewHtml && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-900">Template Preview</h3>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex-1 overflow-auto p-6 bg-slate-50">
-              <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-                <iframe srcDoc={previewHtml} className="w-full min-h-[600px]" title="Template Preview" />
-              </div>
-            </div>
-            <div className="flex justify-end gap-4 px-6 py-4 border-t border-slate-200">
-              <Button variant="outline" onClick={() => setShowPreview(false)}>Close</Button>
-              <Button
-                onClick={() => {
-                  const win = window.open('', '_blank');
-                  if (win) {
-                    win.document.write(previewHtml);
-                    win.document.close();
-                  }
-                }}
-              >
-                Open in New Tab
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
