@@ -86,6 +86,7 @@ export default function WarningsPage() {
                 <TH>{t('pages:warnings.documentNumber')}</TH>
                 <TH>{t('pages:warnings.employee')}</TH>
                 <TH>{t('pages:warnings.type')}</TH>
+                <TH>{t('pages:warnings.status')}</TH>
                 <TH>{t('common:date')}</TH>
                 <TH>{t('pages:warnings.description')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -94,7 +95,7 @@ export default function WarningsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={6} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     {t('pages:warnings.noWarningsFound')}
                   </TD>
                 </TR>
@@ -110,6 +111,19 @@ export default function WarningsPage() {
                         w.type === 'SP3' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
                       }`}>
                         {w.type}
+                      </span>
+                    </TD>
+                    <TD>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        (w.status ?? '').toLowerCase() === 'signed'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : (w.status ?? '').toLowerCase() === 'draft'
+                            ? 'bg-slate-100 text-slate-600'
+                            : w.status
+                              ? 'bg-sky-100 text-sky-700'
+                              : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {w.status ? w.status.charAt(0).toUpperCase() + w.status.slice(1).toLowerCase() : '—'}
                       </span>
                     </TD>
                     <TD>{w.warning_date ? formatDate(w.warning_date) : '—'}</TD>

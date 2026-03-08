@@ -478,11 +478,12 @@ export type PaginatedResponse<T> = {
 };
 
 // Users (list, get, create, update – tenant-scoped)
-export async function getUsers(params?: { page?: number; per_page?: number; search?: string }): Promise<PaginatedResponse<User>> {
+export async function getUsers(params?: { page?: number; per_page?: number; search?: string; role_slug?: string }): Promise<PaginatedResponse<User>> {
   const q = new URLSearchParams();
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.role_slug) q.set('role_slug', params.role_slug);
   const url = q.toString() ? `${API_BASE}/users?${q}` : `${API_BASE}/users`;
   const res = await authFetch(url);
   const data = await res.json();

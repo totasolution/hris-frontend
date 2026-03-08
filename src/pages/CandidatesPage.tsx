@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Select from 'react-select';
-import { ButtonLink } from '../components/Button';
+import { Button, ButtonLink } from '../components/Button';
 import { Card } from '../components/Card';
+import { Input, Label, FormGroup } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useAuth } from '../contexts/AuthContext';
-import type { Candidate, Client } from '../services/api';
+import type { Candidate, Client, User } from '../services/api';
 import * as api from '../services/api';
 
 const customSelectStyles = {
@@ -48,28 +49,34 @@ export default function CandidatesPage() {
   const { permissions = [] } = useAuth();
   const canCreateCandidate = permissions.includes('candidate:create');
   const canEditCandidate = permissions.includes('candidate:update');
+  const hasFullRecruitmentAccess = permissions.includes('recruitment:full_recruitment_access');
   const [searchParams] = useSearchParams();
   const [list, setList] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') ?? '');
   const [clientId, setClientId] = useState<string>(() => searchParams.get('client_id') ?? '');
-  const [createdById] = useState<string>(() => searchParams.get('created_by') ?? '');
+  const [createdById, setCreatedById] = useState<string>(() => searchParams.get('created_by') ?? '');
+  const [createdFrom, setCreatedFrom] = useState<string>(() => searchParams.get('created_from') ?? '');
+  const [createdTo, setCreatedTo] = useState<string>(() => searchParams.get('created_to') ?? '');
   const [searchName, setSearchName] = useState<string>('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [perPage] = useState(10);
   const [clients, setClients] = useState<Client[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: { status?: string; client_id?: number; created_by?: number; search?: string; page?: number; per_page?: number } = {};
+      const params: { status?: string; client_id?: number; created_by?: number; created_from?: string; created_to?: string; search?: string; page?: number; per_page?: number } = {};
       if (statusFilter) params.status = statusFilter;
       if (clientId) params.client_id = parseInt(clientId, 10);
-      if (createdById) params.created_by = parseInt(createdById, 10);
+      if (hasFullRecruitmentAccess && createdById) params.created_by = parseInt(createdById, 10);
+      if (createdFrom) params.created_from = createdFrom;
+      if (createdTo) params.created_to = createdTo;
       if (searchName.trim()) params.search = searchName.trim();
       params.page = page;
       params.per_page = perPage;
@@ -86,13 +93,25 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, clientId, createdById, searchName, page]);
+  }, [page]);
+
+  const handleSearch = () => {
+    setPage(1);
+    load();
+  };
 
   useEffect(() => {
     api.getClients().then(setClients).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (hasFullRecruitmentAccess) {
+      api.getUsers({ per_page: 500, role_slug: 'talent_acquisition' }).then((r) => setUsers(r.data ?? [])).catch(() => {});
+    }
+  }, [hasFullRecruitmentAccess]);
+
   const clientOptions = clients.map(c => ({ value: String(c.id), label: c.name }));
+  const picOptions = users.map(u => ({ value: String(u.id), label: u.full_name || u.email || `User #${u.id}` }));
   const statusOptions = [
     { value: 'new', label: 'New' },
     { value: 'screening', label: 'Screening' },
@@ -122,37 +141,80 @@ export default function CandidatesPage() {
         }
       />
 
-      <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="w-64">
-          <input
-            type="text"
-            placeholder={t('pages:candidates.searchPlaceholder')}
-            value={searchName}
-            onChange={(e) => setSearchName(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-          />
-        </div>
-        <div className="w-64">
-          <Select
-            options={clientOptions}
-            value={clientOptions.find(o => o.value === clientId)}
-            onChange={(option: any) => setClientId(option?.value || '')}
-            placeholder={t('pages:candidates.allClients')}
-            styles={customSelectStyles}
-            isClearable
-            isSearchable
-          />
-        </div>
-        <div className="w-64">
-          <Select
-            options={statusOptions}
-            value={statusOptions.find(o => o.value === statusFilter)}
-            onChange={(option: any) => setStatusFilter(option?.value || '')}
-            placeholder={t('pages:candidates.allStatuses')}
-            styles={customSelectStyles}
-            isClearable
-            isSearchable
-          />
+      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 items-end">
+          <FormGroup className="lg:col-span-2">
+            <Label>{t('pages:candidates.filterSearch')}</Label>
+            <Input
+              type="text"
+              placeholder={t('pages:candidates.searchPlaceholder')}
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="!bg-white border-slate-200"
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label>{t('pages:candidates.filterClient')}</Label>
+            <Select
+              options={clientOptions}
+              value={clientOptions.find(o => o.value === clientId)}
+              onChange={(option: any) => setClientId(option?.value || '')}
+              placeholder={t('pages:candidates.allClients')}
+              styles={customSelectStyles}
+              isClearable
+              isSearchable
+            />
+          </FormGroup>
+          {hasFullRecruitmentAccess && (
+            <FormGroup>
+              <Label>{t('pages:candidates.filterPIC')}</Label>
+              <Select
+                options={picOptions}
+                value={picOptions.find(o => o.value === createdById)}
+                onChange={(option: any) => setCreatedById(option?.value || '')}
+                placeholder="All PICs"
+                styles={customSelectStyles}
+                isClearable
+                isSearchable
+              />
+            </FormGroup>
+          )}
+          <FormGroup>
+            <Label>{t('pages:candidates.filterStatus')}</Label>
+            <Select
+              options={statusOptions}
+              value={statusOptions.find(o => o.value === statusFilter)}
+              onChange={(option: any) => setStatusFilter(option?.value || '')}
+              placeholder={t('pages:candidates.allStatuses')}
+              styles={customSelectStyles}
+              isClearable
+              isSearchable
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label>{t('pages:candidates.filterCreatedFrom')}</Label>
+            <Input
+              type="date"
+              value={createdFrom}
+              onChange={(e) => setCreatedFrom(e.target.value)}
+              className="!bg-white border-slate-200"
+            />
+          </FormGroup>
+          <FormGroup>
+            <Label>{t('pages:candidates.filterCreatedTo')}</Label>
+            <Input
+              type="date"
+              value={createdTo}
+              onChange={(e) => setCreatedTo(e.target.value)}
+              className="!bg-white border-slate-200"
+            />
+          </FormGroup>
+          <FormGroup className="flex flex-col justify-end">
+            <Button type="button" onClick={handleSearch} className="w-full sm:w-auto whitespace-nowrap">
+              {t('pages:candidates.searchButton')}
+            </Button>
+          </FormGroup>
         </div>
       </div>
 
