@@ -203,9 +203,10 @@ export default function OnboardingFormPage() {
       if (ktpInputRef.current) ktpInputRef.current.value = '';
       return;
     }
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Silakan unggah gambar (JPEG atau PNG). OCR bekerja paling baik dengan gambar.');
+    // On some mobile devices (e.g. iPhone), camera photos may be HEIC/HEIF or other image/* types.
+    // Allow any image MIME type here and let the backend handle unsupported formats.
+    if (!file.type.startsWith('image/')) {
+      setError('Silakan unggah file berupa gambar (foto KTP).');
       e.target.value = '';
       return;
     }
@@ -648,12 +649,12 @@ export default function OnboardingFormPage() {
                         <input
                           ref={ktpInputRef}
                           type="file"
-                          accept="image/jpeg,image/jpg,image/png"
+                          accept="image/*"
                           onChange={handleKtpFileChange}
                           className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
                           disabled={uploadingKtp || ktpUploaded}
                         />
-                        <p className="mt-1 text-xs text-slate-500">Format: JPEG, PNG (maks. 5MB). Gambar memberikan hasil OCR terbaik.</p>
+                        <p className="mt-1 text-xs text-slate-500">Format: foto KTP (gambar, maks. 5MB). JPEG/PNG memberikan hasil OCR terbaik.</p>
                       </div>
                       {ktpFile && !ktpUploaded && (
                         <Button
