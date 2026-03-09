@@ -649,7 +649,7 @@ export default function OnboardingFormPage() {
                         <input
                           ref={ktpInputRef}
                           type="file"
-                          accept="image/*"
+                          accept="image/jpeg,image/jpg,image/png"
                           onChange={handleKtpFileChange}
                           className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
                           disabled={uploadingKtp || ktpUploaded}
