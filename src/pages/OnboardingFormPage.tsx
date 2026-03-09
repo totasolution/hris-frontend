@@ -654,7 +654,9 @@ export default function OnboardingFormPage() {
                           className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
                           disabled={uploadingKtp || ktpUploaded}
                         />
-                        <p className="mt-1 text-xs text-slate-500">Format: foto KTP (gambar, maks. 5MB). JPEG/PNG memberikan hasil OCR terbaik.</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Format: foto KTP (gambar, maks. 5MB). JPEG/PNG memberikan hasil OCR terbaik.
+                        </p>
                       </div>
                       {ktpFile && !ktpUploaded && (
                         <Button
