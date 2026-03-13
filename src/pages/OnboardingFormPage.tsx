@@ -384,7 +384,11 @@ export default function OnboardingFormPage() {
     if (!formData.date_of_birth?.trim()) missing.push('Tanggal Lahir');
     if (!formData.gender?.trim()) missing.push('Jenis Kelamin');
     if (!formData.religion?.trim()) missing.push('Agama');
-    if (!formData.marital_status?.trim()) missing.push('Status Pernikahan');
+    if (!formData.marital_status?.trim()) {
+      missing.push('Status Pernikahan');
+    } else if ((formData.marital_status === 'married' || formData.marital_status === 'menikah') && formData.child_number.trim() === '') {
+      missing.push('Jumlah Anak');
+    }
     if (!formData.bank_name?.trim()) missing.push('Nama Bank');
     if (!formData.bank_account_number?.trim()) missing.push('Nomor Rekening');
     if (!formData.bank_account_holder?.trim()) missing.push('Nama Pemilik Rekening');
@@ -420,13 +424,16 @@ export default function OnboardingFormPage() {
     setSubmitting(true);
     setError(null);
     try {
+      // child_number must not be sent as a string; backend expects int.
+      // Exclude it from the spread and add it back as a number only when valid.
+      const { child_number, ...restForm } = formData;
       const payload: Record<string, unknown> = {
-        ...formData,
+        ...restForm,
         declaration_checklist: declarationChecklist,
         data_reviewed: true,
       };
-      if (formData.child_number !== '') {
-        const n = parseInt(formData.child_number, 10);
+      if (child_number !== '') {
+        const n = parseInt(child_number, 10);
         if (!isNaN(n)) payload.child_number = n;
       }
       await api.submitOnboardingForm(token, payload);
@@ -776,7 +783,7 @@ export default function OnboardingFormPage() {
                   <option value="divorced">Cerai</option>
                 </Select>
                 {(formData.marital_status === 'married' || formData.marital_status === 'menikah') && (
-                  <Input label="Jumlah Anak" name="child_number" type="number" min="0" value={formData.child_number} onChange={handleInputChange} placeholder="0" />
+                  <Input label="Jumlah Anak" name="child_number" type="number" min="0" value={formData.child_number} onChange={handleInputChange} placeholder="0" required />
                 )}
                 <Input label="Nomor Telepon" name="phone_no" value={formData.phone_no} onChange={handleInputChange} placeholder="+62..." />
                 <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
