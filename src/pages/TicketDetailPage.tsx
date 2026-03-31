@@ -268,7 +268,7 @@ export default function TicketDetailPage() {
           </Card>
 
           {/* Reply Form - only when ticket is in progress and current user is the assignee */}
-          {canRespond && ticket.status === 'in_progress' && user?.id === ticket.assignee_id && (
+          {canRespond && ticket.status === 'in_progress' && (user?.id === ticket.assignee_id || user?.id === ticket.author_id) && (
             <Card>
               <CardHeader>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Reply</h3>
