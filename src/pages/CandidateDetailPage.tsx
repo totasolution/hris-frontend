@@ -64,6 +64,10 @@ export default function CandidateDetailPage() {
     insurance_provider?: string;
     insurance_no?: string;
     overtime_nominal?: string;
+    province_id?: string;
+    district_id?: string;
+    sub_district_id?: string;
+    branch?: string;
   }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
   const [packageKeys, setPackageKeys] = useState<string[]>([]);
@@ -364,6 +368,7 @@ export default function CandidateDetailPage() {
             setPackageKeys={setPackageKeys}
             setCandidate={setCandidate}
             toast={toast}
+            canUploadCandidateDoc={canUploadCandidateDoc}
           />
         )}
 
@@ -451,6 +456,7 @@ function OverviewTab({
   setPackageKeys,
   setCandidate,
   toast,
+  canUploadCandidateDoc,
 }: {
   candidate: Candidate;
   candidateId: number;
@@ -486,6 +492,10 @@ function OverviewTab({
     insurance_provider?: string;
     insurance_no?: string;
     overtime_nominal?: string;
+    province_id?: string;
+    district_id?: string;
+    sub_district_id?: string;
+    branch?: string;
   };
   setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{
     start_date?: string;
@@ -501,6 +511,10 @@ function OverviewTab({
     insurance_provider?: string;
     insurance_no?: string;
     overtime_nominal?: string;
+    province_id?: string;
+    district_id?: string;
+    sub_district_id?: string;
+    branch?: string;
   }>>;
   employmentTermsSaveLoading: boolean;
   setEmploymentTermsSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -509,7 +523,48 @@ function OverviewTab({
   setPackageKeys: React.Dispatch<React.SetStateAction<string[]>>;
   setCandidate: React.Dispatch<React.SetStateAction<Candidate | null>>;
   toast: ReturnType<typeof useToast>;
+  canUploadCandidateDoc: boolean;
 }) {
+  const [subDistrictOptions, setSubDistrictOptions] = useState<api.RegionItem[]>([]);
+  const [districtOptions, setDistrictOptions] = useState<api.RegionItem[]>([]);
+  const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
+
+  const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
+  const selectedDistrictId = (editingEmploymentTerms ? employmentTermsForm.district_id : candidate.district_id)?.trim();
+
+  useEffect(() => {
+    api
+      .getRegionsProvinces()
+      .then((list) => setRegionProvinces(list))
+      .catch(() => setRegionProvinces([]));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProvinceId) {
+      setDistrictOptions([]);
+      return;
+    }
+    api
+      .getRegionsDistricts(selectedProvinceId)
+      .then((list) => setDistrictOptions(list))
+      .catch(() => setDistrictOptions([]));
+  }, [selectedProvinceId]);
+
+  useEffect(() => {
+    const districtId = selectedDistrictId;
+    if (!districtId) {
+      setSubDistrictOptions([]);
+      return;
+    }
+    api
+      .getRegionsSubDistricts(districtId)
+      .then((list) => setSubDistrictOptions(list))
+      .catch(() => setSubDistrictOptions([]));
+  }, [selectedDistrictId]);
+
+  const selectedSubDistrictName =
+    subDistrictOptions.find((s) => s.id === candidate.sub_district_id)?.name ?? candidate.sub_district_id;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className={isOnboardingRelevant ? 'lg:col-span-2 space-y-8' : 'lg:col-span-3 space-y-8'}>
@@ -568,10 +623,6 @@ function OverviewTab({
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Placement Location</p>
                 <p className="text-sm font-bold text-brand-dark">{candidate.placement_location ?? '—'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Branch</p>
-                <p className="text-sm font-bold text-brand-dark">{candidate.branch ?? '—'}</p>
               </div>
               {candidate.screening_rating != null && (
                 <div>
@@ -658,6 +709,10 @@ function OverviewTab({
                       insurance_provider: onboardingData?.employment_insurance_provider ?? '',
                       insurance_no: onboardingData?.employment_insurance_no ?? '',
                       overtime_nominal: onboardingData?.employment_overtime_nominal ?? '',
+                      province_id: candidate.province_id ?? '',
+                      district_id: candidate.district_id ?? '',
+                      sub_district_id: candidate.sub_district_id ?? '',
+                      branch: candidate.branch ?? '',
                     });
                     const packageStr = onboardingData?.package ?? candidate?.package;
                     const fromCandidate = packageStr ? packageStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
@@ -675,6 +730,10 @@ function OverviewTab({
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!candidateId) return;
+                    if (!employmentTermsForm.start_date || !employmentTermsForm.duration_months || !employmentTermsForm.salary?.trim()) {
+                      toast.error('Start Date, Duration (Months), and Salary are required.');
+                      return;
+                    }
                     setEmploymentTermsSaveLoading(true);
                     try {
                       const [updatedOnboarding, updatedCandidate] = await Promise.all([
@@ -693,7 +752,13 @@ function OverviewTab({
                           employment_insurance_no: employmentTermsForm.insurance_no || undefined,
                           employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
                         }),
-                        api.updateCandidate(candidateId, { package: packageKeys.length ? packageKeys.join(',') : undefined }),
+                        api.updateCandidate(candidateId, {
+                          package: packageKeys.length ? packageKeys.join(',') : undefined,
+                          province_id: employmentTermsForm.province_id || undefined,
+                          district_id: employmentTermsForm.district_id || undefined,
+                          sub_district_id: employmentTermsForm.sub_district_id || undefined,
+                          branch: employmentTermsForm.branch || undefined,
+                        }),
                       ]);
                       setOnboardingData(updatedOnboarding);
                       if (updatedCandidate) setCandidate(updatedCandidate);
@@ -714,6 +779,7 @@ function OverviewTab({
                       type="date"
                       value={employmentTermsForm.start_date ?? ''}
                       onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, start_date: e.target.value }))}
+                      required
                     />
                     <Input
                       label="Contract Duration (Months)"
@@ -723,6 +789,7 @@ function OverviewTab({
                       value={employmentTermsForm.duration_months ?? ''}
                       onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, duration_months: e.target.value ? parseInt(e.target.value, 10) : undefined }))}
                       placeholder="e.g. 12"
+                      required
                     />
                     <div className="md:col-span-2">
                       <Input
@@ -731,6 +798,7 @@ function OverviewTab({
                         value={employmentTermsForm.salary ?? ''}
                         onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, salary: e.target.value }))}
                         placeholder="e.g. Rp 5.000.000"
+                        required
                       />
                     </div>
                     <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
@@ -757,6 +825,67 @@ function OverviewTab({
                     <Input label="Tunjangan Transportasi" name="transport_allowance" value={employmentTermsForm.transport_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, transport_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
                     <Input label="Tunjangan Komunikasi" name="comm_allowance" value={employmentTermsForm.comm_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, comm_allowance: e.target.value }))} placeholder="e.g. Rp 100.000" />
                     <Input label="Tunjangan Lain-lain" name="misc_allowance" value={employmentTermsForm.misc_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, misc_allowance: e.target.value }))} placeholder="e.g. Rp 0" />
+                    <Select
+                      label="Province"
+                      name="province_id"
+                      value={employmentTermsForm.province_id ?? ''}
+                      onChange={(e) => {
+                        const provinceId = e.target.value;
+                        setEmploymentTermsForm((p) => ({
+                          ...p,
+                          province_id: provinceId,
+                          district_id: '',
+                          sub_district_id: '',
+                        }));
+                      }}
+                    >
+                      <option value="">Select province</option>
+                      {regionProvinces.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      label="District"
+                      name="district_id"
+                      value={employmentTermsForm.district_id ?? ''}
+                      onChange={(e) => {
+                        const districtId = e.target.value;
+                        setEmploymentTermsForm((p) => ({
+                          ...p,
+                          district_id: districtId,
+                          sub_district_id: '',
+                        }));
+                      }}
+                      disabled={!employmentTermsForm.province_id}
+                    >
+                      <option value="">
+                        {employmentTermsForm.province_id ? 'Select district' : 'Set province first'}
+                      </option>
+                      {districtOptions.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Sub-district"
+                      name="sub_district_id"
+                      value={employmentTermsForm.sub_district_id ?? ''}
+                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, sub_district_id: e.target.value }))}
+                      disabled={!employmentTermsForm.district_id}
+                    >
+                      <option value="">
+                        {employmentTermsForm.district_id ? 'Select sub-district' : 'Set district first'}
+                      </option>
+                      {subDistrictOptions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Input label="Branch" name="branch" value={employmentTermsForm.branch ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, branch: e.target.value }))} placeholder="Branch name" />
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <Button type="submit" disabled={employmentTermsSaveLoading}>
@@ -786,6 +915,8 @@ function OverviewTab({
                     { label: 'Start Date', value: onboardingData?.employment_start_date, currency: false },
                     { label: 'Duration (Months)', value: onboardingData?.employment_duration_months ? `${onboardingData.employment_duration_months} months` : null, currency: false },
                     { label: 'Salary', value: onboardingData?.employment_salary, currency: true },
+                    { label: 'Sub-district', value: selectedSubDistrictName, currency: false },
+                    { label: 'Branch', value: candidate.branch, currency: false },
                     { label: 'Tunjangan Jabatan', value: onboardingData?.employment_positional_allowance, currency: true },
                     { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance, currency: true },
                     { label: 'Tunjangan Komunikasi', value: onboardingData?.employment_comm_allowance, currency: true },

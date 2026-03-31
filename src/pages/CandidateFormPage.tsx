@@ -124,20 +124,8 @@ export default function CandidateFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!isEdit && !cvFile) {
-      setError('CV / resume is required when creating a candidate. Please upload a PDF or document.');
-      return;
-    }
     if (!districtId.trim()) {
       setError('District is required.');
-      return;
-    }
-    if (!subDistrictId.trim()) {
-      setError('Sub-district is required.');
-      return;
-    }
-    if (!branch.trim()) {
-      setError('Branch is required.');
       return;
     }
     setSubmitting(true);
@@ -152,8 +140,8 @@ export default function CandidateFormPage() {
         placement_location: placementLocation.trim() || undefined,
         province_id: provinceId.trim() || undefined,
         district_id: districtId.trim(),
-        sub_district_id: subDistrictId.trim(),
-        branch: branch.trim(),
+        sub_district_id: subDistrictId.trim() || undefined,
+        branch: branch.trim() || undefined,
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
@@ -166,11 +154,8 @@ export default function CandidateFormPage() {
       if (isEdit && id) {
         await api.updateCandidate(parseInt(id, 10), body);
       } else {
-        const createBody = { ...body, employment_type: body.employment_type ?? undefined, district_id: body.district_id, sub_district_id: body.sub_district_id, branch: body.branch };
+        const createBody = { ...body, employment_type: body.employment_type ?? undefined, district_id: body.district_id };
         const created = await api.createCandidate(createBody);
-        if (cvFile) {
-          await api.uploadCandidateDocument(created.id, cvFile, 'cv');
-        }
       }
       navigate(returnTo ?? '/candidates', { replace: true });
     } catch (e) {
@@ -285,6 +270,11 @@ export default function CandidateFormPage() {
                   <option key={c.id} value={String(c.id)}>{c.name}</option>
                 ))}
               </Select>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 space-y-6">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Select
                 label="Employment Type"
                 value={employmentType}
@@ -421,111 +411,22 @@ export default function CandidateFormPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Sub-district <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={subDistrictDropdownOpen ? subDistrictSearch : (subDistricts.find((s) => s.id === subDistrictId)?.name ?? '')}
-                    onChange={(e) => {
-                      setSubDistrictSearch(e.target.value);
-                      if (!subDistrictDropdownOpen) setSubDistrictDropdownOpen(true);
-                    }}
-                    onFocus={() => {
-                      setSubDistrictSearch(subDistricts.find((s) => s.id === subDistrictId)?.name ?? '');
-                      setSubDistrictDropdownOpen(true);
-                    }}
-                    onBlur={() => {
-                      setTimeout(() => setSubDistrictDropdownOpen(false), 150);
-                    }}
-                    placeholder="Search or select sub-district..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
-                  />
-                  {subDistrictDropdownOpen && districtId && (
-                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
-                      {subDistricts
-                        .filter(
-                          (s) =>
-                            !subDistrictSearch.trim() ||
-                            s.name.toLowerCase().includes(subDistrictSearch.trim().toLowerCase())
-                        )
-                        .slice(0, 50)
-                        .map((s) => (
-                          <li
-                            key={s.id}
-                            role="option"
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              setSubDistrictId(s.id);
-                              setSubDistrictSearch('');
-                              setSubDistrictDropdownOpen(false);
-                            }}
-                            className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
-                          >
-                            {s.name}
-                          </li>
-                        ))}
-                      {subDistricts.filter(
-                        (s) =>
-                          !subDistrictSearch.trim() ||
-                          s.name.toLowerCase().includes(subDistrictSearch.trim().toLowerCase())
-                      ).length === 0 && (
-                        <li className="px-4 py-2 text-sm text-slate-500">No sub-district found</li>
-                      )}
-                    </ul>
-                  )}
-                </div>
               </div>
-              <Input
-                label="Branch"
-                value={branch}
-                onChange={(e) => setBranch(e.target.value)}
-                required
-                placeholder="Enter branch name"
-              />
-            </div>
 
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="ojt_option"
-                checked={ojtOption}
-                onChange={(e) => setOjtOption(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
-              />
-              <label htmlFor="ojt_option" className="text-sm font-medium text-slate-700">
-                This candidate is open for OJT (On Job Training) option
-              </label>
-            </div>
-
-            {!isEdit && (
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700">
-                  CV / Resume <span className="text-red-500">*</span>
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="ojt_option"
+                  checked={ojtOption}
+                  onChange={(e) => setOjtOption(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                />
+                <label htmlFor="ojt_option" className="text-sm font-medium text-slate-700">
+                  This candidate is open for OJT (On Job Training) option
                 </label>
-                <p className="text-xs text-slate-500 mb-2">
-                  Upload the candidate&apos;s CV or resume (PDF, DOC, or DOCX). Required when creating a new candidate.
-                </p>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={handleCvChange}
-                    className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20"
-                  />
-                  {cvFileName && (
-                    <span className="text-sm text-slate-600 font-medium truncate max-w-[200px]" title={cvFileName}>
-                      {cvFileName}
-                    </span>
-                  )}
-                </div>
-                {!cvFile && (
-                  <p className="text-xs text-amber-600 font-medium">Please select a file to continue.</p>
-                )}
               </div>
-            )}
+
+            </div>
 
             {isEdit && (
               <div className="pt-6 border-t border-slate-50 space-y-6">

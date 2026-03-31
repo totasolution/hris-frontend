@@ -105,6 +105,9 @@ export default function TicketDetailPage() {
   }
 
   const departmentName = departments.find(d => d.id === ticket.department_id)?.name || `Department #${ticket.department_id}`;
+  const isAuthor = user?.id === ticket.author_id;
+  const isAssignee = user?.id === ticket.assignee_id;
+  const canReply = (isAuthor || (canRespond && isAssignee)) && (ticket.status === 'open' || ticket.status === 'in_progress');
   const statusColors = {
     open: 'bg-blue-100 text-blue-700',
     in_progress: 'bg-yellow-100 text-yellow-700',
@@ -267,8 +270,8 @@ export default function TicketDetailPage() {
             </CardBody>
           </Card>
 
-          {/* Reply Form - only when ticket is in progress and current user is the assignee */}
-          {canRespond && ticket.status === 'in_progress' && (user?.id === ticket.assignee_id || user?.id === ticket.author_id) && (
+          {/* Reply Form - available to ticket author and assigned PIC when ticket is open or in progress */}
+          {canReply && (
             <Card>
               <CardHeader>
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-widest">Reply</h3>

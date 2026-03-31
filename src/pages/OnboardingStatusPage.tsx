@@ -181,13 +181,17 @@ export default function OnboardingStatusPage() {
                       </span>
                     </TD>
                     <TD>
-                      <Button
-                        onClick={() => copyUrl(item.token)}
-                        variant="secondary"
-                        className="!px-3 !py-1.5 !text-xs"
-                      >
-                        {t('pages:onboardingStatus.copyUrl')}
-                      </Button>
+                      {item.expires_at && new Date(item.expires_at).getTime() <= Date.now() ? (
+                        <span className="text-xs text-slate-400">—</span>
+                      ) : (
+                        <Button
+                          onClick={() => copyUrl(item.token)}
+                          variant="secondary"
+                          className="!px-3 !py-1.5 !text-xs"
+                        >
+                          {t('pages:onboardingStatus.copyUrl')}
+                        </Button>
+                      )}
                     </TD>
                   </TR>
                 ))

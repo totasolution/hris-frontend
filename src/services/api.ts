@@ -677,8 +677,8 @@ export async function createCandidate(body: {
   placement_location?: string;
   province_id?: string;
   district_id: string;
-  sub_district_id: string;
-  branch: string;
+  sub_district_id?: string;
+  branch?: string;
   package?: string;
 }): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates`, {
@@ -754,6 +754,7 @@ export type RecruitmentStatistics = {
 
 export async function getRecruitmentStatistics(params?: {
   client_id?: number;
+  province_id?: string;
   period?: 'week' | 'month';
   year?: number;
   month?: number;
@@ -761,6 +762,7 @@ export async function getRecruitmentStatistics(params?: {
 }): Promise<RecruitmentStatistics> {
   const q = new URLSearchParams();
   if (params?.client_id) q.set('client_id', String(params.client_id));
+  if (params?.province_id) q.set('province_id', params.province_id);
   if (params?.period) q.set('period', params.period);
   if (params?.year) q.set('year', String(params.year));
   if (params?.month) q.set('month', String(params.month));
@@ -1199,6 +1201,7 @@ export type OnboardingStatusItem = {
   screening_status?: string;
   token: string;
   created_at: string;
+  expires_at?: string;
   status: 'new' | 'need_follow_up';
 };
 

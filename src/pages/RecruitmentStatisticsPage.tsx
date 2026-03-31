@@ -6,7 +6,7 @@ import { Card, CardBody, CardHeader } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { StatCard } from '../components/dashboard/StatCard';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
-import type { RecruitmentStatistics, Client } from '../services/api';
+import type { RecruitmentStatistics, Client, RegionItem } from '../services/api';
 import * as api from '../services/api';
 
 const PIE_COLORS = [
@@ -17,7 +17,7 @@ const STATUS_GROUPS: Record<string, string[]> = {
   Screening: ['new', 'screening', 'screened_pass', 'screened_fail', 'submitted', 'interview_scheduled', 'interview_passed', 'interview_failed', 'onboarding', 'onboarding_completed'],
   Rejected: ['rejected'],
   OJT: ['ojt'],
-  'Contract Requested': ['contract_requested'],
+  Hired: ['contract_requested','Hired'],
 };
 
 function getWeekRange(year: number, week: number): string {
@@ -54,6 +54,7 @@ export default function RecruitmentStatisticsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>('');
+  const [provinceId, setProvinceId] = useState<string>('');
   const [periodFilter, setPeriodFilter] = useState<'week' | 'month'>('week');
   const [weekFilter, setWeekFilter] = useState<string>(() => {
     const d = new Date();
@@ -79,15 +80,17 @@ export default function RecruitmentStatisticsPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [clients, setClients] = useState<Client[]>([]);
+  const [provinces, setProvinces] = useState<RegionItem[]>([]);
 
   const loadStats = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params: { client_id?: number; period: 'week' | 'month'; year?: number; month?: number; week?: number } = {
+      const params: { client_id?: number; province_id?: string; period: 'week' | 'month'; year?: number; month?: number; week?: number } = {
         period: periodFilter,
       };
       if (clientId) params.client_id = parseInt(clientId, 10);
+      if (provinceId) params.province_id = provinceId;
       if (periodFilter === 'week') {
         const match = weekFilter.match(/^(\d{4})-W?(\d{1,2})$/);
         if (match) {
@@ -112,13 +115,18 @@ export default function RecruitmentStatisticsPage() {
 
   useEffect(() => {
     loadStats();
-  }, [clientId, periodFilter, weekFilter, monthFilter]);
+  }, [clientId, provinceId, periodFilter, weekFilter, monthFilter]);
 
   useEffect(() => {
     api.getClients().then(setClients).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    api.getRegionsProvinces().then(setProvinces).catch(() => {});
+  }, []);
+
   const clientOptions = clients.map((c) => ({ value: String(c.id), label: c.name }));
+  const provinceOptions = provinces.map((p) => ({ value: p.id, label: p.name }));
 
   const statusChartData =
     stats && Object.keys(stats.by_status).length > 0
@@ -150,11 +158,13 @@ export default function RecruitmentStatisticsPage() {
         ? new Date(monthFilter + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
         : '';
 
-  const candidatesLink = (params: { status?: string; client_id?: string; created_by?: string }) => {
+  const candidatesLink = (params: { status?: string; client_id?: string; created_by?: string; province_id?: string }) => {
     const p = new URLSearchParams();
     if (params.status) p.set('status', params.status);
     if (params.client_id) p.set('client_id', params.client_id);
     if (params.created_by) p.set('created_by', params.created_by);
+    const finalProvinceId = params.province_id ?? (provinceId || undefined);
+    if (finalProvinceId) p.set('province_id', finalProvinceId);
     const q = p.toString();
     return q ? `/candidates?${q}` : '/candidates';
   };
@@ -206,6 +216,18 @@ export default function RecruitmentStatisticsPage() {
               value={clientOptions.find((o) => o.value === clientId)}
               onChange={(option: { value: string } | null) => setClientId(option?.value ?? '')}
               placeholder="All Clients"
+              styles={customSelectStyles}
+              isClearable
+              isSearchable
+            />
+          </div>
+          <div className="w-52">
+            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Province</label>
+            <Select
+              options={provinceOptions}
+              value={provinceOptions.find((o) => o.value === provinceId)}
+              onChange={(option: { value: string } | null) => setProvinceId(option?.value ?? '')}
+              placeholder="All Provinces"
               styles={customSelectStyles}
               isClearable
               isSearchable
@@ -400,7 +422,7 @@ export default function RecruitmentStatisticsPage() {
                 <TH className="text-right">Screening</TH>
                 <TH className="text-right">Rejected</TH>
                 <TH className="text-right">OJT</TH>
-                <TH className="text-right">Contract Requested</TH>
+                <TH className="text-right">Hired</TH>
                 <TH className="text-right">Total</TH>
               </TR>
             </THead>

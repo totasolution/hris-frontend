@@ -347,9 +347,13 @@ export default function RecruitmentBoardPage() {
                       <TD className="text-right">
                         <Link
                           to={`/candidates/${c.id}`}
-                          className="text-[10px] font-black text-slate-400 hover:text-brand uppercase tracking-[0.2em] transition-colors"
+                          className="inline-flex p-2 text-slate-400 hover:text-brand transition-colors"
+                          title="View details"
                         >
-                          Details
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                         </Link>
                       </TD>
                     </TR>

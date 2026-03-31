@@ -215,9 +215,16 @@ export default function ExternalEmployeesPage() {
                 list.map((e) => (
                   <TR key={e.id}>
                     <TD className="font-bold text-[#0f172a]">
-                      <Link to={`/employees/${e.id}`} className="hover:text-brand transition-colors">
-                        {e.full_name}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/employees/${e.id}`} className="hover:text-brand transition-colors">
+                          {e.full_name}
+                        </Link>
+                        {e.client_name && (
+                          <span className="text-xs font-medium text-slate-500">
+                            ({e.client_name})
+                          </span>
+                        )}
+                      </div>
                     </TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
                     <TD>{e.email}</TD>
