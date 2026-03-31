@@ -1240,6 +1240,7 @@ export type Employee = {
   employee_number?: string;
   department_id?: number;
   client_id?: number;
+  client_name?: string;
   full_name: string;
   email: string;
   company_email?: string;

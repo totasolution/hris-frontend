@@ -198,6 +198,7 @@ export default function ExternalEmployeesPage() {
             <THead>
               <TR>
                 <TH>{t('employees.fullName')}</TH>
+                <TH>{t('employees.client')}</TH>
                 <TH>{t('employees.employeeNumber')}</TH>
                 <TH>{t('employees.emailAddress')}</TH>
                 <TH>{t('common:status')}</TH>
@@ -207,7 +208,7 @@ export default function ExternalEmployeesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-12 text-center text-slate-400">
+                  <TD colSpan={6} className="py-12 text-center text-slate-400">
                     {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
@@ -215,17 +216,11 @@ export default function ExternalEmployeesPage() {
                 list.map((e) => (
                   <TR key={e.id}>
                     <TD className="font-bold text-[#0f172a]">
-                      <div className="flex items-center gap-2">
-                        <Link to={`/employees/${e.id}`} className="hover:text-brand transition-colors">
-                          {e.full_name}
-                        </Link>
-                        {e.client_name && (
-                          <span className="text-xs font-medium text-slate-500">
-                            ({e.client_name})
-                          </span>
-                        )}
-                      </div>
+                      <Link to={`/employees/${e.id}`} className="hover:text-brand transition-colors">
+                        {e.full_name}
+                      </Link>
                     </TD>
+                    <TD className="text-slate-600">{e.client_name || '—'}</TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
                     <TD>{e.email}</TD>
                     <TD>
