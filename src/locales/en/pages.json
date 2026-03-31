@@ -526,7 +526,7 @@
     "viewTicket": "View Ticket"
   },
   "myWarnings": {
-    "title": "My Warningssssss",
+    "title": "My Warnings",
     "subtitle": "Review issued warning letters and notices",
     "loadError": "Failed to load warnings",
     "warningType": "Warning Type",
