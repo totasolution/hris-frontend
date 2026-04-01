@@ -162,10 +162,22 @@ export default function AppLayout() {
   const navItems = getVisibleNavItems(roles || [], permissions || []);
   const grouped = groupNavItems(navItems);
   const [onboardingFollowUpCount, setOnboardingFollowUpCount] = useState<number>(0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   useEffect(() => {
     if (!permissions?.includes('recruitment:read')) return;
     api.getOnboardingFollowUpCount().then(setOnboardingFollowUpCount).catch(() => setOnboardingFollowUpCount(0));
   }, [permissions]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileNavOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileNavOpen]);
 
   const roleLabel = roles[0]?.replace(/_/g, ' ') ?? 'Member';
   const firstName = user?.full_name?.split(' ')[0] ?? 'User';
@@ -173,8 +185,20 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50/50 font-body">
+      {mobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden"
+        />
+      )}
       {/* Sidebar - Official 3S Style */}
-      <aside className="fixed inset-y-0 left-0 z-30 flex w-72 flex-col border-r border-slate-200/60 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-slate-200/60 bg-white shadow-[4px_0_24px_rgba(0,0,0,0.02)] transform transition-transform duration-300 ${
+          mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+        } lg:translate-x-0`}
+      >
         <div className="flex h-24 shrink-0 items-center gap-4 px-8">
           <Link to="/dashboard" className="flex items-center gap-4 group">
             <div className="h-12 w-12 rounded-2xl bg-brand flex items-center justify-center shadow-lg shadow-brand/20 group-hover:scale-105 transition-transform duration-300">
@@ -209,6 +233,7 @@ export default function AppLayout() {
                       <li key={item.path}>
                         <Link
                           to={item.path}
+                          onClick={() => setMobileNavOpen(false)}
                           className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all duration-300 ${
                             isActive
                               ? 'bg-brand text-white shadow-xl shadow-brand/20 translate-x-1'
@@ -236,10 +261,24 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content area */}
-      <div className="flex-1 pl-72 flex flex-col">
+      <div className="flex-1 lg:pl-72 flex flex-col">
         {/* Top Header - Sharp & Contextual */}
-        <header className="h-24 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-20 px-10 flex items-center justify-between">
-          <div>
+        <header className="h-20 sm:h-24 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-20 px-4 sm:px-6 lg:px-10 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600"
+              aria-label="Open navigation"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            <Link to="/dashboard" className="flex lg:hidden items-center gap-2">
+              <img src="/logo-sigma.png" alt="" className="h-7 w-auto object-contain" />
+            </Link>
+            <div>
             <h2 className="text-2xl font-black text-brand-dark tracking-tight font-headline">
               {location.pathname === '/dashboard' ? `Hello, ${firstName}` : 
                (() => {
@@ -252,13 +291,14 @@ export default function AppLayout() {
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
               {location.pathname === '/dashboard' ? 'Welcome back to your workspace' : 'Management System'}
             </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 sm:gap-4 lg:gap-8">
             {/* Notifications */}
             <NotificationBell />
 
-            <div className="h-10 w-px bg-slate-200/60" />
+            <div className="hidden sm:block h-10 w-px bg-slate-200/60" />
 
             {/* Locale switcher */}
             <div className="flex items-center bg-slate-100/80 rounded-xl p-1 border border-slate-200/50">
@@ -280,7 +320,7 @@ export default function AppLayout() {
               </button>
             </div>
 
-            <div className="h-10 w-px bg-slate-200/60" />
+            <div className="hidden sm:block h-10 w-px bg-slate-200/60" />
 
             {/* Logged User Info */}
             <div className="flex items-center gap-4 group cursor-pointer relative">
@@ -316,7 +356,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-10 py-12">
+        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-12">
           <Outlet />
         </main>
       </div>
@@ -324,7 +364,7 @@ export default function AppLayout() {
       {/* Sticky Help / Open Ticket button — always visible for authenticated users */}
       <Link
         to={`/tickets/new?return=${encodeURIComponent(location.pathname)}`}
-          className="fixed bottom-8 right-8 z-40 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-xl shadow-brand/30 hover:scale-105 hover:shadow-2xl hover:shadow-brand/40 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+          className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-xl shadow-brand/30 hover:scale-105 hover:shadow-2xl hover:shadow-brand/40 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
           title="Open ticket / Help"
           aria-label="Open support ticket"
         >

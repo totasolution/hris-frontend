@@ -29,16 +29,16 @@ export function QuickActions({
   if (visibleActions.length === 0) return null;
 
   return (
-    <Card className={`rounded-[2rem] p-8 border-slate-100 shadow-xl shadow-slate-200/50 ${className}`}>
+    <Card className={`rounded-[2rem] p-5 sm:p-8 border-slate-100 shadow-xl shadow-slate-200/50 ${className}`}>
       {title && <h3 className="text-lg font-bold text-brand-dark font-headline mb-6">{title}</h3>}
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3 sm:gap-4">
         {visibleActions.map((action, idx) => {
           const isPrimary = action.variant === 'primary';
           return (
             <Link
               key={idx}
               to={action.path}
-              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-bold transition-all active:scale-95 ${
+              className={`inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-2xl px-5 sm:px-6 py-3 text-sm font-bold transition-all active:scale-95 ${
                 isPrimary
                   ? 'bg-brand text-white shadow-lg shadow-brand/20 hover:bg-brand-dark'
                   : 'bg-slate-50 text-slate-600 hover:bg-brand-lighter hover:text-brand'

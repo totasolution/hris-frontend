@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   if (!hasAnySection) {
     return (
-      <div className="max-w-[1600px] mx-auto space-y-10 font-body">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 font-body">
         <div className="flex items-center justify-center min-h-[400px]">
           <p className="text-slate-400">{t('dashboard.noPermission')}</p>
         </div>
@@ -62,11 +62,11 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-10 font-body">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 font-body">
       {/* New tickets, Incoming request contract, Latest announcements */}
       {(hasTicketWidget || hasRequestContractWidget || hasAnnouncementRead) && (
         <section aria-label="Dashboard - Notifications">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {hasTicketWidget && <NewTicketsWidget permissions={permissions} />}
             {hasRequestContractWidget && <IncomingRequestContractWidget permissions={permissions} />}
             {hasAnnouncementRead && <LatestAnnouncementsWidget permissions={permissions} />}

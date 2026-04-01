@@ -39,16 +39,16 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
 
   return (
     <div className="space-y-8">
-      <div className="md:col-span-2 group relative overflow-hidden rounded-[2rem] bg-brand-dark p-10 text-white shadow-2xl transition-all hover:shadow-brand/10">
+      <div className="md:col-span-2 group relative overflow-hidden rounded-[2rem] bg-brand-dark p-6 sm:p-8 lg:p-10 text-white shadow-2xl transition-all hover:shadow-brand/10">
         <div className="absolute top-0 right-0 -mt-20 -mr-20 h-80 w-80 rounded-full bg-brand/20 blur-[100px] group-hover:bg-brand/30 transition-colors" />
         <div className="relative z-10 flex flex-col h-full justify-between">
           <div>
             <span className="inline-flex items-center rounded-full bg-white/10 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] font-headline">
               Recruitment Pipeline
             </span>
-            <div className="mt-10 grid grid-cols-3 gap-8">
+            <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-8">
               <div>
-                <p className="text-5xl font-black text-brand tracking-tighter font-headline">
+                <p className="text-4xl sm:text-5xl font-black text-brand tracking-tighter font-headline">
                   {loading ? '...' : stats.activeCandidates}
                 </p>
                 <p className="mt-3 text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-tight">
@@ -56,7 +56,7 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
                 </p>
               </div>
               <div>
-                <p className="text-5xl font-black text-white tracking-tighter font-headline">
+                <p className="text-4xl sm:text-5xl font-black text-white tracking-tighter font-headline">
                   {loading ? '...' : stats.submittedToClient}
                 </p>
                 <p className="mt-3 text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-tight">
@@ -64,7 +64,7 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
                 </p>
               </div>
               <div>
-                <p className="text-5xl font-black text-white tracking-tighter font-headline">
+                <p className="text-4xl sm:text-5xl font-black text-white tracking-tighter font-headline">
                   {loading ? '...' : stats.onboardingQueue}
                 </p>
                 <p className="mt-3 text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-tight">
@@ -73,16 +73,16 @@ export function RecruiterWidgets({ permissions }: RecruiterWidgetsProps) {
               </div>
             </div>
           </div>
-          <div className="mt-12 flex gap-4">
+          <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Link
               to="/recruitment/board"
-              className="inline-flex items-center justify-center rounded-2xl bg-brand px-8 py-4 text-sm font-bold text-white transition-all hover:bg-brand-dark active:scale-95 shadow-lg shadow-brand/20"
+              className="inline-flex w-full sm:w-auto items-center justify-center rounded-2xl bg-brand px-6 sm:px-8 py-3.5 sm:py-4 text-sm font-bold text-white transition-all hover:bg-brand-dark active:scale-95 shadow-lg shadow-brand/20"
             >
               Open Kanban Board
             </Link>
             <Link
               to="/candidates/new"
-              className="inline-flex items-center justify-center rounded-2xl bg-white/10 px-8 py-4 text-sm font-bold text-white transition-all hover:bg-white/20 active:scale-95 border border-white/10"
+              className="inline-flex w-full sm:w-auto items-center justify-center rounded-2xl bg-white/10 px-6 sm:px-8 py-3.5 sm:py-4 text-sm font-bold text-white transition-all hover:bg-white/20 active:scale-95 border border-white/10"
             >
               Add Candidate
             </Link>

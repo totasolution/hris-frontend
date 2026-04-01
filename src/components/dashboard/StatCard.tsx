@@ -41,23 +41,23 @@ export function StatCard({
   };
 
   const content = (
-    <Card className={`rounded-[2rem] p-8 group hover:border-brand/20 transition-all border-slate-100 shadow-xl shadow-slate-200/50 relative overflow-hidden ${className}`}>
+    <Card className={`rounded-[2rem] p-5 sm:p-8 group hover:border-brand/20 transition-all border-slate-100 shadow-xl shadow-slate-200/50 relative overflow-hidden ${className}`}>
       {icon && (
-        <div className={`h-12 w-12 rounded-2xl ${colorClasses[color]} flex items-center justify-center mb-8 group-hover:scale-110 transition-transform`}>
+        <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-2xl ${colorClasses[color]} flex items-center justify-center mb-5 sm:mb-8 group-hover:scale-110 transition-transform`}>
           {icon}
         </div>
       )}
-      <h3 className="text-xl font-bold text-brand-dark font-headline">{title}</h3>
-      <div className="mt-6 flex items-baseline gap-2">
-        <span className={`text-5xl font-black ${valueColorClasses[color]} tracking-tighter font-headline`}>
+      <h3 className="text-lg sm:text-xl font-bold text-brand-dark font-headline">{title}</h3>
+      <div className="mt-4 sm:mt-6 flex items-baseline gap-2">
+        <span className={`text-4xl sm:text-5xl font-black ${valueColorClasses[color]} tracking-tighter font-headline`}>
           {loading ? '...' : value}
         </span>
         {subtitle && (
-          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{subtitle}</span>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest break-words">{subtitle}</span>
         )}
       </div>
       {link && (
-        <Link to={link} className="mt-8 text-brand font-bold text-xs uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all">
+        <Link to={link} className="mt-6 sm:mt-8 text-brand font-bold text-xs uppercase tracking-widest flex items-center gap-2 group-hover:gap-3 transition-all">
           View Details <span>→</span>
         </Link>
       )}
