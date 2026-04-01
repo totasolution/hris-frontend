@@ -267,19 +267,25 @@ export default function AppLayout() {
           <div className="flex items-center gap-3 sm:gap-4">
             <button
               type="button"
-              onClick={() => setMobileNavOpen(true)}
-              className="inline-flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600"
-              aria-label="Open navigation"
+              onClick={() => setMobileNavOpen((prev) => !prev)}
+              className="inline-flex lg:hidden h-10 w-10 items-center justify-center text-brand"
+              aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              {mobileNavOpen ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 7h16M4 12h16M4 17h16" />
+                </svg>
+              )}
             </button>
             <Link to="/dashboard" className="flex lg:hidden items-center gap-2">
               <img src="/logo-sigma.png" alt="" className="h-7 w-auto object-contain" />
             </Link>
             <div>
-            <h2 className="text-2xl font-black text-brand-dark tracking-tight font-headline">
+            <h2 className="text-xl sm:text-2xl font-black text-brand-dark tracking-tight font-headline leading-tight">
               {location.pathname === '/dashboard' ? `Hello, ${firstName}` : 
                (() => {
                  const match = navItems
@@ -288,8 +294,8 @@ export default function AppLayout() {
                  return match ? t(match.label) : t('appTitle');
                })()}
             </h2>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">
-              {location.pathname === '/dashboard' ? 'Welcome back to your workspace' : 'Management System'}
+            <p className="text-[11px] sm:text-xs text-slate-400 font-bold uppercase tracking-[0.12em] sm:tracking-widest mt-1">
+              {location.pathname === '/dashboard' ? 'Welcome back' : 'Management System'}
             </p>
             </div>
           </div>
