@@ -30,8 +30,6 @@ import EmployeeFormPage from './pages/EmployeeFormPage';
 import EmployeeDetailPage from './pages/EmployeeDetailPage';
 import ContractsPage from './pages/ContractsPage';
 import ContractFormPage from './pages/ContractFormPage';
-import ContractTemplatesPage from './pages/ContractTemplatesPage';
-import ContractTemplateFormPage from './pages/ContractTemplateFormPage';
 import WarningsPage from './pages/WarningsPage';
 import WarningDetailPage from './pages/WarningDetailPage';
 import WarningFormPage from './pages/WarningFormPage';
@@ -119,9 +117,6 @@ function AppRoutes() {
         <Route path="contracts" element={<ContractsPage />} />
         <Route path="contracts/new" element={<ContractFormPage />} />
         <Route path="contracts/:id/edit" element={<ContractFormPage />} />
-        <Route path="contract-templates" element={<ContractTemplatesPage />} />
-        <Route path="contract-templates/new" element={<ContractTemplateFormPage />} />
-        <Route path="contract-templates/:id/edit" element={<ContractTemplateFormPage />} />
         <Route path="company-settings" element={<CompanySettingsPage />} />
         <Route path="warnings" element={<WarningsPage />} />
         <Route path="warnings/new" element={<WarningFormPage />} />

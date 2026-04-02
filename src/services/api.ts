@@ -1236,7 +1236,7 @@ export type Employee = {
   user_id?: number;
   candidate_id?: number;
   employee_type: string;
-  employment_contract_type?: 'pkwt' | 'partnership' | null; // From candidate when hired; used for contract template auto-selection
+  employment_contract_type?: 'pkwt' | 'partnership' | null; // From candidate when hired; selects embedded PKWT vs Partnership HTML
   employee_number?: string;
   department_id?: number;
   client_id?: number;
@@ -1447,126 +1447,12 @@ export async function deleteEmployeeDocument(employeeId: number, documentId: num
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to delete document');
 }
 
-// Contract Templates
-export type ContractTemplateType = 'pkwt' | 'pkwtt' | 'partnership' | 'internship' | 'freelance' | 'other' | 'payslip' | 'paklaring' | 'warning_sp1' | 'warning_sp2' | 'warning_sp3';
-
-export type ContractTemplate = {
-  id: number;
-  tenant_id: number;
-  name: string;
-  contract_type: ContractTemplateType;
-  description?: string;
-  content: string;
-  placeholders?: string[];
-  is_active: boolean;
-  created_by?: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export async function getContractTemplates(params?: {
-  contract_type?: ContractTemplateType;
-  active_only?: boolean;
-}): Promise<ContractTemplate[]> {
-  const q = new URLSearchParams();
-  if (params?.contract_type) q.set('contract_type', params.contract_type);
-  if (params?.active_only) q.set('active_only', 'true');
-  const url = q.toString() ? `${API_BASE}/contract-templates?${q}` : `${API_BASE}/contract-templates`;
-  const res = await authFetch(url);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch templates');
-  return data.data ?? [];
-}
-
-export async function getContractTemplate(id: number): Promise<ContractTemplate> {
-  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, { credentials: 'include', headers: authHeaders() });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch template');
-  return data;
-}
-
-export async function createContractTemplate(body: {
-  name: string;
-  contract_type: ContractTemplateType;
-  description?: string;
-  content: string;
-  is_active?: boolean;
-}): Promise<ContractTemplate> {
-  const res = await authFetch(`${API_BASE}/contract-templates`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create template');
-  return data;
-}
-
-export async function updateContractTemplate(
-  id: number,
-  body: {
-    name?: string;
-    contract_type?: ContractTemplateType;
-    description?: string;
-    content?: string;
-    is_active?: boolean;
-  }
-): Promise<ContractTemplate> {
-  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, {
-    method: 'PUT',
-    credentials: 'include',
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update template');
-  return data;
-}
-
-export async function deleteContractTemplate(id: number): Promise<void> {
-  const res = await authFetch(`${API_BASE}/contract-templates/${id}`, {
-    method: 'DELETE',
-    credentials: 'include',
-    headers: authHeaders(),
-  });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data?.error?.message ?? 'Failed to delete template');
-  }
-}
-
-export async function getContractTemplatePlaceholders(): Promise<string[]> {
-  const res = await authFetch(`${API_BASE}/contract-templates/placeholders`, {
-    credentials: 'include',
-    headers: authHeaders(),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch placeholders');
-  return data.data ?? [];
-}
-
-export async function previewContractTemplate(id: number, values: Record<string, string>): Promise<string> {
-  const res = await authFetch(`${API_BASE}/contract-templates/${id}/preview`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: authHeaders(),
-    body: JSON.stringify(values),
-  });
-  if (!res.ok) {
-    const data = await res.json();
-    throw new Error(data?.error?.message ?? 'Failed to preview template');
-  }
-  return res.text();
-}
-
 // Contracts
 export type Contract = {
   id: number;
   tenant_id: number;
   employee_id?: number;
   employee_name?: string;
-  template_id?: number;
   contract_number?: string;
   status: string;
   file_path?: string;
@@ -1610,6 +1496,25 @@ export async function getContract(id: number): Promise<Contract> {
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch contract');
   return data;
+}
+
+/** Rendered HTML for the contract draft (embedded PKWT / Partnership layout). */
+export async function getContractDraftHtml(id: number): Promise<string> {
+  const res = await authFetch(`${API_BASE}/contracts/${id}/draft/html`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    let msg = 'Failed to load draft HTML';
+    try {
+      const data = await res.json();
+      msg = data?.error?.message ?? msg;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg);
+  }
+  return res.text();
 }
 
 export async function createContract(body: Partial<Contract>): Promise<Contract> {

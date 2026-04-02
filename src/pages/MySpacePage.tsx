@@ -417,7 +417,7 @@ function MySpaceContractsTab({
                 </TD>
                 <TD className="text-right">
                   <div className="flex justify-end gap-2 flex-wrap">
-                    {contract.template_id != null && contract.contract_signed_url && (
+                    {contract.contract_signed_url && (
                       <a
                         href={contract.contract_signed_url}
                         target="_blank"

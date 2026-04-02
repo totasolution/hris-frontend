@@ -48,7 +48,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'payslipUploads', path: '/payslips/uploads', permission: 'payslip:read', group: 'people', icon: 'upload' },
   { label: 'contracts', path: '/contracts', permission: 'contract:read', group: 'people', icon: 'contracts' },
   { label: 'paklaring', path: '/paklaring', permission: 'paklaring:read', group: 'people', icon: 'paklaring' },
-  { label: 'contractTemplates', path: '/contract-templates', permission: 'contract_template:read', group: 'setup', icon: 'contracts' },
   { label: 'companySettings', path: '/company-settings', permission: 'tenant:read', group: 'setup', icon: 'clients' },
   { label: 'warnings', path: '/warnings', permission: 'warning:read', group: 'people', icon: 'warnings' },
   { label: 'tickets', path: '/tickets', permission: 'ticket:read', group: 'support', icon: 'tickets' },

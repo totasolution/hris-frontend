@@ -7,7 +7,6 @@ import { Select as NativeSelect } from '../components/Select';
 import { Input, Label, FormGroup } from '../components/Input';
 import { useToast } from '../components/Toast';
 import * as api from '../services/api';
-import { formatDateLong, formatContractDateIndonesian } from '../utils/formatDate';
 
 /** Safe internal path for redirect (starts with /, no protocol or external link). */
 function getReturnPath(search: string): string | null {
@@ -30,12 +29,10 @@ export default function ContractFormPage() {
   const [employeeSearchResults, setEmployeeSearchResults] = useState<api.Employee[]>([]);
   const [employeeSearching, setEmployeeSearching] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<api.Employee | null>(null);
-  const [templateId, setTemplateId] = useState<string>('');
   const [contractNumber, setContractNumber] = useState<string>('');
   const [contractSignedUrl, setContractSignedUrl] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [contract, setContract] = useState<api.Contract | null>(null);
-  const [templates, setTemplates] = useState<api.ContractTemplate[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -75,15 +72,6 @@ export default function ContractFormPage() {
     else setEmployeeSearchResults([]);
   }, [employeeSearch, employeeSearchDebounced]);
 
-  useEffect(() => {
-    api.getContractTemplates({ active_only: true }).then(setTemplates).catch(() => {});
-  }, []);
-
-  const contractTemplates = useMemo(
-    () => templates.filter((t) => t.contract_type !== 'payslip'),
-    [templates]
-  );
-
   const handleSelectEmployee = (emp: api.Employee) => {
     setSelectedEmployee(emp);
     setEmployeeSearch(emp.full_name);
@@ -107,12 +95,12 @@ export default function ContractFormPage() {
         const c = await api.getContract(parseInt(id, 10));
         setContract(c);
         setEmployeeId(c.employee_id ? String(c.employee_id) : '');
-        setTemplateId(c.template_id ? String(c.template_id) : '');
         setContractNumber(c.contract_number ?? '');
         setContractSignedUrl(c.contract_signed_url ?? '');
         setStatus(c.status ?? 'draft');
-        if (c.template_id) setCreationMode('template');
+        if (c.file_path?.endsWith('/contract.pdf')) setCreationMode('template');
         else if (c.file_path) setCreationMode('manual');
+        else setCreationMode('template');
         if (c.employee_id) {
           api.getEmployee(c.employee_id).then((emp) => {
             setSelectedEmployee(emp);
@@ -172,8 +160,6 @@ export default function ContractFormPage() {
     try {
       const body: Partial<api.Contract> = {
         employee_id: employeeId ? parseInt(employeeId, 10) : undefined,
-        // template_id: send when editing to preserve; omit when creating (backend auto-picks from employee employment_contract_type)
-        template_id: isEdit && templateId ? parseInt(templateId, 10) : undefined,
         contract_number: contractNumber || undefined,
         status,
         contract_signed_url: creationMode === 'template' ? (contractSignedUrl || undefined) : undefined,
@@ -192,70 +178,16 @@ export default function ContractFormPage() {
   };
 
   const handlePreviewTemplate = async () => {
-    // Resolve template: use templateId when editing, or first matching template for employee's employment_contract_type when creating
-    let previewTemplateId = templateId;
-    if (!previewTemplateId && selectedEmployee?.employment_contract_type) {
-      const ct = selectedEmployee.employment_contract_type as api.ContractTemplateType;
-      const matching = contractTemplates.filter((t) => t.contract_type === ct);
-      if (matching.length > 0) previewTemplateId = String(matching[0].id);
+    if (!isEdit || !id) {
+      toast.error('Save the contract first, then you can preview the rendered document.');
+      return;
     }
-    if (!previewTemplateId) {
-      toast.error('Select an employee with employment type (PKWT or Mitra) to preview');
+    if (creationMode !== 'template') {
+      toast.error('Preview applies to template-based contracts.');
       return;
     }
     try {
-      // Use client payroll fields when employee has placement client
-      let cutoffStart = '1';
-      let cutoffEnd = '25';
-      let payDate = '27';
-      if (selectedEmployee?.client_id) {
-        try {
-          const client = await api.getClient(selectedEmployee.client_id);
-          if (client.payroll_cut_off_start != null) cutoffStart = String(client.payroll_cut_off_start);
-          if (client.payroll_cut_off_end != null) cutoffEnd = String(client.payroll_cut_off_end);
-          if (client.payment_date != null) payDate = String(client.payment_date);
-        } catch {
-          /* fallback to defaults */
-        }
-      }
-      // Get sample values for preview (must match backend placeholders for PKWT)
-      const sampleValues: Record<string, string> = {
-        contract_number: contractNumber || 'PKWT-2026-XXX',
-        contract_date: formatContractDateIndonesian(new Date()),
-        company_name: 'PT Your Company',
-        company_address: 'Company Address',
-        company_representative: 'HR Director',
-        representative_position: 'Human Resources Director',
-        full_name: '[Candidate Name]',
-        email: 'email@example.com',
-        phone: '08123456789',
-        nip: '[NIP]',
-        id_number: '[ID Number]',
-        address: '[Alamat KTP]',
-        address_domisili: '[Alamat Domisili]',
-        place_of_birth: '[Place of Birth]',
-        date_of_birth: '[Date of Birth]',
-        gender: 'Laki-laki',
-        religion: '[Religion]',
-        marital_status: '[Marital Status]',
-        bank_name: 'BANK BRI',
-        bank_account_number: '[Account Number]',
-        bank_account_holder: '[Account Holder]',
-        npwp_number: '[NPWP]',
-        position: '[Position]',
-        start_date: '[Start Date]',
-        end_date: '[End Date]',
-        salary: '[Salary]',
-        tunjangan_transportasi: '[Transport]',
-        tunjangan_pulsa: '[Pulsa]',
-        cutoff_start: cutoffStart,
-        cutoff_end: cutoffEnd,
-        pay_date: payDate,
-        service_name: '[Nama Jasa]',
-        work_location: '[Work Location]',
-        other_terms: '',
-      };
-      const html = await api.previewContractTemplate(parseInt(previewTemplateId, 10), sampleValues);
+      const html = await api.getContractDraftHtml(parseInt(id, 10));
       setPreviewHtml(html);
       setShowPreview(true);
     } catch (err) {
@@ -356,14 +288,14 @@ export default function ContractFormPage() {
                 <div className="flex gap-2 items-end">
                   <div className="flex-1">
                     <p className="text-sm text-slate-600">
-                      Template is auto-selected from the employee&apos;s employment type (PKWT or Mitra/Partnership).
+                      Layout is fixed in the application: PKWT or Partnership (Mitra) HTML is chosen from the employee&apos;s
+                      employment type.
                     </p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Select an employee above. Manage templates in{' '}
-                      <Link to="/contract-templates" className="text-brand hover:underline">Document Templates</Link>.
+                      After the contract is saved, use Preview to see the rendered draft.
                     </p>
                   </div>
-                  {(templateId || (selectedEmployee && (selectedEmployee.employment_contract_type === 'pkwt' || selectedEmployee.employment_contract_type === 'partnership'))) && (
+                  {isEdit && id && (
                     <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
                       Preview
                     </Button>
@@ -505,14 +437,14 @@ export default function ContractFormPage() {
           <CardHeader title="Generated Document" />
           <CardBody>
             <p className="text-sm text-slate-600 mb-4">
-              Generate a viewable document (HTML) from the contract draft using the selected template. 
-              {templateId ? ' The document will be rendered with data from the employee.' : ' Please select a template to use for rendering.'}
+              Generate a PDF from the contract draft using the built-in PKWT or Partnership layout (from the employee&apos;s
+              employment type).
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
                 variant="secondary"
-                disabled={generating || !templateId}
+                disabled={generating}
                 onClick={async () => {
                   setGenerating(true);
                   setError(null);
@@ -545,11 +477,6 @@ export default function ContractFormPage() {
                 </Button>
               )}
             </div>
-            {!templateId && (
-              <p className="text-xs text-amber-600 mt-2">
-                Select a contract template above to enable document generation.
-              </p>
-            )}
           </CardBody>
         </Card>
       )}
