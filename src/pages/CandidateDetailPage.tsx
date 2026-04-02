@@ -367,6 +367,7 @@ export default function CandidateDetailPage() {
             packageKeys={packageKeys}
             setPackageKeys={setPackageKeys}
             setCandidate={setCandidate}
+              setDocuments={setDocuments}
             toast={toast}
             canUploadCandidateDoc={canUploadCandidateDoc}
           />
@@ -455,6 +456,7 @@ function OverviewTab({
   packageKeys,
   setPackageKeys,
   setCandidate,
+  setDocuments,
   toast,
   canUploadCandidateDoc,
 }: {
@@ -522,12 +524,14 @@ function OverviewTab({
   packageKeys: string[];
   setPackageKeys: React.Dispatch<React.SetStateAction<string[]>>;
   setCandidate: React.Dispatch<React.SetStateAction<Candidate | null>>;
+  setDocuments: React.Dispatch<React.SetStateAction<CandidateDocument[]>>;
   toast: ReturnType<typeof useToast>;
   canUploadCandidateDoc: boolean;
 }) {
   const [subDistrictOptions, setSubDistrictOptions] = useState<api.RegionItem[]>([]);
   const [districtOptions, setDistrictOptions] = useState<api.RegionItem[]>([]);
   const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
+  const [employmentCvFile, setEmploymentCvFile] = useState<File | null>(null);
 
   const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
   const selectedDistrictId = (editingEmploymentTerms ? employmentTermsForm.district_id : candidate.district_id)?.trim();
@@ -695,6 +699,7 @@ function OverviewTab({
                   variant="secondary"
                   className="!py-1.5 !px-4 !text-xs"
                   onClick={() => {
+                    setEmploymentCvFile(null);
                     setEmploymentTermsForm({
                       start_date: onboardingData?.employment_start_date ?? '',
                       duration_months: onboardingData?.employment_duration_months ?? undefined,
@@ -760,6 +765,19 @@ function OverviewTab({
                           branch: employmentTermsForm.branch || undefined,
                         }),
                       ]);
+
+                      // Optional: upload CV from Employment Terms panel.
+                      if (employmentCvFile && canUploadCandidateDoc) {
+                        if (employmentCvFile.size > MAX_CANDIDATE_DOCUMENT_SIZE) {
+                          toast.error('CV file is too large (max 5MB).');
+                          return;
+                        }
+                        await api.uploadCandidateDocument(candidateId, employmentCvFile, 'cv');
+                        const updatedDocs = await api.getCandidateDocuments(candidateId);
+                        setDocuments(updatedDocs);
+                        setEmploymentCvFile(null);
+                      }
+
                       setOnboardingData(updatedOnboarding);
                       if (updatedCandidate) setCandidate(updatedCandidate);
                       setEditingEmploymentTerms(false);
@@ -886,6 +904,29 @@ function OverviewTab({
                       ))}
                     </Select>
                     <Input label="Branch" name="branch" value={employmentTermsForm.branch ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, branch: e.target.value }))} placeholder="Branch name" />
+
+                    {canUploadCandidateDoc && (
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
+                          CV / Resume
+                        </p>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            setEmploymentCvFile(f ?? null);
+                          }}
+                          className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
+                          disabled={employmentTermsSaveLoading}
+                        />
+                        {employmentCvFile && (
+                          <p className="text-xs text-slate-500 mt-2">
+                            Selected: {employmentCvFile.name} ({(employmentCvFile.size / 1024 / 1024).toFixed(2)} MB)
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <Button type="submit" disabled={employmentTermsSaveLoading}>
