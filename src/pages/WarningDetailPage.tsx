@@ -109,6 +109,12 @@ export default function WarningDetailPage() {
     try {
       const updated = await api.generateWarningDocument(warning.id);
       setWarning(updated);
+      // If preview is currently open, refresh iframe src with a fresh presigned URL
+      // so the user sees the newly regenerated PDF contents.
+      if (previewOpen && updated?.id) {
+        const url = await api.getWarningPresignedUrl(updated.id);
+        setPreviewUrl(url);
+      }
       toast.success(t('pages:warnings.regenerateSuccess'));
     } catch {
       toast.error(t('pages:warnings.regenerateFailed'));
@@ -123,6 +129,12 @@ export default function WarningDetailPage() {
     try {
       const updated = await api.acknowledgeWarning(warning.id);
       setWarning(updated);
+      // If preview is currently open, refresh iframe src with a fresh presigned URL
+      // so the user sees the newly generated signatures.
+      if (previewOpen && updated?.id) {
+        const url = await api.getWarningPresignedUrl(updated.id);
+        setPreviewUrl(url);
+      }
       toast.success(t('pages:warningDetail.acknowledgeSuccess', 'Warning letter has been signed'));
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('pages:warningDetail.acknowledgeFailed', 'Failed to acknowledge warning');
