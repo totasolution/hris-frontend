@@ -39,12 +39,14 @@ export default function OnboardingFormPage() {
   // Form Fields
   const [formData, setFormData] = useState({
     id_number: '',
-    ktp_rt_rw: '',
+    ktp_rt: '',
+    ktp_rw: '',
     ktp_province: '',
     ktp_district: '',
     ktp_sub_district: '',
     address: '',
-    domicile_rt_rw: '',
+    domicile_rt: '',
+    domicile_rw: '',
     domicile_province: '',
     domicile_district: '',
     domicile_sub_district: '',
@@ -71,6 +73,20 @@ export default function OnboardingFormPage() {
   const [domicileProvinceId, setDomicileProvinceId] = useState('');
   const [domicileDistrictId, setDomicileDistrictId] = useState('');
 
+  const splitRtRw = (value?: string | null) => {
+    const raw = (value ?? '').trim();
+    if (!raw) return { rt: '', rw: '' };
+    const [rt = '', rw = ''] = raw.split('/').map((v) => v.trim());
+    return { rt, rw };
+  };
+
+  const buildRtRw = (rt?: string, rw?: string) => {
+    const cleanRt = (rt ?? '').trim();
+    const cleanRw = (rw ?? '').trim();
+    if (!cleanRt && !cleanRw) return '';
+    return `${cleanRt}/${cleanRw}`;
+  };
+
   useEffect(() => {
     if (!token) {
       setError('Tautan tidak valid');
@@ -92,15 +108,19 @@ export default function OnboardingFormPage() {
         // Try to load existing onboarding form data (if candidate re-opens the link)
         try {
           const existing = await api.getOnboardingFormByToken(token);
+          const ktpRtRw = splitRtRw(existing.ktp_rt_rw);
+          const domicileRtRw = splitRtRw(existing.domicile_rt_rw);
           setFormData(prev => ({
             ...prev,
             id_number: existing.id_number ?? prev.id_number,
-            ktp_rt_rw: existing.ktp_rt_rw ?? prev.ktp_rt_rw,
+            ktp_rt: ktpRtRw.rt || prev.ktp_rt,
+            ktp_rw: ktpRtRw.rw || prev.ktp_rw,
             ktp_province: existing.ktp_province ?? prev.ktp_province,
             ktp_district: existing.ktp_district ?? prev.ktp_district,
             ktp_sub_district: existing.ktp_sub_district ?? prev.ktp_sub_district,
             address: existing.address ?? prev.address,
-            domicile_rt_rw: existing.domicile_rt_rw ?? prev.domicile_rt_rw,
+            domicile_rt: domicileRtRw.rt || prev.domicile_rt,
+            domicile_rw: domicileRtRw.rw || prev.domicile_rw,
             domicile_province: existing.domicile_province ?? prev.domicile_province,
             domicile_district: existing.domicile_district ?? prev.domicile_district,
             domicile_sub_district: existing.domicile_sub_district ?? prev.domicile_sub_district,
@@ -146,7 +166,8 @@ export default function OnboardingFormPage() {
       setFormData(prev => {
         const next = { ...prev, domicile_same_as_ktp: checked };
         if (checked) {
-          next.domicile_rt_rw = prev.ktp_rt_rw;
+          next.domicile_rt = prev.ktp_rt;
+          next.domicile_rw = prev.ktp_rw;
           next.domicile_province = prev.ktp_province;
           next.domicile_district = prev.ktp_district;
           next.domicile_sub_district = prev.ktp_sub_district;
@@ -157,8 +178,9 @@ export default function OnboardingFormPage() {
     } else {
       setFormData(prev => {
         const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
-        if (prev.domicile_same_as_ktp && ['ktp_rt_rw', 'ktp_province', 'ktp_district', 'ktp_sub_district', 'address'].includes(name)) {
-          next.domicile_rt_rw = next.ktp_rt_rw;
+        if (prev.domicile_same_as_ktp && ['ktp_rt', 'ktp_rw', 'ktp_province', 'ktp_district', 'ktp_sub_district', 'address'].includes(name)) {
+          next.domicile_rt = next.ktp_rt;
+          next.domicile_rw = next.ktp_rw;
           next.domicile_province = next.ktp_province;
           next.domicile_district = next.ktp_district;
           next.domicile_sub_district = next.ktp_sub_district;
@@ -171,7 +193,8 @@ export default function OnboardingFormPage() {
 
   const buildFullKtpAddress = (data: typeof formData) => {
     const parts: string[] = [];
-    if (data.ktp_rt_rw?.trim()) parts.push(`RT/RW ${data.ktp_rt_rw.trim()}`);
+    const ktpRtRw = buildRtRw(data.ktp_rt, data.ktp_rw);
+    if (ktpRtRw) parts.push(`RT/RW ${ktpRtRw}`);
     if (data.address?.trim()) parts.push(data.address.trim());
     if (data.ktp_sub_district?.trim()) parts.push(data.ktp_sub_district.trim());
     if (data.ktp_district?.trim()) parts.push(data.ktp_district.trim());
@@ -182,7 +205,8 @@ export default function OnboardingFormPage() {
   const buildFullDomicileAddress = (data: typeof formData) => {
     if (data.domicile_same_as_ktp) return buildFullKtpAddress(data);
     const parts: string[] = [];
-    if (data.domicile_rt_rw?.trim()) parts.push(`RT/RW ${data.domicile_rt_rw.trim()}`);
+    const domicileRtRw = buildRtRw(data.domicile_rt, data.domicile_rw);
+    if (domicileRtRw) parts.push(`RT/RW ${domicileRtRw}`);
     if (data.domicile_address?.trim()) parts.push(data.domicile_address.trim());
     if (data.domicile_sub_district?.trim()) parts.push(data.domicile_sub_district.trim());
     if (data.domicile_district?.trim()) parts.push(data.domicile_district.trim());
@@ -429,9 +453,18 @@ export default function OnboardingFormPage() {
       const { child_number, ...restForm } = formData;
       const payload: Record<string, unknown> = {
         ...restForm,
+        ktp_rt_rw: buildRtRw(formData.ktp_rt, formData.ktp_rw),
+        domicile_rt_rw: buildRtRw(
+          formData.domicile_same_as_ktp ? formData.ktp_rt : formData.domicile_rt,
+          formData.domicile_same_as_ktp ? formData.ktp_rw : formData.domicile_rw,
+        ),
         declaration_checklist: declarationChecklist,
         data_reviewed: true,
       };
+      delete payload.ktp_rt;
+      delete payload.ktp_rw;
+      delete payload.domicile_rt;
+      delete payload.domicile_rw;
       if (child_number !== '') {
         const n = parseInt(child_number, 10);
         if (!isNaN(n)) payload.child_number = n;
@@ -793,7 +826,10 @@ export default function OnboardingFormPage() {
                 <Input label="Nomor Telepon" name="phone_no" value={formData.phone_no} onChange={handleInputChange} placeholder="+62..." />
                 <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="RT/RW" name="ktp_rt_rw" value={formData.ktp_rt_rw} onChange={handleInputChange} placeholder="01/02" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input label="RT" name="ktp_rt" type="number" min="0" value={formData.ktp_rt} onChange={handleInputChange} placeholder="01" />
+                    <Input label="RW" name="ktp_rw" type="number" min="0" value={formData.ktp_rw} onChange={handleInputChange} placeholder="02" />
+                  </div>
                   <RegionSelect label="Provinsi" type="province" value={formData.ktp_province} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_province: name, ktp_district: '', ktp_sub_district: '' })); setKtpProvinceId(id ?? ''); setKtpDistrictId(''); }} required />
                   <RegionSelect label="Kabupaten/Kota" type="district" provinceId={ktpProvinceId} value={formData.ktp_district} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_district: name, ktp_sub_district: '' })); setKtpDistrictId(id ?? ''); }} required />
                   <RegionSelect label="Kecamatan" type="sub_district" districtId={ktpDistrictId} value={formData.ktp_sub_district} onChange={(name) => setFormData(p => ({ ...p, ktp_sub_district: name }))} required />
@@ -816,7 +852,10 @@ export default function OnboardingFormPage() {
                 {!formData.domicile_same_as_ktp && (
                   <>
                     <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Input label="RT/RW Domisili" name="domicile_rt_rw" value={formData.domicile_rt_rw} onChange={handleInputChange} placeholder="01/02" />
+                      <div className="grid grid-cols-2 gap-4">
+                        <Input label="RT Domisili" name="domicile_rt" type="number" min="0" value={formData.domicile_rt} onChange={handleInputChange} placeholder="01" />
+                        <Input label="RW Domisili" name="domicile_rw" type="number" min="0" value={formData.domicile_rw} onChange={handleInputChange} placeholder="02" />
+                      </div>
                       <RegionSelect label="Provinsi Domisili" type="province" value={formData.domicile_province} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_province: name, domicile_district: '', domicile_sub_district: '' })); setDomicileProvinceId(id ?? ''); setDomicileDistrictId(''); }} required />
                       <RegionSelect label="Kabupaten/Kota Domisili" type="district" provinceId={domicileProvinceId} value={formData.domicile_district} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_district: name, domicile_sub_district: '' })); setDomicileDistrictId(id ?? ''); }} required />
                       <RegionSelect label="Kecamatan Domisili" type="sub_district" districtId={domicileDistrictId} value={formData.domicile_sub_district} onChange={(name) => setFormData(p => ({ ...p, domicile_sub_district: name }))} required />

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
-import { Input, Textarea } from '../components/Input';
+import { Textarea } from '../components/Input';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
@@ -210,6 +210,7 @@ export default function PendingHRDPage() {
             <THead>
               <TR>
                 <TH>Candidate</TH>
+                <TH>Client</TH>
                 <TH>Submitted At</TH>
                 {canApprove && <TH className="text-right">Actions</TH>}
               </TR>
@@ -217,7 +218,7 @@ export default function PendingHRDPage() {
             <TBody>
               {filteredList.length === 0 ? (
                 <TR>
-                  <TD colSpan={canApprove ? 3 : 2} className="py-12 text-center">
+                  <TD colSpan={canApprove ? 4 : 3} className="py-12 text-center">
                     <p className="text-slate-400">
                       {list.length === 0
                         ? 'No contract requests pending approval.'
@@ -256,11 +257,6 @@ export default function PendingHRDPage() {
                           </div>
                           <span className="text-xs text-slate-400">{c?.email}</span>
                           <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                            {c?.client_name && (
-                              <span>
-                                <span className="font-semibold text-slate-600">Client:</span> {c.client_name}
-                              </span>
-                            )}
                             {c?.pic_name && (
                               <span>
                                 <span className="font-semibold text-slate-600">PIC:</span> {c.pic_name}
@@ -268,6 +264,9 @@ export default function PendingHRDPage() {
                             )}
                           </div>
                         </div>
+                      </TD>
+                      <TD>
+                        {c?.client_name ?? '—'}
                       </TD>
                       <TD>
                         {d.submitted_for_hrd_at ? new Date(d.submitted_for_hrd_at).toLocaleString() : '—'}
