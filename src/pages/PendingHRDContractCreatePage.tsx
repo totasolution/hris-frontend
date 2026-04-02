@@ -128,12 +128,11 @@ export default function PendingHRDContractCreatePage() {
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormGroup>
-              <Label>Contract number <span className="text-red-500">*</span></Label>
+              <Label>Contract number</Label>
               <Input
                 value={contractNumber}
                 onChange={(e) => setContractNumber(e.target.value)}
                 placeholder="e.g., PKWT-2026-001"
-                required
               />
             </FormGroup>
             <FormGroup>
@@ -171,7 +170,7 @@ export default function PendingHRDContractCreatePage() {
               )}
               <Button
                 type="submit"
-                disabled={submitting || !candidate?.employment_type || !contractNumber.trim()}
+                disabled={submitting || !candidate?.employment_type}
               >
                 {submitting ? 'Saving...' : 'Approve'}
               </Button>

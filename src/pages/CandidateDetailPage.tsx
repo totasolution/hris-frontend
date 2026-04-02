@@ -77,6 +77,7 @@ export default function CandidateDetailPage() {
 
   const candidateId = id ? parseInt(id, 10) : 0;
   const candidateReturnTo = id ? `/candidates/${id}` : '';
+  const canEditCandidate = permissions.includes('candidate:update');
   const canUploadCandidateDoc = permissions.includes('candidate:upload_doc');
   const canDeleteCandidateDoc = permissions.includes('candidate:delete_doc');
 
@@ -310,9 +311,14 @@ export default function CandidateDetailPage() {
         title={candidate.full_name}
         subtitle={candidate.email}
         actions={
-          <ButtonLink to={candidateReturnTo ? `/candidates/${candidate.id}/edit?return=${encodeURIComponent(candidateReturnTo)}` : `/candidates/${candidate.id}/edit`} variant="secondary">
-            Edit Profile
-          </ButtonLink>
+          canEditCandidate ? (
+            <ButtonLink
+              to={candidateReturnTo ? `/candidates/${candidate.id}/edit?return=${encodeURIComponent(candidateReturnTo)}` : `/candidates/${candidate.id}/edit`}
+              variant="secondary"
+            >
+              Edit Profile
+            </ButtonLink>
+          ) : undefined
         }
       />
 
