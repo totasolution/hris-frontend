@@ -550,11 +550,6 @@ export default function OnboardingFormPage() {
 
         {step === 2 ? (
           <form onSubmit={handleSubmitDeclaration} className="space-y-8">
-            <div className="flex justify-end">
-              <Button type="button" variant="secondary" onClick={handleSetujuiSemua} className="!py-2 !text-sm">
-                Setujui semua
-              </Button>
-            </div>
             <Card>
               <CardBody className="space-y-6">
                 <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">KETENTUAN</h3>
@@ -621,6 +616,16 @@ export default function OnboardingFormPage() {
                 </label>
               </CardBody>
             </Card>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleSetujuiSemua}
+                className="!py-2 !text-sm"
+              >
+                Setujui semua
+              </Button>
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Button type="button" variant="secondary" onClick={() => setStep(1)} className="order-2 sm:order-1">
                 Kembali
