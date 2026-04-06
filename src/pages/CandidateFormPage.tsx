@@ -34,7 +34,6 @@ export default function CandidateFormPage() {
   const [ojtOption, setOjtOption] = useState(false);
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
-  const [screeningRating, setScreeningRating] = useState<string>('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState('');
   const [clients, setClients] = useState<api.Client[]>([]);
@@ -83,7 +82,6 @@ export default function CandidateFormPage() {
           setSubDistrictId(c.sub_district_id ?? '');
           setVillageId(c.village_id ?? '');
           setBranch(c.branch ?? '');
-          setScreeningRating(c.screening_rating != null ? String(c.screening_rating) : '');
           setPlacementLocation(c.placement_location ?? '');
         }
       } catch (e) {
@@ -165,7 +163,6 @@ export default function CandidateFormPage() {
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
-          screening_rating: screeningRating ? parseInt(screeningRating, 10) : undefined,
         }),
         ...(!isEdit && { employment_type: employmentType || undefined }),
       };
@@ -503,21 +500,6 @@ export default function CandidateFormPage() {
               </div>
 
             </div>
-
-            {isEdit && (
-              <div className="pt-6 border-t border-slate-50">
-                <div className="max-w-xs">
-                  <Input
-                    label="Rating (1–5)"
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={screeningRating}
-                    onChange={(e) => setScreeningRating(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="flex items-center gap-4 pt-4">
               <Button type="submit" disabled={submitting}>
