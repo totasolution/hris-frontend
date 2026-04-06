@@ -5,7 +5,6 @@ import { ButtonLink } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
-import { useToast } from '../components/Toast';
 import type { Candidate, Client } from '../services/api';
 import * as api from '../services/api';
 
@@ -64,7 +63,7 @@ const BOARD_COLUMNS: BoardColumn[] = [
   },
 ];
 
-// All stages for list view dropdown
+// Stage labels & colors (list view read-only + helpers)
 const STAGES: Stage[] = [
   { id: 'new', label: 'New', color: 'bg-slate-100 text-slate-600' },
   { id: 'screening', label: 'Screening', color: 'bg-brand-lighter text-brand' },
@@ -131,7 +130,6 @@ export default function RecruitmentBoardPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  const toast = useToast();
 
   useEffect(() => {
     async function loadInitialData() {
@@ -182,16 +180,6 @@ export default function RecruitmentBoardPage() {
   };
 
   const getStatusColor = (status: string) => STAGES.find(s => s.id === status)?.color ?? 'bg-slate-100 text-slate-600';
-
-  const handleStatusChange = async (candidateId: number, newStatus: string) => {
-    try {
-      await api.updateCandidate(candidateId, { screening_status: newStatus });
-      setCandidates(prev => prev.map(c => c.id === candidateId ? { ...c, screening_status: newStatus } : c));
-      toast.success(`Candidate moved to ${newStatus.replace(/_/g, ' ')}`);
-    } catch (err) {
-      toast.error('Failed to update status');
-    }
-  };
 
   if (initialLoading) {
     return (
@@ -319,17 +307,11 @@ export default function RecruitmentBoardPage() {
                       <TD className="text-slate-600">{c.email}</TD>
                       <TD>{c.client_name || '—'}</TD>
                       <TD>
-                        <select
-                          value={c.screening_status}
-                          onChange={(e) => handleStatusChange(c.id, e.target.value)}
-                          className={`text-xs font-bold px-3 py-1.5 rounded-lg border-0 cursor-pointer focus:ring-2 focus:ring-brand/20 outline-none ${stage?.color ?? 'bg-slate-100 text-slate-600'}`}
+                        <span
+                          className={`inline-block text-xs font-bold px-3 py-1.5 rounded-lg ${stage?.color ?? 'bg-slate-100 text-slate-600'}`}
                         >
-                          {STAGES.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.label}
-                            </option>
-                          ))}
-                        </select>
+                          {stage?.label ?? c.screening_status.replace(/_/g, ' ')}
+                        </span>
                       </TD>
                       <TD>{c.pic_name || '—'}</TD>
                       <TD>

@@ -584,6 +584,7 @@ export type Candidate = {
   province_id?: string | null;
   district_id?: string | null;
   sub_district_id?: string | null;
+  village_id?: string | null;
   branch?: string | null;
   package?: string | null; // Comma-separated: bpjskes,bpjsket,bpjsbpu,insurance,overtime
   screening_status: string;
@@ -678,6 +679,7 @@ export async function createCandidate(body: {
   province_id?: string;
   district_id: string;
   sub_district_id?: string;
+  village_id?: string;
   branch?: string;
   package?: string;
 }): Promise<Candidate> {
@@ -706,6 +708,7 @@ export async function updateCandidate(
     province_id: string;
     district_id: string;
     sub_district_id: string;
+    village_id: string;
     branch: string;
     package: string;
     screening_status: string;
@@ -966,6 +969,15 @@ export async function getRegionsSubDistricts(districtId: string, search?: string
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch sub-districts');
   const list = Array.isArray(data?.data) ? data.data : [];
   return list.map((s: { id: number; name: string }) => ({ id: String(s.id), name: s.name }));
+}
+export async function getRegionsVillages(subDistrictId: string, search?: string): Promise<RegionItem[]> {
+  const q = new URLSearchParams({ sub_district_id: subDistrictId });
+  if (search?.trim()) q.set('search', search.trim());
+  const res = await fetch(`${API_BASE}/villages?${q}`, { credentials: 'include' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch villages');
+  const list = Array.isArray(data?.data) ? data.data : [];
+  return list.map((v: { id: number; name: string }) => ({ id: String(v.id), name: v.name }));
 }
 
 export async function getOnboardingByToken(token: string): Promise<{ link: OnboardingLink; candidate: Candidate }> {
@@ -1291,6 +1303,7 @@ export type Employee = {
   placement_location?: string;
   placement_district_id?: string;
   placement_sub_district_id?: string;
+  placement_village_id?: string;
   branch?: string;
   // BPJS (Indonesian social security)
   bpjstk_id?: string;  // BPJS Tenaga Kerja ID

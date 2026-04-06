@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
-import { Input, Textarea } from '../components/Input';
+import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,8 +34,6 @@ export default function CandidateFormPage() {
   const [ojtOption, setOjtOption] = useState(false);
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
-  const [screeningStatus, setScreeningStatus] = useState('new');
-  const [screeningNotes, setScreeningNotes] = useState('');
   const [screeningRating, setScreeningRating] = useState<string>('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [cvFileName, setCvFileName] = useState('');
@@ -45,14 +43,18 @@ export default function CandidateFormPage() {
   const [provinceId, setProvinceId] = useState<string>('');
   const [districtId, setDistrictId] = useState<string>('');
   const [subDistrictId, setSubDistrictId] = useState<string>('');
+  const [villageId, setVillageId] = useState<string>('');
   const [branch, setBranch] = useState('');
   const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
   const [districts, setDistricts] = useState<api.RegionItem[]>([]);
   const [subDistricts, setSubDistricts] = useState<api.RegionItem[]>([]);
+  const [villages, setVillages] = useState<api.RegionItem[]>([]);
   const [districtSearch, setDistrictSearch] = useState('');
   const [districtDropdownOpen, setDistrictDropdownOpen] = useState(false);
   const [subDistrictSearch, setSubDistrictSearch] = useState('');
   const [subDistrictDropdownOpen, setSubDistrictDropdownOpen] = useState(false);
+  const [villageSearch, setVillageSearch] = useState('');
+  const [villageDropdownOpen, setVillageDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,9 +81,8 @@ export default function CandidateFormPage() {
           setProvinceId(c.province_id ?? '');
           setDistrictId(c.district_id ?? '');
           setSubDistrictId(c.sub_district_id ?? '');
+          setVillageId(c.village_id ?? '');
           setBranch(c.branch ?? '');
-          setScreeningStatus(c.screening_status ?? 'new');
-          setScreeningNotes(c.screening_notes ?? '');
           setScreeningRating(c.screening_rating != null ? String(c.screening_rating) : '');
           setPlacementLocation(c.placement_location ?? '');
         }
@@ -100,6 +101,8 @@ export default function CandidateFormPage() {
       setDistrictId('');
       setSubDistrictId('');
       setSubDistricts([]);
+      setVillageId('');
+      setVillages([]);
       return;
     }
     api.getRegionsDistricts(provinceId).then((list) => {
@@ -113,13 +116,29 @@ export default function CandidateFormPage() {
     if (!districtId) {
       setSubDistricts([]);
       setSubDistrictId('');
+      setVillageId('');
+      setVillages([]);
       return;
     }
     api.getRegionsSubDistricts(districtId).then((list) => {
       setSubDistricts(list);
       setSubDistrictId((prev) => (list.some((s) => s.id === prev) ? prev : ''));
-    }).catch(() => { setSubDistricts([]); setSubDistrictId(''); });
+      setVillageId('');
+      setVillages([]);
+    }).catch(() => { setSubDistricts([]); setSubDistrictId(''); setVillageId(''); setVillages([]); });
   }, [districtId]);
+
+  useEffect(() => {
+    if (!subDistrictId) {
+      setVillages([]);
+      setVillageId('');
+      return;
+    }
+    api.getRegionsVillages(subDistrictId).then((list) => {
+      setVillages(list);
+      setVillageId((prev) => (list.some((v) => v.id === prev) ? prev : ''));
+    }).catch(() => { setVillages([]); setVillageId(''); });
+  }, [subDistrictId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,12 +160,11 @@ export default function CandidateFormPage() {
         province_id: provinceId.trim() || undefined,
         district_id: districtId.trim(),
         sub_district_id: subDistrictId.trim() || undefined,
+        village_id: villageId.trim() || undefined,
         branch: branch.trim() || undefined,
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
-          screening_status: screeningStatus,
-          screening_notes: screeningNotes.trim() || undefined,
           screening_rating: screeningRating ? parseInt(screeningRating, 10) : undefined,
         }),
         ...(!isEdit && { employment_type: employmentType || undefined }),
@@ -411,6 +429,64 @@ export default function CandidateFormPage() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Village
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={villageDropdownOpen ? villageSearch : (villages.find((v) => v.id === villageId)?.name ?? '')}
+                    onChange={(e) => {
+                      setVillageSearch(e.target.value);
+                      if (!villageDropdownOpen) setVillageDropdownOpen(true);
+                    }}
+                    onFocus={() => {
+                      setVillageSearch(villages.find((v) => v.id === villageId)?.name ?? '');
+                      setVillageDropdownOpen(true);
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => setVillageDropdownOpen(false), 150);
+                    }}
+                    placeholder="Search or select village..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                  />
+                  {villageDropdownOpen && subDistrictId && (
+                    <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                      {villages
+                        .filter(
+                          (v) =>
+                            !villageSearch.trim() ||
+                            v.name.toLowerCase().includes(villageSearch.trim().toLowerCase())
+                        )
+                        .slice(0, 50)
+                        .map((v) => (
+                          <li
+                            key={v.id}
+                            role="option"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              setVillageId(v.id);
+                              setVillageSearch('');
+                              setVillageDropdownOpen(false);
+                            }}
+                            className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                          >
+                            {v.name}
+                          </li>
+                        ))}
+                      {villages.filter(
+                        (v) =>
+                          !villageSearch.trim() ||
+                          v.name.toLowerCase().includes(villageSearch.trim().toLowerCase())
+                      ).length === 0 && (
+                        <li className="px-4 py-2 text-sm text-slate-500">No village found</li>
+                      )}
+                    </ul>
+                  )}
+                </div>
+              </div>
+
               </div>
 
               <div className="flex items-center gap-3">
@@ -429,28 +505,8 @@ export default function CandidateFormPage() {
             </div>
 
             {isEdit && (
-              <div className="pt-6 border-t border-slate-50 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Select
-                    label="Screening Status"
-                    value={screeningStatus}
-                    onChange={(e) => setScreeningStatus(e.target.value)}
-                  >
-                    <option value="new">New</option>
-                    <option value="screening">Screening</option>
-                    <option value="screened_pass">Screened Pass</option>
-                    <option value="screened_fail">Screened Fail</option>
-                    <option value="submitted">Submitted</option>
-                    <option value="interview_scheduled">Interviewing</option>
-                    <option value="interview_passed">Interview Passed</option>
-                    <option value="interview_failed">Interview Failed</option>
-                    <option value="onboarding">Onboarding</option>
-                    <option value="onboarding_completed">Onboarding Done</option>
-                    <option value="ojt">OJT</option>
-                    <option value="contract_requested">Contract Requested</option>
-                    <option value="hired">Hired</option>
-                    <option value="rejected">Rejected</option>
-                  </Select>
+              <div className="pt-6 border-t border-slate-50">
+                <div className="max-w-xs">
                   <Input
                     label="Rating (1–5)"
                     type="number"
@@ -460,13 +516,6 @@ export default function CandidateFormPage() {
                     onChange={(e) => setScreeningRating(e.target.value)}
                   />
                 </div>
-                <Textarea
-                  label="Screening Notes"
-                  value={screeningNotes}
-                  onChange={(e: any) => setScreeningNotes(e.target.value)}
-                  rows={3}
-                  placeholder="Add any internal notes about the candidate..."
-                />
               </div>
             )}
 

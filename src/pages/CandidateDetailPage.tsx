@@ -67,6 +67,7 @@ export default function CandidateDetailPage() {
     province_id?: string;
     district_id?: string;
     sub_district_id?: string;
+    village_id?: string;
     branch?: string;
   }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
@@ -503,6 +504,7 @@ function OverviewTab({
     province_id?: string;
     district_id?: string;
     sub_district_id?: string;
+    village_id?: string;
     branch?: string;
   };
   setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{
@@ -522,6 +524,7 @@ function OverviewTab({
     province_id?: string;
     district_id?: string;
     sub_district_id?: string;
+    village_id?: string;
     branch?: string;
   }>>;
   employmentTermsSaveLoading: boolean;
@@ -535,12 +538,14 @@ function OverviewTab({
   canUploadCandidateDoc: boolean;
 }) {
   const [subDistrictOptions, setSubDistrictOptions] = useState<api.RegionItem[]>([]);
+  const [villageOptions, setVillageOptions] = useState<api.RegionItem[]>([]);
   const [districtOptions, setDistrictOptions] = useState<api.RegionItem[]>([]);
   const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
   const [employmentCvFile, setEmploymentCvFile] = useState<File | null>(null);
 
   const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
   const selectedDistrictId = (editingEmploymentTerms ? employmentTermsForm.district_id : candidate.district_id)?.trim();
+  const selectedSubDistrictId = (editingEmploymentTerms ? employmentTermsForm.sub_district_id : candidate.sub_district_id)?.trim();
 
   useEffect(() => {
     api
@@ -572,8 +577,21 @@ function OverviewTab({
       .catch(() => setSubDistrictOptions([]));
   }, [selectedDistrictId]);
 
+  useEffect(() => {
+    if (!selectedSubDistrictId) {
+      setVillageOptions([]);
+      return;
+    }
+    api
+      .getRegionsVillages(selectedSubDistrictId)
+      .then((list) => setVillageOptions(list))
+      .catch(() => setVillageOptions([]));
+  }, [selectedSubDistrictId]);
+
   const selectedSubDistrictName =
     subDistrictOptions.find((s) => s.id === candidate.sub_district_id)?.name ?? candidate.sub_district_id;
+  const selectedVillageName =
+    villageOptions.find((v) => v.id === candidate.village_id)?.name ?? candidate.village_id;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -723,6 +741,7 @@ function OverviewTab({
                       province_id: candidate.province_id ?? '',
                       district_id: candidate.district_id ?? '',
                       sub_district_id: candidate.sub_district_id ?? '',
+                      village_id: candidate.village_id ?? '',
                       branch: candidate.branch ?? '',
                     });
                     const packageStr = onboardingData?.package ?? candidate?.package;
@@ -768,6 +787,7 @@ function OverviewTab({
                           province_id: employmentTermsForm.province_id || undefined,
                           district_id: employmentTermsForm.district_id || undefined,
                           sub_district_id: employmentTermsForm.sub_district_id || undefined,
+                          village_id: employmentTermsForm.village_id || undefined,
                           branch: employmentTermsForm.branch || undefined,
                         }),
                       ]);
@@ -860,6 +880,7 @@ function OverviewTab({
                           province_id: provinceId,
                           district_id: '',
                           sub_district_id: '',
+                          village_id: '',
                         }));
                       }}
                     >
@@ -880,6 +901,7 @@ function OverviewTab({
                           ...p,
                           district_id: districtId,
                           sub_district_id: '',
+                          village_id: '',
                         }));
                       }}
                       disabled={!employmentTermsForm.province_id}
@@ -897,7 +919,7 @@ function OverviewTab({
                       label="Sub-district"
                       name="sub_district_id"
                       value={employmentTermsForm.sub_district_id ?? ''}
-                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, sub_district_id: e.target.value }))}
+                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, sub_district_id: e.target.value, village_id: '' }))}
                       disabled={!employmentTermsForm.district_id}
                     >
                       <option value="">
@@ -906,6 +928,22 @@ function OverviewTab({
                       {subDistrictOptions.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Select
+                      label="Village"
+                      name="village_id"
+                      value={employmentTermsForm.village_id ?? ''}
+                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, village_id: e.target.value }))}
+                      disabled={!employmentTermsForm.sub_district_id}
+                    >
+                      <option value="">
+                        {employmentTermsForm.sub_district_id ? 'Select village' : 'Set sub-district first'}
+                      </option>
+                      {villageOptions.map((v) => (
+                        <option key={v.id} value={v.id}>
+                          {v.name}
                         </option>
                       ))}
                     </Select>
@@ -963,6 +1001,7 @@ function OverviewTab({
                     { label: 'Duration (Months)', value: onboardingData?.employment_duration_months ? `${onboardingData.employment_duration_months} months` : null, currency: false },
                     { label: 'Salary', value: onboardingData?.employment_salary, currency: true },
                     { label: 'Sub-district', value: selectedSubDistrictName, currency: false },
+                    { label: 'Village', value: selectedVillageName, currency: false },
                     { label: 'Branch', value: candidate.branch, currency: false },
                     { label: 'Tunjangan Jabatan', value: onboardingData?.employment_positional_allowance, currency: true },
                     { label: 'Tunjangan Transportasi', value: onboardingData?.employment_transport_allowance, currency: true },
