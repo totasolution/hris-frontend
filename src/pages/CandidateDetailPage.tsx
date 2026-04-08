@@ -143,9 +143,13 @@ export default function CandidateDetailPage() {
     const hasEmploymentTerms =
       onboardingData?.employment_start_date &&
       onboardingData?.employment_duration_months &&
-      onboardingData?.employment_salary;
+      onboardingData?.employment_salary &&
+      candidate?.province_id &&
+      candidate?.district_id &&
+      candidate?.sub_district_id &&
+      candidate?.village_id;
     if (!hasEmploymentTerms) {
-      toast.error('Please complete Employment Terms (Start Date, Duration, and Salary) before generating the onboarding link.');
+      toast.error('Please complete Employment Terms (Start Date, Duration, Salary, Province, District, Sub-district, and Village) before generating the onboarding link.');
       return;
     }
     setLinkLoading(true);
@@ -541,6 +545,14 @@ function OverviewTab({
   const [villageOptions, setVillageOptions] = useState<api.RegionItem[]>([]);
   const [districtOptions, setDistrictOptions] = useState<api.RegionItem[]>([]);
   const [regionProvinces, setRegionProvinces] = useState<api.RegionItem[]>([]);
+  const [provinceSearch, setProvinceSearch] = useState('');
+  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [districtDropdownOpen, setDistrictDropdownOpen] = useState(false);
+  const [subDistrictSearch, setSubDistrictSearch] = useState('');
+  const [subDistrictDropdownOpen, setSubDistrictDropdownOpen] = useState(false);
+  const [villageSearch, setVillageSearch] = useState('');
+  const [villageDropdownOpen, setVillageDropdownOpen] = useState(false);
   const [employmentCvFile, setEmploymentCvFile] = useState<File | null>(null);
 
   const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
@@ -592,6 +604,14 @@ function OverviewTab({
     subDistrictOptions.find((s) => s.id === candidate.sub_district_id)?.name ?? candidate.sub_district_id;
   const selectedVillageName =
     villageOptions.find((v) => v.id === candidate.village_id)?.name ?? candidate.village_id;
+  const selectedFormProvinceName =
+    regionProvinces.find((p) => p.id === (employmentTermsForm.province_id ?? ''))?.name ?? '';
+  const selectedFormDistrictName =
+    districtOptions.find((d) => d.id === (employmentTermsForm.district_id ?? ''))?.name ?? '';
+  const selectedFormSubDistrictName =
+    subDistrictOptions.find((s) => s.id === (employmentTermsForm.sub_district_id ?? ''))?.name ?? '';
+  const selectedFormVillageName =
+    villageOptions.find((v) => v.id === (employmentTermsForm.village_id ?? ''))?.name ?? '';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -760,8 +780,8 @@ function OverviewTab({
                   onSubmit={async (e) => {
                     e.preventDefault();
                     if (!candidateId) return;
-                    if (!employmentTermsForm.start_date || !employmentTermsForm.duration_months || !employmentTermsForm.salary?.trim()) {
-                      toast.error('Start Date, Duration (Months), and Salary are required.');
+                    if (!employmentTermsForm.start_date || !employmentTermsForm.duration_months || !employmentTermsForm.salary?.trim() || !employmentTermsForm.province_id || !employmentTermsForm.district_id || !employmentTermsForm.sub_district_id || !employmentTermsForm.village_id) {
+                      toast.error('Start Date, Duration (Months), Salary, Province, District, Sub-district, and Village are required.');
                       return;
                     }
                     setEmploymentTermsSaveLoading(true);
@@ -869,84 +889,202 @@ function OverviewTab({
                     <Input label="Tunjangan Transportasi" name="transport_allowance" value={employmentTermsForm.transport_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, transport_allowance: e.target.value }))} placeholder="e.g. Rp 500.000" />
                     <Input label="Tunjangan Komunikasi" name="comm_allowance" value={employmentTermsForm.comm_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, comm_allowance: e.target.value }))} placeholder="e.g. Rp 100.000" />
                     <Input label="Tunjangan Lain-lain" name="misc_allowance" value={employmentTermsForm.misc_allowance ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, misc_allowance: e.target.value }))} placeholder="e.g. Rp 0" />
-                    <Select
-                      label="Province"
-                      name="province_id"
-                      value={employmentTermsForm.province_id ?? ''}
-                      onChange={(e) => {
-                        const provinceId = e.target.value;
-                        setEmploymentTermsForm((p) => ({
-                          ...p,
-                          province_id: provinceId,
-                          district_id: '',
-                          sub_district_id: '',
-                          village_id: '',
-                        }));
-                      }}
-                    >
-                      <option value="">Select province</option>
-                      {regionProvinces.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label="District"
-                      name="district_id"
-                      value={employmentTermsForm.district_id ?? ''}
-                      onChange={(e) => {
-                        const districtId = e.target.value;
-                        setEmploymentTermsForm((p) => ({
-                          ...p,
-                          district_id: districtId,
-                          sub_district_id: '',
-                          village_id: '',
-                        }));
-                      }}
-                      disabled={!employmentTermsForm.province_id}
-                    >
-                      <option value="">
-                        {employmentTermsForm.province_id ? 'Select district' : 'Set province first'}
-                      </option>
-                      {districtOptions.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label="Sub-district"
-                      name="sub_district_id"
-                      value={employmentTermsForm.sub_district_id ?? ''}
-                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, sub_district_id: e.target.value, village_id: '' }))}
-                      disabled={!employmentTermsForm.district_id}
-                    >
-                      <option value="">
-                        {employmentTermsForm.district_id ? 'Select sub-district' : 'Set district first'}
-                      </option>
-                      {subDistrictOptions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      label="Village"
-                      name="village_id"
-                      value={employmentTermsForm.village_id ?? ''}
-                      onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, village_id: e.target.value }))}
-                      disabled={!employmentTermsForm.sub_district_id}
-                    >
-                      <option value="">
-                        {employmentTermsForm.sub_district_id ? 'Select village' : 'Set sub-district first'}
-                      </option>
-                      {villageOptions.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </Select>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Province
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={provinceDropdownOpen ? provinceSearch : selectedFormProvinceName}
+                          onChange={(e) => {
+                            setProvinceSearch(e.target.value);
+                            if (!provinceDropdownOpen) setProvinceDropdownOpen(true);
+                          }}
+                          onFocus={() => {
+                            setProvinceSearch(selectedFormProvinceName);
+                            setProvinceDropdownOpen(true);
+                          }}
+                          onBlur={() => setTimeout(() => setProvinceDropdownOpen(false), 150)}
+                          placeholder="Search or select province..."
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all"
+                        />
+                        {provinceDropdownOpen && (
+                          <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                            {regionProvinces
+                              .filter((p) => !provinceSearch.trim() || p.name.toLowerCase().includes(provinceSearch.trim().toLowerCase()))
+                              .slice(0, 50)
+                              .map((p) => (
+                                <li
+                                  key={p.id}
+                                  role="option"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setEmploymentTermsForm((prev) => ({
+                                      ...prev,
+                                      province_id: p.id,
+                                      district_id: '',
+                                      sub_district_id: '',
+                                      village_id: '',
+                                    }));
+                                    setProvinceSearch('');
+                                    setProvinceDropdownOpen(false);
+                                  }}
+                                  className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                                >
+                                  {p.name}
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        District
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={districtDropdownOpen ? districtSearch : selectedFormDistrictName}
+                          onChange={(e) => {
+                            if (!employmentTermsForm.province_id) return;
+                            setDistrictSearch(e.target.value);
+                            if (!districtDropdownOpen) setDistrictDropdownOpen(true);
+                          }}
+                          onFocus={() => {
+                            if (!employmentTermsForm.province_id) return;
+                            setDistrictSearch(selectedFormDistrictName);
+                            setDistrictDropdownOpen(true);
+                          }}
+                          onBlur={() => setTimeout(() => setDistrictDropdownOpen(false), 150)}
+                          placeholder={employmentTermsForm.province_id ? 'Search or select district...' : 'Set province first'}
+                          disabled={!employmentTermsForm.province_id}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        {districtDropdownOpen && employmentTermsForm.province_id && (
+                          <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                            {districtOptions
+                              .filter((d) => !districtSearch.trim() || d.name.toLowerCase().includes(districtSearch.trim().toLowerCase()))
+                              .slice(0, 50)
+                              .map((d) => (
+                                <li
+                                  key={d.id}
+                                  role="option"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setEmploymentTermsForm((prev) => ({
+                                      ...prev,
+                                      district_id: d.id,
+                                      sub_district_id: '',
+                                      village_id: '',
+                                    }));
+                                    setDistrictSearch('');
+                                    setDistrictDropdownOpen(false);
+                                  }}
+                                  className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                                >
+                                  {d.name}
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Sub-district
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={subDistrictDropdownOpen ? subDistrictSearch : selectedFormSubDistrictName}
+                          onChange={(e) => {
+                            if (!employmentTermsForm.district_id) return;
+                            setSubDistrictSearch(e.target.value);
+                            if (!subDistrictDropdownOpen) setSubDistrictDropdownOpen(true);
+                          }}
+                          onFocus={() => {
+                            if (!employmentTermsForm.district_id) return;
+                            setSubDistrictSearch(selectedFormSubDistrictName);
+                            setSubDistrictDropdownOpen(true);
+                          }}
+                          onBlur={() => setTimeout(() => setSubDistrictDropdownOpen(false), 150)}
+                          placeholder={employmentTermsForm.district_id ? 'Search or select sub-district...' : 'Set district first'}
+                          disabled={!employmentTermsForm.district_id}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        {subDistrictDropdownOpen && employmentTermsForm.district_id && (
+                          <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                            {subDistrictOptions
+                              .filter((s) => !subDistrictSearch.trim() || s.name.toLowerCase().includes(subDistrictSearch.trim().toLowerCase()))
+                              .slice(0, 50)
+                              .map((s) => (
+                                <li
+                                  key={s.id}
+                                  role="option"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setEmploymentTermsForm((prev) => ({ ...prev, sub_district_id: s.id, village_id: '' }));
+                                    setSubDistrictSearch('');
+                                    setSubDistrictDropdownOpen(false);
+                                  }}
+                                  className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                                >
+                                  {s.name}
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        Village
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={villageDropdownOpen ? villageSearch : selectedFormVillageName}
+                          onChange={(e) => {
+                            if (!employmentTermsForm.sub_district_id) return;
+                            setVillageSearch(e.target.value);
+                            if (!villageDropdownOpen) setVillageDropdownOpen(true);
+                          }}
+                          onFocus={() => {
+                            if (!employmentTermsForm.sub_district_id) return;
+                            setVillageSearch(selectedFormVillageName);
+                            setVillageDropdownOpen(true);
+                          }}
+                          onBlur={() => setTimeout(() => setVillageDropdownOpen(false), 150)}
+                          placeholder={employmentTermsForm.sub_district_id ? 'Search or select village...' : 'Set sub-district first'}
+                          disabled={!employmentTermsForm.sub_district_id}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        {villageDropdownOpen && employmentTermsForm.sub_district_id && (
+                          <ul className="absolute z-10 mt-1 w-full max-h-48 overflow-auto bg-white border border-slate-200 rounded-xl shadow-lg py-1">
+                            {villageOptions
+                              .filter((v) => !villageSearch.trim() || v.name.toLowerCase().includes(villageSearch.trim().toLowerCase()))
+                              .slice(0, 50)
+                              .map((v) => (
+                                <li
+                                  key={v.id}
+                                  role="option"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    setEmploymentTermsForm((prev) => ({ ...prev, village_id: v.id }));
+                                    setVillageSearch('');
+                                    setVillageDropdownOpen(false);
+                                  }}
+                                  className="px-4 py-2 text-sm text-slate-800 hover:bg-brand/10 cursor-pointer"
+                                >
+                                  {v.name}
+                                </li>
+                              ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
                     <Input label="Branch" name="branch" value={employmentTermsForm.branch ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, branch: e.target.value }))} placeholder="Branch name" />
 
                     {canUploadCandidateDoc && (
@@ -1028,7 +1166,7 @@ function OverviewTab({
           </Card>
         </div>
 
-        {isOnboardingRelevant && !candidate.ojt_option && (
+        {isOnboardingRelevant && (
           <div className="space-y-8">
             {/* Onboarding Control */}
             <Card className="border-brand/20 bg-brand-lighter/20">
