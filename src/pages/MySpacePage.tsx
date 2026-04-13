@@ -4,11 +4,20 @@ import { Button, ButtonLink } from '../components/Button';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { EmployeeOverviewContent } from '../components/EmployeeOverviewContent';
+import { OnboardingDeclarationChecklistView } from '../components/OnboardingDeclarationChecklistView';
 import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
-import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument, Payslip } from '../services/api';
+import type {
+  Employee,
+  Contract,
+  PaklaringDocument,
+  WarningLetter,
+  EmployeeDocument,
+  Payslip,
+  DeclarationChecklistData,
+} from '../services/api';
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download.ts';
 import { formatDate, formatDateLong, addMonths } from '../utils/formatDate';
@@ -41,7 +50,10 @@ export function MySpaceLayout() {
   const loadContractsAndDocuments = async (employeeId: number) => {
     try {
       const [contractsData, paklaringData, warningsData, docsData, payslipsData] = await Promise.all([
-        api.getContracts({ employee_id: employeeId, per_page: 100 }).then((r) => r.data).catch(() => []),
+        api
+          .getContracts({ employee_id: employeeId, status: 'signed', per_page: 100 })
+          .then((r) => r.data)
+          .catch(() => []),
         api.getMyPaklaring().catch(() => []),
         api.getMyWarnings().catch(() => []),
         api.getEmployeeDocuments(employeeId).catch(() => []),
@@ -115,9 +127,75 @@ export function MySpaceLayout() {
   );
 }
 
-/** My Profile: 2 tabs — Profile, Change Password */
+function isDeclarationChecklistData(v: unknown): v is DeclarationChecklistData {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return Array.isArray(o.ketentuan) && Array.isArray(o.sanksi) && o.finalDeclaration != null && typeof o.finalDeclaration === 'object';
+}
+
+function MyDeclarationsTab() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [checklist, setChecklist] = useState<DeclarationChecklistData | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    api
+      .getMyOnboardingDeclarations()
+      .then((res) => {
+        if (cancelled) return;
+        setSubmittedAt(res.submitted_at ?? null);
+        if (res.declaration_checklist && isDeclarationChecklistData(res.declaration_checklist)) {
+          setChecklist(res.declaration_checklist);
+        } else {
+          setChecklist(null);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <Card>
+        <CardBody className="py-8 text-center text-red-600 text-sm font-medium">{error}</CardBody>
+      </Card>
+    );
+  }
+  if (!checklist) {
+    return (
+      <Card>
+        <CardBody className="py-12 text-center">
+          <p className="text-slate-600 font-medium">
+            No onboarding declaration is on file. This applies if you were not hired through the onboarding flow or declarations were not recorded.
+          </p>
+        </CardBody>
+      </Card>
+    );
+  }
+  return <OnboardingDeclarationChecklistView data={checklist} submittedAt={submittedAt} />;
+}
+
+/** My Profile: Profile, Declarations (onboarding), Change Password */
 export function MyProfilePage() {
-  const [tab, setTab] = useState<'profile' | 'password'>('profile');
+  const [tab, setTab] = useState<'profile' | 'declarations' | 'password'>('profile');
   const ctx = useOutletContext() as MySpaceContext;
 
   if (!ctx.employee) {
@@ -153,6 +231,15 @@ export function MyProfilePage() {
           </button>
           <button
             type="button"
+            onClick={() => setTab('declarations')}
+            className={`px-4 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
+              tab === 'declarations' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            Declarations
+          </button>
+          <button
+            type="button"
             onClick={() => setTab('password')}
             className={`px-4 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-colors ${
               tab === 'password' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'
@@ -163,6 +250,7 @@ export function MyProfilePage() {
         </nav>
       </div>
       {tab === 'profile' && <EmployeeOverviewContent employee={ctx.employee} />}
+      {tab === 'declarations' && <MyDeclarationsTab />}
       {tab === 'password' && <AccountTab toast={ctx.toast} />}
     </div>
   );
@@ -371,9 +459,12 @@ function MySpaceContractsTab({
   return (
     <Card className="overflow-hidden">
       <CardHeader>
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
-          My Contracts
-        </h3>
+        <div>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
+            My Contracts
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">Signed contracts only</p>
+        </div>
       </CardHeader>
       <Table>
         <THead>
@@ -388,7 +479,7 @@ function MySpaceContractsTab({
           {contracts.length === 0 ? (
             <TR>
               <TD colSpan={4} className="py-8 text-center text-slate-400">
-                No contracts found.
+                No signed contracts yet.
               </TD>
             </TR>
           ) : (

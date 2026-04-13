@@ -22,6 +22,7 @@ export default function PendingHRDContractCreatePage() {
   const toast = useToast();
   const [candidateId, setCandidateId] = useState<string>(candidateIdParam ?? '');
   const [contractNumber, setContractNumber] = useState<string>('');
+  const [nip, setNip] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [candidate, setCandidate] = useState<api.Candidate | null>(null);
   const [loading, setLoading] = useState(!!candidateIdParam);
@@ -55,9 +56,16 @@ export default function PendingHRDContractCreatePage() {
       return;
     }
 
+    const nipTrim = nip.trim();
+    if (!nipTrim) {
+      toast.error('NIP is required');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await api.approveCandidate(cid, {
+        nip: nipTrim,
         contract_number: contractNumber.trim() || undefined,
         status: status || undefined,
       });
@@ -128,6 +136,18 @@ export default function PendingHRDContractCreatePage() {
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
             <FormGroup>
+              <Label>NIP (employee number)</Label>
+              <Input
+                value={nip}
+                onChange={(e) => setNip(e.target.value)}
+                placeholder="e.g., 1987654321"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Required. This becomes the employee&apos;s NIP on hire (shown on contracts and profile).
+              </p>
+            </FormGroup>
+            <FormGroup>
               <Label>Contract number</Label>
               <Input
                 value={contractNumber}
@@ -170,7 +190,7 @@ export default function PendingHRDContractCreatePage() {
               )}
               <Button
                 type="submit"
-                disabled={submitting || !candidate?.employment_type}
+                disabled={submitting || !candidate?.employment_type || !nip.trim()}
               >
                 {submitting ? 'Saving...' : 'Approve'}
               </Button>

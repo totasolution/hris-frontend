@@ -51,6 +51,8 @@ export default function EmployeeFormPage() {
   const [employeeNumber, setEmployeeNumber] = useState('');
   const [employeeType, setEmployeeType] = useState<EmployeeType>(employeeTypeFromPath);
   const [employmentContractType, setEmploymentContractType] = useState('');
+  /** PKWT / contract end date uses join date + this many months (empty = not set). */
+  const [contractDurationMonths, setContractDurationMonths] = useState('');
   const [status, setStatus] = useState('active');
   const [hireDate, setHireDate] = useState('');
   const [joinDate, setJoinDate] = useState('');
@@ -209,6 +211,11 @@ export default function EmployeeFormPage() {
             : 'external',
         );
         setEmploymentContractType(e.employment_contract_type ?? '');
+        setContractDurationMonths(
+          e.contract_duration_months != null && e.contract_duration_months > 0
+            ? String(e.contract_duration_months)
+            : '',
+        );
         setStatus(e.status ?? 'active');
         setHireDate(e.hire_date?.slice(0, 10) ?? '');
         setJoinDate(e.join_date?.slice(0, 10) ?? '');
@@ -272,14 +279,23 @@ export default function EmployeeFormPage() {
     setError(null);
     setSubmitting(true);
     try {
+      const parsedContractMonths =
+        contractDurationMonths.trim() === ''
+          ? null
+          : (() => {
+              const n = parseInt(contractDurationMonths.trim(), 10);
+              return Number.isFinite(n) && n > 0 ? n : null;
+            })();
+
       const body: Parameters<typeof api.updateEmployee>[1] = {
         full_name: fullName.trim(),
         email: email.trim(),
         company_email: companyEmail.trim() || undefined,
         phone: phone.trim() || undefined,
-        // employee_number is auto-generated on create and read-only on edit; do not send
+        employee_number: employeeNumber.trim() || undefined,
         employee_type: employeeType,
         employment_contract_type: (employmentContractType === 'pkwt' || employmentContractType === 'partnership') ? employmentContractType : undefined,
+        contract_duration_months: parsedContractMonths,
         status,
         hire_date: hireDate || undefined,
         join_date: joinDate || undefined,
@@ -389,15 +405,12 @@ export default function EmployeeFormPage() {
                 required
                 placeholder="Enter full name"
               />
-              {isEdit && (
-                <Input
-                  label="Employee Number"
-                  value={employeeNumber}
-                  readOnly
-                  disabled
-                  placeholder="—"
-                />
-              )}
+              <Input
+                label="NIP / Employee number"
+                value={employeeNumber}
+                onChange={(e) => setEmployeeNumber(e.target.value)}
+                placeholder={isEdit ? 'Employee NIP' : 'Optional on create; auto-generated if empty'}
+              />
               <Input
                 label="Email Address"
                 type="email"
@@ -481,6 +494,19 @@ export default function EmployeeFormPage() {
                 onChange={(e) => setJoinDate(e.target.value)}
                 placeholder="First working day"
               />
+              <div>
+                <Input
+                  label="Contract duration (months)"
+                  type="number"
+                  min={1}
+                  value={contractDurationMonths}
+                  onChange={(e) => setContractDurationMonths(e.target.value)}
+                  placeholder="e.g. 12"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Used for PKWT drafts: contract end date = join date + this many months. Leave empty if not applicable.
+                </p>
+              </div>
               <Input
                 label="Position"
                 value={position}

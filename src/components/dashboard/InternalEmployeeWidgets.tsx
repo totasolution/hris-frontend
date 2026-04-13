@@ -35,7 +35,9 @@ export function InternalEmployeeWidgets({ permissions, userId }: InternalEmploye
 
         // Find employee by user_id
         const myEmployee = userId ? allEmployees.find((e) => e.user_id === userId) : null;
-        const myContracts = userId ? allContracts.filter((c) => c.employee_id === myEmployee?.id) : [];
+        const myContracts = userId
+          ? allContracts.filter((c) => c.employee_id === myEmployee?.id && c.status === 'signed')
+          : [];
         const myWarnings = userId ? allWarnings.filter((w) => w.employee_id === myEmployee?.id) : [];
         const myTickets = allTickets.filter((t) => t.author_id === userId);
 
@@ -108,7 +110,7 @@ export function InternalEmployeeWidgets({ permissions, userId }: InternalEmploye
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <TableWidget
           title="My Contracts"
-          subtitle="Contract history"
+          subtitle="Signed contracts"
           columns={[
             {
               key: 'contract_number',

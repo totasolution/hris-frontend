@@ -283,27 +283,6 @@ export default function ContractFormPage() {
               </FormGroup>
             )}
             
-            {creationMode === 'template' && (
-              <FormGroup>
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-600">
-                      Layout is fixed in the application: PKWT or Partnership (Mitra) HTML is chosen from the employee&apos;s
-                      employment type.
-                    </p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      After the contract is saved, use Preview to see the rendered draft.
-                    </p>
-                  </div>
-                  {isEdit && id && (
-                    <Button type="button" variant="outline" onClick={handlePreviewTemplate}>
-                      Preview
-                    </Button>
-                  )}
-                </div>
-              </FormGroup>
-            )}
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormGroup>
                 <Label>Contract Number</Label>

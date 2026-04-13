@@ -32,7 +32,9 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
 
         // Find employee by user_id
         const myEmployee = userId ? allEmployees.find((e) => e.user_id === userId) : null;
-        const myContracts = userId ? allContracts.filter((c) => c.employee_id === myEmployee?.id) : [];
+        const myContracts = userId
+          ? allContracts.filter((c) => c.employee_id === myEmployee?.id && c.status === 'signed')
+          : [];
         const myTickets = allTickets.filter((t) => t.author_id === userId);
         const myClient = myEmployee?.client_id ? allClients.find((c) => c.id === myEmployee.client_id) : null;
 
@@ -122,7 +124,7 @@ export function ExternalEmployeeWidgets({ permissions, userId }: ExternalEmploye
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <TableWidget
           title="My Contracts"
-          subtitle="Contract status and history"
+          subtitle="Signed contracts"
           columns={[
             {
               key: 'contract_number',

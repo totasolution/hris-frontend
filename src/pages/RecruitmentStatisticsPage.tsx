@@ -49,9 +49,32 @@ const customSelectStyles = {
   }),
 };
 
+function buildRecruitmentStatisticsParams(periodFilter: 'week' | 'month', weekFilter: string, monthFilter: string, clientId: string, provinceId: string) {
+  const params: { client_id?: number; province_id?: string; period: 'week' | 'month'; year?: number; month?: number; week?: number } = {
+    period: periodFilter,
+  };
+  if (clientId) params.client_id = parseInt(clientId, 10);
+  if (provinceId) params.province_id = provinceId;
+  if (periodFilter === 'week') {
+    const match = weekFilter.match(/^(\d{4})-W?(\d{1,2})$/);
+    if (match) {
+      params.year = parseInt(match[1], 10);
+      params.week = parseInt(match[2], 10);
+    }
+  } else {
+    const [y, m] = monthFilter.split('-').map(Number);
+    if (!Number.isNaN(y) && !Number.isNaN(m)) {
+      params.year = y;
+      params.month = m;
+    }
+  }
+  return params;
+}
+
 export default function RecruitmentStatisticsPage() {
   const [stats, setStats] = useState<RecruitmentStatistics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reportDownloading, setReportDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState<string>('');
   const [provinceId, setProvinceId] = useState<string>('');
@@ -86,24 +109,7 @@ export default function RecruitmentStatisticsPage() {
     setLoading(true);
     setError(null);
     try {
-      const params: { client_id?: number; province_id?: string; period: 'week' | 'month'; year?: number; month?: number; week?: number } = {
-        period: periodFilter,
-      };
-      if (clientId) params.client_id = parseInt(clientId, 10);
-      if (provinceId) params.province_id = provinceId;
-      if (periodFilter === 'week') {
-        const match = weekFilter.match(/^(\d{4})-W?(\d{1,2})$/);
-        if (match) {
-          params.year = parseInt(match[1], 10);
-          params.week = parseInt(match[2], 10);
-        }
-      } else {
-        const [y, m] = monthFilter.split('-').map(Number);
-        if (!Number.isNaN(y) && !Number.isNaN(m)) {
-          params.year = y;
-          params.month = m;
-        }
-      }
+      const params = buildRecruitmentStatisticsParams(periodFilter, weekFilter, monthFilter, clientId, provinceId);
       const data = await api.getRecruitmentStatistics(params);
       setStats(data);
     } catch (e) {
@@ -116,6 +122,19 @@ export default function RecruitmentStatisticsPage() {
   useEffect(() => {
     loadStats();
   }, [clientId, provinceId, periodFilter, weekFilter, monthFilter]);
+
+  const downloadHiredByRecruiterReport = async () => {
+    setReportDownloading(true);
+    setError(null);
+    try {
+      const params = buildRecruitmentStatisticsParams(periodFilter, weekFilter, monthFilter, clientId, provinceId);
+      await api.downloadRecruitmentHiredByRecruiterReport(params);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Download failed');
+    } finally {
+      setReportDownloading(false);
+    }
+  };
 
   useEffect(() => {
     api.getClients().then(setClients).catch(() => {});
@@ -403,16 +422,26 @@ export default function RecruitmentStatisticsPage() {
 
       {/* By PIC (4 stages) */}
       <Card className="overflow-hidden">
-          <CardHeader className="px-5 py-3">
+          <CardHeader className="px-5 py-3 flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
               By PIC / Recruiter
             </h3>
-            <Link
-              to="/candidates"
-              className="text-xs font-bold text-brand hover:text-brand-dark uppercase tracking-widest"
-            >
-              View candidates
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={downloadHiredByRecruiterReport}
+                disabled={reportDownloading || loading}
+                className="text-xs font-bold uppercase tracking-widest rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {reportDownloading ? 'Downloading…' : 'Download'}
+              </button>
+              <Link
+                to="/candidates"
+                className="text-xs font-bold text-brand hover:text-brand-dark uppercase tracking-widest"
+              >
+                View candidates
+              </Link>
+            </div>
           </CardHeader>
           <div className="[&_th]:py-2 [&_td]:py-2 [&_th]:px-4 [&_td]:px-4 [&_td]:text-xs">
           <Table>
@@ -422,6 +451,7 @@ export default function RecruitmentStatisticsPage() {
                 <TH className="text-right">Screening</TH>
                 <TH className="text-right">Rejected</TH>
                 <TH className="text-right">OJT</TH>
+                <TH className="text-right">Contract Requested</TH>
                 <TH className="text-right">Hired</TH>
                 <TH className="text-right">Total</TH>
               </TR>
@@ -429,13 +459,13 @@ export default function RecruitmentStatisticsPage() {
             <TBody>
               {loading ? (
                 <TR>
-                  <TD colSpan={6} className="py-6 text-center">
+                  <TD colSpan={7} className="py-6 text-center">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand mx-auto" />
                   </TD>
                 </TR>
               ) : !stats?.by_pic_stages?.length ? (
                 <TR>
-                  <TD colSpan={6} className="py-6 text-center text-slate-400 text-sm">
+                  <TD colSpan={7} className="py-6 text-center text-slate-400 text-sm">
                     No data
                   </TD>
                 </TR>
@@ -460,8 +490,11 @@ export default function RecruitmentStatisticsPage() {
                     <TD className="text-right font-bold">{row.screening}</TD>
                     <TD className="text-right font-bold text-red-600">{row.rejected}</TD>
                     <TD className="text-right font-bold">{row.ojt}</TD>
-                    <TD className="text-right font-bold">{row.contract_requested}</TD>
-                    <TD className="text-right font-bold text-slate-800">{row.screening + row.rejected + row.ojt + row.contract_requested}</TD>
+                    <TD className="text-right font-bold text-amber-700">{row.contract_requested}</TD>
+                    <TD className="text-right font-bold text-green-700">{row.hired ?? 0}</TD>
+                    <TD className="text-right font-bold text-slate-800">
+                      {row.screening + row.rejected + row.ojt + row.contract_requested + (row.hired ?? 0)}
+                    </TD>
                   </TR>
                 ))
               )}

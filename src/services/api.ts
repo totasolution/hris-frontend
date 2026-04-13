@@ -744,7 +744,15 @@ export type RecruitmentStatistics = {
   by_status: Record<string, number>;
   by_client: { client_id?: number; client_name: string; count: number }[];
   by_pic: { pic_id?: number; pic_name: string; count: number }[];
-  by_pic_stages: { pic_id?: number; pic_name: string; screening: number; rejected: number; ojt: number; contract_requested: number }[];
+  by_pic_stages: {
+    pic_id?: number;
+    pic_name: string;
+    screening: number;
+    rejected: number;
+    ojt: number;
+    contract_requested: number;
+    hired: number;
+  }[];
   totals: {
     all: number;
     active: number;
@@ -775,6 +783,38 @@ export async function getRecruitmentStatistics(params?: {
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch recruitment statistics');
   return data;
+}
+
+/** XLSX: hired + contract_requested candidates with an assigned recruiter (PIC), same filters as recruitment statistics. */
+export async function downloadRecruitmentHiredByRecruiterReport(params?: {
+  client_id?: number;
+  province_id?: string;
+  period?: 'week' | 'month';
+  year?: number;
+  month?: number;
+  week?: number;
+}): Promise<void> {
+  const q = new URLSearchParams();
+  if (params?.client_id) q.set('client_id', String(params.client_id));
+  if (params?.province_id) q.set('province_id', params.province_id);
+  if (params?.period) q.set('period', params.period);
+  if (params?.year) q.set('year', String(params.year));
+  if (params?.month) q.set('month', String(params.month));
+  if (params?.week) q.set('week', String(params.week));
+  const base = `${API_BASE}/recruitment/statistics/hired-by-recruiter-report`;
+  const url = q.toString() ? `${base}?${q}` : base;
+  const res = await authFetch(url, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? 'recruitment-hired-by-recruiter.xlsx';
+  downloadBlob(blob, filename);
 }
 
 export async function getCandidateDocuments(candidateId: number): Promise<CandidateDocument[]> {
@@ -1160,13 +1200,13 @@ export async function requestContract(candidateId: number): Promise<void> {
 
 export async function approveCandidate(
   candidateId: number,
-  body?: { contract_number?: string; status?: string }
+  body: { nip: string; contract_number?: string; status?: string }
 ): Promise<void> {
   const res = await authFetch(`${API_BASE}/candidates/${candidateId}/approve`, {
     method: 'POST',
     credentials: 'include',
     headers: authHeaders(),
-    body: body ? JSON.stringify(body) : undefined,
+    body: JSON.stringify(body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to approve');
@@ -1249,6 +1289,8 @@ export type Employee = {
   candidate_id?: number;
   employee_type: string;
   employment_contract_type?: 'pkwt' | 'partnership' | null; // From candidate when hired; selects embedded PKWT vs Partnership HTML
+  /** Contract length in months (from candidate employment terms / onboarding on hire). */
+  contract_duration_months?: number | null;
   employee_number?: string;
   department_id?: number;
   client_id?: number;
@@ -2638,4 +2680,20 @@ export async function getMyEmployee(): Promise<Employee | null> {
     throw new Error(data?.error?.message ?? 'Failed to fetch employee record');
   }
   return data;
+}
+
+/** Onboarding declaration checklist for the current user (My Profile). */
+export type MyOnboardingDeclarationsResponse = {
+  declaration_checklist: DeclarationChecklistData | null;
+  submitted_at?: string | null;
+};
+
+export async function getMyOnboardingDeclarations(): Promise<MyOnboardingDeclarationsResponse> {
+  const res = await authFetch(`${API_BASE}/me/onboarding-declarations`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load onboarding declarations');
+  return data as MyOnboardingDeclarationsResponse;
 }

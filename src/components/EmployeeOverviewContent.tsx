@@ -48,7 +48,15 @@ export function EmployeeOverviewContent({
           </Field>
           <Field label="Employee Type" value={employee.employee_type} />
           <Field label="Contract Type" value={contractTypeLabel} />
-          <Field label="Employee Number" value={employee.employee_number} />
+          <Field
+            label="Contract duration"
+            value={
+              employee.contract_duration_months != null && employee.contract_duration_months > 0
+                ? `${employee.contract_duration_months} months`
+                : '—'
+            }
+          />
+          <Field label="NIP / Employee number" value={employee.employee_number} />
           <Field label="Email" value={employee.email} />
           <Field label="Company Email" value={employee.company_email} />
           <Field label="Phone Number" value={employee.phone} />

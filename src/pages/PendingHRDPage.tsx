@@ -27,6 +27,8 @@ export default function PendingHRDPage() {
   const [dateTo, setDateTo] = useState('');
   const [candidateNameSearch, setCandidateNameSearch] = useState('');
   const [picFilter, setPicFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
+  const [clients, setClients] = useState<api.Client[]>([]);
   const toast = useToast();
 
   const load = async () => {
@@ -54,6 +56,10 @@ export default function PendingHRDPage() {
 
   useEffect(() => {
     load();
+  }, []);
+
+  useEffect(() => {
+    api.getClients().then(setClients).catch(() => setClients([]));
   }, []);
 
   if (!canView) {
@@ -110,6 +116,10 @@ export default function PendingHRDPage() {
       if (!matchName && !matchEmail) return false;
     }
     if (picFilter && c?.pic_name !== picFilter) return false;
+    if (clientFilter) {
+      const cid = parseInt(clientFilter, 10);
+      if (!Number.isFinite(cid) || c?.client_id !== cid) return false;
+    }
     const submittedAt = d.submitted_for_hrd_at;
     if (!submittedAt) return true;
     const t = new Date(submittedAt).getTime();
@@ -126,13 +136,24 @@ export default function PendingHRDPage() {
     return true;
   });
 
-  const hasActiveFilters = !!(dateFrom || dateTo || candidateNameSearch.trim() || picFilter);
+  const hasActiveFilters = !!(
+    dateFrom ||
+    dateTo ||
+    candidateNameSearch.trim() ||
+    picFilter ||
+    clientFilter
+  );
   const clearFilters = () => {
     setDateFrom('');
     setDateTo('');
     setCandidateNameSearch('');
     setPicFilter('');
+    setClientFilter('');
   };
+
+  const clientsSorted = [...clients].sort((a, b) =>
+    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
+  );
 
   return (
     <div className="space-y-8">
@@ -160,6 +181,7 @@ export default function PendingHRDPage() {
         </div>
         <div className="w-64">
           <Select
+            label="PIC"
             value={picFilter}
             onChange={(e) => setPicFilter(e.target.value)}
           >
@@ -167,6 +189,20 @@ export default function PendingHRDPage() {
             {uniquePicNames.map((name) => (
               <option key={name} value={name}>
                 {name}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="w-64">
+          <Select
+            label="Client"
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+          >
+            <option value="">All clients</option>
+            {clientsSorted.map((cl) => (
+              <option key={cl.id} value={String(cl.id)}>
+                {cl.name}
               </option>
             ))}
           </Select>
