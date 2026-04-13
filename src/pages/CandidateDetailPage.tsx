@@ -786,31 +786,31 @@ function OverviewTab({
                     }
                     setEmploymentTermsSaveLoading(true);
                     try {
-                      const [updatedOnboarding, updatedCandidate] = await Promise.all([
-                        api.updateEmploymentTerms(candidateId, {
-                          employment_start_date: employmentTermsForm.start_date || undefined,
-                          employment_duration_months: employmentTermsForm.duration_months || undefined,
-                          employment_salary: employmentTermsForm.salary || undefined,
-                          employment_positional_allowance: employmentTermsForm.positional_allowance || undefined,
-                          employment_transport_allowance: employmentTermsForm.transport_allowance || undefined,
-                          employment_comm_allowance: employmentTermsForm.comm_allowance || undefined,
-                          employment_misc_allowance: employmentTermsForm.misc_allowance || undefined,
-                          employment_bpjs_kes: employmentTermsForm.bpjs_kes || undefined,
-                          employment_bpjs_tku: employmentTermsForm.bpjs_tku || undefined,
-                          employment_bpjs_bpu: employmentTermsForm.bpjs_bpu || undefined,
-                          employment_insurance_provider: employmentTermsForm.insurance_provider || undefined,
-                          employment_insurance_no: employmentTermsForm.insurance_no || undefined,
-                          employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
-                        }),
-                        api.updateCandidate(candidateId, {
-                          package: packageKeys.length ? packageKeys.join(',') : undefined,
-                          province_id: employmentTermsForm.province_id || undefined,
-                          district_id: employmentTermsForm.district_id || undefined,
-                          sub_district_id: employmentTermsForm.sub_district_id || undefined,
-                          village_id: employmentTermsForm.village_id || undefined,
-                          branch: employmentTermsForm.branch || undefined,
-                        }),
-                      ]);
+                      // Candidate update requires candidate:update; run it first so we never persist onboarding-only
+                      // changes when the user lacks permission (employment-terms API enforces the same permission).
+                      const updatedCandidate = await api.updateCandidate(candidateId, {
+                        package: packageKeys.length ? packageKeys.join(',') : undefined,
+                        province_id: employmentTermsForm.province_id || undefined,
+                        district_id: employmentTermsForm.district_id || undefined,
+                        sub_district_id: employmentTermsForm.sub_district_id || undefined,
+                        village_id: employmentTermsForm.village_id || undefined,
+                        branch: employmentTermsForm.branch || undefined,
+                      });
+                      const updatedOnboarding = await api.updateEmploymentTerms(candidateId, {
+                        employment_start_date: employmentTermsForm.start_date || undefined,
+                        employment_duration_months: employmentTermsForm.duration_months || undefined,
+                        employment_salary: employmentTermsForm.salary || undefined,
+                        employment_positional_allowance: employmentTermsForm.positional_allowance || undefined,
+                        employment_transport_allowance: employmentTermsForm.transport_allowance || undefined,
+                        employment_comm_allowance: employmentTermsForm.comm_allowance || undefined,
+                        employment_misc_allowance: employmentTermsForm.misc_allowance || undefined,
+                        employment_bpjs_kes: employmentTermsForm.bpjs_kes || undefined,
+                        employment_bpjs_tku: employmentTermsForm.bpjs_tku || undefined,
+                        employment_bpjs_bpu: employmentTermsForm.bpjs_bpu || undefined,
+                        employment_insurance_provider: employmentTermsForm.insurance_provider || undefined,
+                        employment_insurance_no: employmentTermsForm.insurance_no || undefined,
+                        employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
+                      });
 
                       // Optional: upload CV from Employment Terms panel.
                       if (employmentCvFile && canUploadCandidateDoc) {
