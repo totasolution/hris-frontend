@@ -612,6 +612,9 @@ function OverviewTab({
     subDistrictOptions.find((s) => s.id === (employmentTermsForm.sub_district_id ?? ''))?.name ?? '';
   const selectedFormVillageName =
     villageOptions.find((v) => v.id === (employmentTermsForm.village_id ?? ''))?.name ?? '';
+  const normalizedScreeningStatus = (candidate.screening_status ?? '').trim().toLowerCase();
+  // Some legacy records may have an empty status. Treat as submitted so recruiter actions remain usable.
+  const screeningStatusForFlow = normalizedScreeningStatus || 'submitted';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -643,13 +646,13 @@ function OverviewTab({
               <div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">Current Status</p>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  candidate.screening_status === 'hired' ? 'bg-green-100 text-green-700' :
-                  candidate.screening_status === 'rejected' ? 'bg-red-100 text-red-700' :
-                  candidate.screening_status === 'contract_requested' ? 'bg-amber-100 text-amber-700' :
-                  candidate.screening_status === 'ojt' ? 'bg-teal-100 text-teal-700' :
+                  screeningStatusForFlow === 'hired' ? 'bg-green-100 text-green-700' :
+                  screeningStatusForFlow === 'rejected' ? 'bg-red-100 text-red-700' :
+                  screeningStatusForFlow === 'contract_requested' ? 'bg-amber-100 text-amber-700' :
+                  screeningStatusForFlow === 'ojt' ? 'bg-teal-100 text-teal-700' :
                   'bg-slate-100 text-slate-600'
                 }`}>
-                  {candidate.screening_status.replace(/_/g, ' ')}
+                  {screeningStatusForFlow.replace(/_/g, ' ')}
                 </span>
               </div>
               <div>
@@ -693,7 +696,7 @@ function OverviewTab({
                 <p className="text-sm font-bold text-brand-dark">{candidate.updated_at ? formatDate(candidate.updated_at, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</p>
               </div>
               <div className={isOnboardingRelevant ? 'col-span-2 flex gap-3 pt-4 border-t border-slate-50' : 'col-span-3 flex gap-3 pt-4 border-t border-slate-50'}>
-                {candidate.screening_status === 'screened_pass' && (
+                {screeningStatusForFlow === 'screened_pass' && (
                   <Button 
                     onClick={handleSubmitToClient} 
                     className="!py-2 !text-xs"
@@ -702,7 +705,7 @@ function OverviewTab({
                     {submitToClientLoading ? 'Submitting...' : 'Submit to Client'}
                   </Button>
                 )}
-                {(candidate.screening_status === 'submitted' || candidate.screening_status === 'interview_scheduled') && (
+                {(screeningStatusForFlow === 'submitted' || screeningStatusForFlow === 'interview_scheduled') && (
                   <>
                     <Button onClick={() => handleStatusUpdate('interview_passed')} className="!py-2 !text-xs">
                       Mark Interview Passed
@@ -712,7 +715,7 @@ function OverviewTab({
                     </Button>
                   </>
                 )}
-                {candidate.screening_status === 'screening' && (
+                {screeningStatusForFlow === 'screening' && (
                   <>
                     <Button onClick={() => handleStatusUpdate('screened_pass')} className="!py-2 !text-xs">
                       Pass Screening
@@ -1243,7 +1246,7 @@ function OverviewTab({
                   </div>
                 )}
 
-                {candidate.screening_status === 'hired' && (
+                {screeningStatusForFlow === 'hired' && (
                   <div className="space-y-4 text-center py-8">
                     <div className="h-12 w-12 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

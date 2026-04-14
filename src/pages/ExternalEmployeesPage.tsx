@@ -46,7 +46,6 @@ const clientSelectStyles = {
 export default function ExternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
-  const canEdit = permissions.includes('employee_external:update');
   const canCreate = permissions.includes('employee_external:create');
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -242,17 +241,6 @@ export default function ExternalEmployeesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </Link>
-                        {canEdit && (
-                          <Link
-                            to={`/employees/${e.id}/edit`}
-                            className="p-2 text-slate-400 hover:text-blue-500 transition-colors inline-block"
-                            title={t('employees.editEmployee')}
-                          >
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </Link>
-                        )}
                       </div>
                     </TD>
                   </TR>

@@ -1325,6 +1325,7 @@ export type Employee = {
   bank_id?: number;
   // Emergency Contact
   emergency_contact?: string;
+  emergency_contact_relationship?: string;
   emergency_phone?: string;
   // Address
   address?: string;           // KTP address (alamat sesuai KTP)
@@ -1356,11 +1357,115 @@ export type Employee = {
   transport_allowance?: string;   // Tunjangan Transportasi
   comm_allowance?: string;       // Tunjangan Komunikasi
   misc_allowance?: string;       // Tunjangan Lain-lain
+  annual_leave_nominal?: string;
   insurance_provider?: string;
   insurance_no?: string;
   overtime_nominal?: string;
   created_at: string;
   updated_at: string;
+};
+
+export type EmployeeEducation = {
+  id?: number;
+  tenant_id?: number;
+  employee_id?: number;
+  last_education?: string;
+  major?: string;
+  graduation_year?: string;
+  school_name?: string;
+  gpa?: string;
+  city?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type EmployeeFamily = {
+  id?: number;
+  tenant_id?: number;
+  employee_id?: number;
+  family_card_number?: string;
+  father_name?: string;
+  mother_name?: string;
+  wife_name?: string;
+  child1_name?: string;
+  child2_name?: string;
+  child3_name?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type EmployeeInformationPayload = {
+  employee_number?: string | null;
+  department_id?: number | null;
+  client_id?: number | null;
+  email?: string | null;
+  company_email?: string | null;
+  phone?: string | null;
+  status?: string | null;
+  hire_date?: string | null;
+  join_date?: string | null;
+  termination_type?: string | null;
+  last_working_date?: string | null;
+  termination_reason?: string | null;
+  position?: string | null;
+  placement_location?: string | null;
+  branch?: string | null;
+  employment_contract_type?: string | null;
+  contract_duration_months?: number | null;
+};
+
+export type EmployeePersonalPayload = {
+  identification_id?: string | null;
+  id_expired_date?: string | null;
+  birthdate?: string | null;
+  place_of_birth?: string | null;
+  gender?: string | null;
+  marital_status?: string | null;
+  child_number?: number | null;
+  religion?: string | null;
+};
+
+export type EmployeeFinancialPayload = {
+  tax_status?: string | null;
+  npwp?: string | null;
+  salary?: string | null;
+  bank_name?: string | null;
+  bank_account?: string | null;
+  bank_account_holder?: string | null;
+  bank_id?: number | null;
+  bpjstk_id?: string | null;
+  bpjsks_id?: string | null;
+  bpjs_bpu?: string | null;
+  positional_allowance?: string | null;
+  transport_allowance?: string | null;
+  comm_allowance?: string | null;
+  misc_allowance?: string | null;
+  annual_leave_nominal?: string | null;
+  insurance_provider?: string | null;
+  insurance_no?: string | null;
+  overtime_nominal?: string | null;
+};
+
+export type EmployeeEmergencyPayload = {
+  emergency_contact?: string | null;
+  emergency_contact_relationship?: string | null;
+  emergency_phone?: string | null;
+};
+
+export type EmployeeAddressPayload = {
+  address?: string | null;
+  rt_rw?: string | null;
+  village?: string | null;
+  sub_district?: string | null;
+  district?: string | null;
+  province?: string | null;
+  zip_code?: string | null;
+  domicile_address?: string | null;
+  domicile_rt_rw?: string | null;
+  domicile_province?: string | null;
+  domicile_district?: string | null;
+  domicile_sub_district?: string | null;
+  domicile_zip_code?: string | null;
 };
 
 export async function getEmployees(params?: {
@@ -1422,7 +1527,111 @@ export async function updateEmployee(id: number, body: Partial<Employee>): Promi
   return data;
 }
 
-/** Download employees as CSV for the given client (client_id required). Includes all employee data. */
+export async function updateEmployeeInformation(id: number, body: EmployeeInformationPayload): Promise<Employee> {
+  const res = await authFetch(`${API_BASE}/employees/${id}/employee-information`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update employee information');
+  return data;
+}
+
+export async function updatePersonalInformation(id: number, body: EmployeePersonalPayload): Promise<Employee> {
+  const res = await authFetch(`${API_BASE}/employees/${id}/personal-information`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update personal information');
+  return data;
+}
+
+export async function updateFinancialInformation(id: number, body: EmployeeFinancialPayload): Promise<Employee> {
+  const res = await authFetch(`${API_BASE}/employees/${id}/financial-information`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update financial information');
+  return data;
+}
+
+export async function updateEmergencyContact(id: number, body: EmployeeEmergencyPayload): Promise<Employee> {
+  const res = await authFetch(`${API_BASE}/employees/${id}/emergency-contact`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update emergency contact');
+  return data;
+}
+
+export async function updateAddressInformation(id: number, body: EmployeeAddressPayload): Promise<Employee> {
+  const res = await authFetch(`${API_BASE}/employees/${id}/address-information`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update address information');
+  return data;
+}
+
+export async function getEmployeeEducation(employeeId: number): Promise<EmployeeEducation> {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/education`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch employee education');
+  return data ?? {};
+}
+
+export async function updateEmployeeEducation(employeeId: number, body: EmployeeEducation): Promise<EmployeeEducation> {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/education`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update employee education');
+  return data ?? {};
+}
+
+export async function getEmployeeFamily(employeeId: number): Promise<EmployeeFamily> {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/family`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch employee family');
+  return data ?? {};
+}
+
+export async function updateEmployeeFamily(employeeId: number, body: EmployeeFamily): Promise<EmployeeFamily> {
+  const res = await authFetch(`${API_BASE}/employees/${employeeId}/family`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update employee family');
+  return data ?? {};
+}
+
+/** Download employees as XLSX for the given client (client_id required). Includes all employee data. */
 export async function downloadEmployees(clientId: number): Promise<void> {
   const res = await authFetch(`${API_BASE}/employees/download?client_id=${clientId}`, {
     credentials: 'include',
@@ -1434,7 +1643,7 @@ export async function downloadEmployees(clientId: number): Promise<void> {
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition');
-  const filename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.csv`;
+  const filename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.xlsx`;
   downloadBlob(blob, filename);
 }
 

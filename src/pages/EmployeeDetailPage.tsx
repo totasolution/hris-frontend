@@ -1,6 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Button, ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
@@ -49,12 +48,7 @@ export default function EmployeeDetailPage() {
     }
   };
   const { permissions = [] } = useAuth();
-  const canEditEmployee = (emp: Employee | null) => {
-    if (!emp) return false;
-    if (emp.employee_type === 'internal' && permissions.includes('employee_internal:update')) return true;
-    if (emp.employee_type === 'external' && permissions.includes('employee_external:update')) return true;
-    return false;
-  };
+  const canEditEmployeeSections = permissions.includes('employee_external:update');
   const canDeletePaklaring = permissions.includes('paklaring:delete');
 
   const employeeId = id ? parseInt(id, 10) : 0;
@@ -111,13 +105,6 @@ export default function EmployeeDetailPage() {
       <PageHeader
         title={employee.full_name}
         subtitle={employee.email}
-        actions={
-          canEditEmployee(employee) ? (
-            <ButtonLink to={`/employees/${employee.id}/edit?return=${encodeURIComponent(`/employees/${employee.id}`)}`} variant="secondary">
-              Edit Profile
-            </ButtonLink>
-          ) : undefined
-        }
       />
 
       {error && (
@@ -153,6 +140,7 @@ export default function EmployeeDetailPage() {
             employee={employee}
             departments={detailDepartments}
             clients={detailClients}
+            canEdit={canEditEmployeeSections}
           />
         )}
 
@@ -194,16 +182,19 @@ function OverviewTab({
   employee,
   departments,
   clients,
+  canEdit,
 }: {
   employee: Employee;
   departments: api.Department[];
   clients: api.Client[];
+  canEdit: boolean;
 }) {
   return (
     <EmployeeOverviewContent
       employee={employee}
       departments={departments}
       clients={clients}
+      canEdit={canEdit}
     />
   );
 }

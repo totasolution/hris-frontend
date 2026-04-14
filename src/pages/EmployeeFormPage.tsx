@@ -84,6 +84,7 @@ export default function EmployeeFormPage() {
 
   // Emergency
   const [emergencyContact, setEmergencyContact] = useState('');
+  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
 
   // Address (KTP)
@@ -120,6 +121,7 @@ export default function EmployeeFormPage() {
   const [transportAllowance, setTransportAllowance] = useState('');
   const [commAllowance, setCommAllowance] = useState('');
   const [miscAllowance, setMiscAllowance] = useState('');
+  const [annualLeaveNominal, setAnnualLeaveNominal] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insuranceNo, setInsuranceNo] = useState('');
   const [overtimeNominal, setOvertimeNominal] = useState('');
@@ -239,6 +241,7 @@ export default function EmployeeFormPage() {
         setBankAccount(e.bank_account ?? '');
         setBankAccountHolder(e.bank_account_holder ?? '');
         setEmergencyContact(e.emergency_contact ?? '');
+        setEmergencyContactRelationship(e.emergency_contact_relationship ?? '');
         setEmergencyPhone(e.emergency_phone ?? '');
         setAddress(e.address ?? '');
         setRtRw(e.rt_rw ?? '');
@@ -263,6 +266,7 @@ export default function EmployeeFormPage() {
         setTransportAllowance(e.transport_allowance ?? '');
         setCommAllowance(e.comm_allowance ?? '');
         setMiscAllowance(e.misc_allowance ?? '');
+        setAnnualLeaveNominal(e.annual_leave_nominal ?? '');
         setInsuranceProvider(e.insurance_provider ?? '');
         setInsuranceNo(e.insurance_no ?? '');
         setOvertimeNominal(e.overtime_nominal ?? '');
@@ -319,6 +323,7 @@ export default function EmployeeFormPage() {
         bank_account: bankAccount.trim() || undefined,
         bank_account_holder: bankAccountHolder.trim() || undefined,
         emergency_contact: emergencyContact.trim() || undefined,
+        emergency_contact_relationship: emergencyContactRelationship.trim() || undefined,
         emergency_phone: emergencyPhone.trim() || undefined,
         address: address.trim() || undefined,
         rt_rw: rtRw.trim() || undefined,
@@ -343,6 +348,7 @@ export default function EmployeeFormPage() {
         transport_allowance: transportAllowance.trim() || undefined,
         comm_allowance: commAllowance.trim() || undefined,
         misc_allowance: miscAllowance.trim() || undefined,
+        annual_leave_nominal: annualLeaveNominal.trim() || undefined,
         insurance_provider: insuranceProvider.trim() || undefined,
         insurance_no: insuranceNo.trim() || undefined,
         overtime_nominal: overtimeNominal.trim() || undefined,
@@ -739,6 +745,12 @@ export default function EmployeeFormPage() {
                 placeholder="Misc allowance"
               />
               <Input
+                label="Annual Leave Nominal"
+                value={annualLeaveNominal}
+                onChange={(e) => setAnnualLeaveNominal(e.target.value)}
+                placeholder="Nominal cuti tahunan"
+              />
+              <Input
                 label="Insurance Provider"
                 value={insuranceProvider}
                 onChange={(e) => setInsuranceProvider(e.target.value)}
@@ -772,6 +784,12 @@ export default function EmployeeFormPage() {
                 label="Contact Name"
                 value={emergencyContact}
                 onChange={(e) => setEmergencyContact(e.target.value)}
+              />
+              <Input
+                label="Relationship"
+                value={emergencyContactRelationship}
+                onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                placeholder="e.g. Spouse, Parent, Sibling"
               />
               <Input
                 label="Contact Phone"
