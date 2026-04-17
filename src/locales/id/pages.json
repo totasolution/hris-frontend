@@ -35,7 +35,7 @@
     "loadError": "Gagal memuat karyawan.",
     "viewEmployee": "Lihat Karyawan",
     "editEmployee": "Ubah Karyawan",
-    "downloadEmployees": "Unduh CSV",
+    "downloadEmployees": "Unduh XLSX",
     "downloadEmployeesHint": "Pilih klien untuk mengunduh data karyawan",
     "downloadEmployeesError": "Gagal mengunduh karyawan"
   },

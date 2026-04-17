@@ -16,6 +16,7 @@ import { downloadFromUrl } from '../utils/download.ts';
 import { formatCurrency } from '../utils/formatCurrency';
 import { formatDate } from '../utils/formatDate';
 import { formatGender } from '../utils/formatGender';
+import { mergeCandidateFromApiResponse } from '../utils/mergeCandidate';
 
 type TabType = 'overview' | 'onboarding' | 'documents';
 
@@ -237,7 +238,9 @@ export default function CandidateDetailPage() {
     setSubmitToClientLoading(true);
     try {
       const updated = await api.submitCandidateToClient(candidateId);
-      setCandidate(updated);
+      setCandidate((prev) =>
+        mergeCandidateFromApiResponse(prev, updated, { screeningStatusFallback: 'submitted' }),
+      );
       toast.success('Candidate submitted to client successfully');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to submit to client');
@@ -828,7 +831,9 @@ function OverviewTab({
                       }
 
                       setOnboardingData(updatedOnboarding);
-                      if (updatedCandidate) setCandidate(updatedCandidate);
+                      if (updatedCandidate) {
+                        setCandidate((prev) => mergeCandidateFromApiResponse(prev, updatedCandidate));
+                      }
                       setEditingEmploymentTerms(false);
                       toast.success('Employment terms updated');
                     } catch (err) {

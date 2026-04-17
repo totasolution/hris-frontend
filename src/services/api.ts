@@ -1643,8 +1643,16 @@ export async function downloadEmployees(clientId: number): Promise<void> {
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition');
-  const filename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.xlsx`;
-  downloadBlob(blob, filename);
+  const rawFilename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.xlsx`;
+  const filename = rawFilename.toLowerCase().endsWith('.csv')
+    ? `${rawFilename.slice(0, -4)}.xlsx`
+    : rawFilename.toLowerCase().endsWith('.xlsx')
+      ? rawFilename
+      : `${rawFilename}.xlsx`;
+  const xlsxBlob = new Blob([blob], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  downloadBlob(xlsxBlob, filename);
 }
 
 // Employee Documents

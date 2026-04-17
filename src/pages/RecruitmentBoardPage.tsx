@@ -7,6 +7,7 @@ import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Candidate, Client } from '../services/api';
 import * as api from '../services/api';
+import { screeningStatusDisplay } from '../utils/mergeCandidate';
 
 type ViewMode = 'column' | 'list';
 
@@ -179,7 +180,8 @@ export default function RecruitmentBoardPage() {
     return candidates.filter(c => column.statuses.includes(c.screening_status));
   };
 
-  const getStatusColor = (status: string) => STAGES.find(s => s.id === status)?.color ?? 'bg-slate-100 text-slate-600';
+  const getStatusColor = (status: string | undefined) =>
+    STAGES.find((s) => s.id === (status ?? '').trim())?.color ?? 'bg-slate-100 text-slate-600';
 
   if (initialLoading) {
     return (
@@ -310,7 +312,7 @@ export default function RecruitmentBoardPage() {
                         <span
                           className={`inline-block text-xs font-bold px-3 py-1.5 rounded-lg ${stage?.color ?? 'bg-slate-100 text-slate-600'}`}
                         >
-                          {stage?.label ?? c.screening_status.replace(/_/g, ' ')}
+                          {stage?.label ?? screeningStatusDisplay(c.screening_status)}
                         </span>
                       </TD>
                       <TD>{c.pic_name || '—'}</TD>
@@ -408,7 +410,7 @@ export default function RecruitmentBoardPage() {
                             <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <span className={`text-[9px] font-bold px-2 py-0.5 rounded-lg ${getStatusColor(c.screening_status)}`}>
-                                  {c.screening_status.replace(/_/g, ' ')}
+                                  {screeningStatusDisplay(c.screening_status)}
                                 </span>
                               </div>
                               <Link

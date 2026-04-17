@@ -11,6 +11,7 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useAuth } from '../contexts/AuthContext';
 import type { Candidate, Client, User } from '../services/api';
 import * as api from '../services/api';
+import { screeningStatusDisplay } from '../utils/mergeCandidate';
 
 const customSelectStyles = {
   control: (base: any) => ({
@@ -283,7 +284,7 @@ export default function CandidatesPage() {
                         c.screening_status === 'onboarding' ? 'bg-teal-100 text-teal-700' :
                         'bg-slate-100 text-slate-600'
                       }`}>
-                        {c.screening_status.replace(/_/g, ' ')}
+                        {screeningStatusDisplay(c.screening_status)}
                       </span>
                       {(c.screening_status === 'onboarding_completed' || c.screening_status === 'ojt') && (
                         <span className="ml-1.5 text-[10px] text-cyan-600 font-medium normal-case" title={t('pages:candidates.formSubmitted')}>

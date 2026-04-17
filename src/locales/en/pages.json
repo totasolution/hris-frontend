@@ -35,7 +35,7 @@
     "loadError": "Failed to load employees.",
     "viewEmployee": "View Employee",
     "editEmployee": "Edit Employee",
-    "downloadEmployees": "Download CSV",
+    "downloadEmployees": "Download XLSX",
     "downloadEmployeesHint": "Select a client to download employee data",
     "downloadEmployeesError": "Failed to download employees"
   },
