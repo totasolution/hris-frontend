@@ -554,11 +554,11 @@ function Field({
   );
 }
 
-type EditorProps<T> = {
-  initial: T;
+type EditorProps<TInitial, TPayload = TInitial> = {
+  initial: TInitial;
   saving: boolean;
   onCancel: () => void;
-  onSave: (payload: T) => Promise<void>;
+  onSave: (payload: TPayload) => Promise<void>;
 };
 
 function cleanString(value?: string): string | undefined {
@@ -621,7 +621,7 @@ function toNullableString(value?: string): string | null {
   return cleanString(value) ?? null;
 }
 
-function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee>) {
+function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeInformationPayload>) {
   const [form, setForm] = useState({
     employee_number: initial.employee_number ?? '',
     email: initial.email ?? '',
@@ -721,7 +721,7 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
   );
 }
 
-function PersonalInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee>) {
+function PersonalInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeePersonalPayload>) {
   const [form, setForm] = useState({
     identification_id: initial.identification_id ?? '',
     id_expired_date: initial.id_expired_date ?? '',
@@ -783,7 +783,7 @@ function PersonalInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
   );
 }
 
-function FinancialInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee>) {
+function FinancialInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeFinancialPayload>) {
   const [form, setForm] = useState({
     tax_status: initial.tax_status ?? '',
     npwp: initial.npwp ?? '',
@@ -885,7 +885,7 @@ function FinancialInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Em
   );
 }
 
-function EmergencyContactForm({ initial, saving, onCancel, onSave }: EditorProps<Employee>) {
+function EmergencyContactForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeEmergencyPayload>) {
   const [form, setForm] = useState({
     emergency_contact: initial.emergency_contact ?? '',
     emergency_contact_relationship: initial.emergency_contact_relationship ?? '',
@@ -927,7 +927,7 @@ function EmergencyContactForm({ initial, saving, onCancel, onSave }: EditorProps
   );
 }
 
-function AddressInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee>) {
+function AddressInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeAddressPayload>) {
   const [form, setForm] = useState({
     address: initial.address ?? '',
     rt_rw: initial.rt_rw ?? '',
