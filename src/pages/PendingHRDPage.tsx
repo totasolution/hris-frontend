@@ -1,15 +1,33 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ReactSelect, { type SingleValue } from 'react-select';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Textarea } from '../components/Input';
 import { Modal } from '../components/Modal';
 import { PageHeader } from '../components/PageHeader';
-import { Select } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
 import { useAuth } from '../contexts/AuthContext';
 import * as api from '../services/api';
+
+type FilterOption = { value: string; label: string };
+
+const filterSelectStyles = {
+  control: (base: object) => ({
+    ...base,
+    minHeight: 44,
+    borderRadius: 12,
+    borderColor: 'rgb(226 232 240)',
+    backgroundColor: 'white',
+    boxShadow: 'none',
+  }),
+  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+  }),
+};
 
 export default function PendingHRDPage() {
   const navigate = useNavigate();
@@ -106,6 +124,7 @@ export default function PendingHRDPage() {
   const uniquePicNames = Array.from(
     new Set(Object.values(candidates).map((c) => c.pic_name).filter((n): n is string => !!n))
   ).sort();
+  const picOptions: FilterOption[] = uniquePicNames.map((name) => ({ value: name, label: name }));
 
   const filteredList = list.filter((d) => {
     const c = candidates[d.candidate_id];
@@ -154,6 +173,10 @@ export default function PendingHRDPage() {
   const clientsSorted = [...clients].sort((a, b) =>
     (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }),
   );
+  const clientOptions: FilterOption[] = clientsSorted.map((cl) => ({
+    value: String(cl.id),
+    label: cl.name || `Client #${cl.id}`,
+  }));
 
   return (
     <div className="space-y-8">
@@ -169,70 +192,81 @@ export default function PendingHRDPage() {
         </div>
       )}
 
-      <div className="flex gap-4 items-center flex-wrap bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="w-64">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Candidate
+          </label>
           <input
             type="text"
             placeholder="Candidate name or email"
             value={candidateNameSearch}
             onChange={(e) => setCandidateNameSearch(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[44px]"
           />
         </div>
-        <div className="w-64">
-          <Select
-            label="PIC"
-            value={picFilter}
-            onChange={(e) => setPicFilter(e.target.value)}
-          >
-            <option value="">All PICs</option>
-            {uniquePicNames.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </Select>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            PIC
+          </label>
+          <ReactSelect<FilterOption, false>
+            isClearable
+            isSearchable
+            placeholder="All PICs"
+            options={picOptions}
+            value={picOptions.find((opt) => opt.value === picFilter) ?? null}
+            onChange={(opt: SingleValue<FilterOption>) => setPicFilter(opt?.value ?? '')}
+            styles={filterSelectStyles}
+          />
         </div>
-        <div className="w-64">
-          <Select
-            label="Client"
-            value={clientFilter}
-            onChange={(e) => setClientFilter(e.target.value)}
-          >
-            <option value="">All clients</option>
-            {clientsSorted.map((cl) => (
-              <option key={cl.id} value={String(cl.id)}>
-                {cl.name}
-              </option>
-            ))}
-          </Select>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Client
+          </label>
+          <ReactSelect<FilterOption, false>
+            isClearable
+            isSearchable
+            placeholder="All clients"
+            options={clientOptions}
+            value={clientOptions.find((opt) => opt.value === clientFilter) ?? null}
+            onChange={(opt: SingleValue<FilterOption>) => setClientFilter(opt?.value ?? '')}
+            styles={filterSelectStyles}
+          />
         </div>
-        <div className="w-44">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            From
+          </label>
           <input
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[44px]"
             title="From date"
           />
         </div>
-        <div className="w-44">
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            To
+          </label>
           <input
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand min-h-[44px]"
             title="To date"
           />
         </div>
         {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={clearFilters}
-            className="text-sm font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
-          >
-            Clear filters
-          </button>
+          <div className="xl:col-span-5 flex justify-end">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
+            >
+              Clear filters
+            </button>
+          </div>
         )}
       </div>
 
