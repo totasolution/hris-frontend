@@ -34,8 +34,6 @@ export default function CandidateFormPage() {
   const [ojtOption, setOjtOption] = useState(false);
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
-  const [cvFile, setCvFile] = useState<File | null>(null);
-  const [cvFileName, setCvFileName] = useState('');
   const [clients, setClients] = useState<api.Client[]>([]);
   const [provinceSearch, setProvinceSearch] = useState('');
   const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
@@ -153,17 +151,6 @@ export default function CandidateFormPage() {
       setError(e instanceof Error ? e.message : 'Save failed');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleCvChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCvFile(file);
-      setCvFileName(file.name);
-    } else {
-      setCvFile(null);
-      setCvFileName('');
     }
   };
 

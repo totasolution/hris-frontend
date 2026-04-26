@@ -300,43 +300,7 @@ export default function OnboardingFormPage() {
     setUploadingKtp(true);
     setError(null);
     try {
-      const response = await api.uploadOnboardingDocument(token, ktpFile, 'ktp');
-      const confidence = response.ocr_confidence ?? 0;
-
-      // OCR confidence below 50% - ask user to re-upload with better quality
-      if (confidence < 0.5) {
-        setError('KTP tidak terbaca dengan jelas. Silakan unggah gambar beresolusi lebih tinggi. Pastikan pencahayaan baik dan seluruh KTP terlihat.');
-        setKtpFile(null);
-        setKtpUploaded(false);
-        if (ktpInputRef.current) ktpInputRef.current.value = '';
-        return;
-      }
-
-      // Populate form with extracted data (backend returns KTP struct: nik, name, place_dob, address_1..4, gender as LAKI-LAKI/PEREMPUAN, married_status, etc.)
-      if (response.extracted_data) {
-        const extracted = response.extracted_data;
-        const genderForForm =
-          extracted.gender === 'LAKI-LAKI' ? 'male' : extracted.gender === 'PEREMPUAN' ? 'female' : (extracted.gender || '');
-        const address =
-          extracted.address ||
-          [extracted.address_1, extracted.address_2, extracted.address_3, extracted.address_4].filter(Boolean).join(', ') ||
-          '';
-        const placeDob = extracted.place_dob || '';
-        const [placeFromDob, dateFromDob] = placeDob ? (placeDob.includes(',') ? placeDob.split(',').map((s: string) => s.trim()) : [placeDob, '']) : ['', ''];
-        setFormData(prev => ({
-          ...prev,
-          // id_number, province, district, sub_district are NOT auto-filled from extraction; candidate must enter them
-          address: address || prev.address,
-          place_of_birth: extracted.birth_place || placeFromDob || prev.place_of_birth,
-          date_of_birth: extracted.birth_date ? extracted.birth_date.split('T')[0] : (dateFromDob && dateFromDob.match(/\d{2}-\d{2}-\d{4}/) ? dateFromDob.split('-').reverse().join('-') : prev.date_of_birth),
-          gender: genderForForm || prev.gender,
-          religion: extracted.religion || prev.religion,
-          marital_status: extracted.married_status || extracted.marital_status || prev.marital_status,
-        }));
-        if (confidence < 0.6) {
-          setError(`Data terbaca dengan keyakinan rendah (${Math.round(confidence * 100)}%). Silakan periksa dan perbaiki jika perlu.`);
-        }
-      }
+      await api.uploadOnboardingDocument(token, ktpFile, 'ktp');
       setKtpUploaded(true);
       setKtpFile(null);
     } catch (e) {
@@ -413,6 +377,13 @@ export default function OnboardingFormPage() {
     } else if ((formData.marital_status === 'married' || formData.marital_status === 'menikah') && formData.child_number.trim() === '') {
       missing.push('Jumlah Anak');
     }
+    if (!formData.ktp_rt?.trim() || !formData.ktp_rw?.trim()) {
+      missing.push('RT dan RW (alamat KTP)');
+    }
+    if (!formData.domicile_same_as_ktp && (!formData.domicile_rt?.trim() || !formData.domicile_rw?.trim())) {
+      missing.push('RT dan RW (alamat domisili)');
+    }
+    if (!formData.phone_no?.trim()) missing.push('Nomor Telepon');
     if (!formData.bank_name?.trim()) missing.push('Nama Bank');
     if (!formData.bank_account_number?.trim()) missing.push('Nomor Rekening');
     if (!formData.bank_account_holder?.trim()) missing.push('Nama Pemilik Rekening');
@@ -511,7 +482,7 @@ export default function OnboardingFormPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-6">
       <div className="animate-spin rounded-full h-14 w-14 border-b-2 border-brand"></div>
       <p className="text-slate-500 font-medium">
-        {uploadingKtp ? 'Memproses KTP... Mengekstrak data, harap tunggu.' : 'Memuat...'}
+        {uploadingKtp ? 'Mengunggah KTP...' : 'Memuat...'}
       </p>
     </div>
   );
@@ -682,13 +653,12 @@ export default function OnboardingFormPage() {
             <CardBody className="space-y-8">
               <h3 className="text-xs font-bold text-brand uppercase tracking-[0.2em] font-headline border-b border-brand/10 pb-4">1. Unggah Dokumen</h3>
               <div className="space-y-4">
-                <p className="text-sm text-slate-600">
-                  Unggah dokumen berikut. KTP dan Kartu Keluarga (KK) wajib, SKCK bersifat opsional.
-                </p>
                 <div className="space-y-4">
                   {/* KTP */}
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold text-slate-700">KTP (wajib)</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      KTP<span className="text-red-500 ml-0.5" aria-hidden>*</span>
+                    </p>
                     <div className="flex gap-3 items-start">
                       <div className="flex-1">
                         <input
@@ -700,7 +670,7 @@ export default function OnboardingFormPage() {
                           disabled={uploadingKtp || ktpUploaded}
                         />
                         <p className="mt-1 text-xs text-slate-500">
-                          Format: foto KTP (gambar, maks. 5MB). JPEG/PNG memberikan hasil OCR terbaik.
+                          Format: foto KTP (gambar, maks. 5MB). Lengkapi data diri Anda pada langkah berikutnya.
                         </p>
                       </div>
                       {ktpFile && !ktpUploaded && (
@@ -710,7 +680,7 @@ export default function OnboardingFormPage() {
                           disabled={uploadingKtp}
                           className="px-4 py-2"
                         >
-                          {uploadingKtp ? 'Memproses...' : 'Unggah & Ekstrak'}
+                          {uploadingKtp ? 'Mengunggah...' : 'Unggah'}
                         </Button>
                       )}
                       {ktpUploaded && (
@@ -726,7 +696,10 @@ export default function OnboardingFormPage() {
 
                   {/* KK */}
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold text-slate-700">Kartu Keluarga (KK) - wajib</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Kartu Keluarga (KK)
+                      <span className="text-red-500 ml-0.5" aria-hidden>*</span>
+                    </p>
                     <div className="flex gap-3 items-start">
                       <div className="flex-1">
                         <input
@@ -762,7 +735,9 @@ export default function OnboardingFormPage() {
 
                   {/* SKCK */}
                   <div className="flex flex-col gap-2">
-                    <p className="text-xs font-semibold text-slate-700">SKCK (opsional)</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      SKCK <span className="text-slate-400 font-medium normal-case tracking-normal">(opsional)</span>
+                    </p>
                     <div className="flex gap-3 items-start">
                       <div className="flex-1">
                         <input
@@ -811,11 +786,27 @@ export default function OnboardingFormPage() {
                   <Input label="Tanggal Lahir" name="date_of_birth" type="date" value={formData.date_of_birth} onChange={handleInputChange} required />
                 </div>
                 <Select label="Jenis Kelamin" name="gender" value={formData.gender} onChange={handleInputChange} required>
+                  <option value="">Pilih jenis kelamin</option>
                   <option value="male">Laki-laki</option>
                   <option value="female">Perempuan</option>
                 </Select>
-                <Input label="Agama" name="religion" value={formData.religion} onChange={handleInputChange} required placeholder="mis. Islam, Kristen" />
-                <Select label="Status Pernikahan" name="marital_status" value={formData.marital_status === 'menikah' ? 'married' : formData.marital_status} onChange={handleInputChange} required>
+                <Select label="Agama" name="religion" value={formData.religion} onChange={handleInputChange} required>
+                  <option value="">Pilih agama</option>
+                  <option value="Islam">Islam</option>
+                  <option value="Kristen Protestan">Kristen Protestan</option>
+                  <option value="Katolik">Katolik</option>
+                  <option value="Hindu">Hindu</option>
+                  <option value="Buddha">Buddha</option>
+                  <option value="Konghucu">Konghucu</option>
+                </Select>
+                <Select
+                  label="Status Pernikahan"
+                  name="marital_status"
+                  value={formData.marital_status === 'menikah' ? 'married' : formData.marital_status}
+                  onChange={handleInputChange}
+                  required
+                >
+                  <option value="">Pilih status pernikahan</option>
                   <option value="single">Lajang</option>
                   <option value="married">Menikah</option>
                   <option value="divorced">Cerai</option>
@@ -823,12 +814,12 @@ export default function OnboardingFormPage() {
                 {(formData.marital_status === 'married' || formData.marital_status === 'menikah') && (
                   <Input label="Jumlah Anak" name="child_number" type="number" min="0" value={formData.child_number} onChange={handleInputChange} placeholder="0" required />
                 )}
-                <Input label="Nomor Telepon" name="phone_no" value={formData.phone_no} onChange={handleInputChange} placeholder="+62..." />
+                <Input label="Nomor Telepon" name="phone_no" value={formData.phone_no} onChange={handleInputChange} required placeholder="+62..." />
                 <Input label="Nomor NPWP" name="npwp_number" value={formData.npwp_number} onChange={handleInputChange} placeholder="Nomor pajak (opsional)" />
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <Input label="RT" name="ktp_rt" type="number" min="0" value={formData.ktp_rt} onChange={handleInputChange} placeholder="01" />
-                    <Input label="RW" name="ktp_rw" type="number" min="0" value={formData.ktp_rw} onChange={handleInputChange} placeholder="02" />
+                    <Input label="RT" name="ktp_rt" type="number" min="0" value={formData.ktp_rt} onChange={handleInputChange} placeholder="01" required />
+                    <Input label="RW" name="ktp_rw" type="number" min="0" value={formData.ktp_rw} onChange={handleInputChange} placeholder="02" required />
                   </div>
                   <RegionSelect label="Provinsi" type="province" value={formData.ktp_province} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_province: name, ktp_district: '', ktp_sub_district: '' })); setKtpProvinceId(id ?? ''); setKtpDistrictId(''); }} required />
                   <RegionSelect label="Kabupaten/Kota" type="district" provinceId={ktpProvinceId} value={formData.ktp_district} onChange={(name, id) => { setFormData(p => ({ ...p, ktp_district: name, ktp_sub_district: '' })); setKtpDistrictId(id ?? ''); }} required />
@@ -853,8 +844,8 @@ export default function OnboardingFormPage() {
                   <>
                     <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="grid grid-cols-2 gap-4">
-                        <Input label="RT Domisili" name="domicile_rt" type="number" min="0" value={formData.domicile_rt} onChange={handleInputChange} placeholder="01" />
-                        <Input label="RW Domisili" name="domicile_rw" type="number" min="0" value={formData.domicile_rw} onChange={handleInputChange} placeholder="02" />
+                        <Input label="RT Domisili" name="domicile_rt" type="number" min="0" value={formData.domicile_rt} onChange={handleInputChange} placeholder="01" required />
+                        <Input label="RW Domisili" name="domicile_rw" type="number" min="0" value={formData.domicile_rw} onChange={handleInputChange} placeholder="02" required />
                       </div>
                       <RegionSelect label="Provinsi Domisili" type="province" value={formData.domicile_province} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_province: name, domicile_district: '', domicile_sub_district: '' })); setDomicileProvinceId(id ?? ''); setDomicileDistrictId(''); }} required />
                       <RegionSelect label="Kabupaten/Kota Domisili" type="district" provinceId={domicileProvinceId} value={formData.domicile_district} onChange={(name, id) => { setFormData(p => ({ ...p, domicile_district: name, domicile_sub_district: '' })); setDomicileDistrictId(id ?? ''); }} required />

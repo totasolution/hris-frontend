@@ -29,6 +29,7 @@ export type Tenant = {
   company_address?: string;
   company_representative_name?: string;
   company_representative_title?: string;
+  company_stamp_url?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -38,6 +39,8 @@ export type TenantCompanyInfo = {
   company_address?: string;
   company_representative_name?: string;
   company_representative_title?: string;
+  /** Public URL of company stamp image (MinIO) */
+  company_stamp_url?: string | null;
 };
 
 export async function getTenantCompanyInfo(): Promise<TenantCompanyInfo> {
@@ -55,6 +58,21 @@ export async function updateTenantCompanyInfo(body: TenantCompanyInfo): Promise<
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update company info');
   return data;
+}
+
+export async function uploadTenantCompanyStamp(file: File): Promise<{ company_stamp_url: string }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await authFetch(`${API_BASE}/tenant/company-stamp`, { method: 'POST', body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to upload stamp');
+  return data;
+}
+
+export async function deleteTenantCompanyStamp(): Promise<void> {
+  const res = await authFetch(`${API_BASE}/tenant/company-stamp`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to remove stamp');
 }
 
 export type LoginResponse = {
@@ -591,6 +609,8 @@ export type Candidate = {
   screening_notes?: string;
   screening_rating?: number;
   submitted_to_client_at?: string;
+  ojt_start_date?: string;
+  ojt_end_date?: string;
   created_by?: number;
   pic_name?: string;
   client_name?: string;
@@ -667,6 +687,42 @@ export async function getCandidate(id: number): Promise<Candidate> {
   return data;
 }
 
+/** OJT candidates only; requires candidate:read; respects PIC scope without full_recruitment_access. */
+export async function getOjtCandidates(params?: { client_id?: number; page?: number; per_page?: number }): Promise<PaginatedResponse<Candidate>> {
+  const q = new URLSearchParams();
+  if (params?.client_id) q.set('client_id', String(params.client_id));
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.per_page) q.set('per_page', String(params.per_page));
+  const url = q.toString() ? `${API_BASE}/candidates/ojt?${q}` : `${API_BASE}/candidates/ojt`;
+  const res = await authFetch(url, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load OJT candidates');
+  return {
+    data: data.data ?? [],
+    total: data.total ?? 0,
+    page: data.page ?? 1,
+    per_page: data.per_page ?? 10,
+    total_pages: data.total_pages ?? 1,
+  };
+}
+
+/** XLSX export for OJT candidates; same scope as getOjtCandidates. */
+export async function downloadOjtCandidatesXlsx(params?: { client_id?: number }): Promise<void> {
+  const q = new URLSearchParams();
+  if (params?.client_id) q.set('client_id', String(params.client_id));
+  const base = `${API_BASE}/candidates/ojt/export`;
+  const url = q.toString() ? `${base}?${q}` : base;
+  const res = await authFetch(url, { credentials: 'include', headers: authHeaders() });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? 'ojt-candidates.xlsx';
+  downloadBlob(blob, filename);
+}
+
 export async function createCandidate(body: {
   client_id?: number;
   full_name: string;
@@ -714,6 +770,8 @@ export async function updateCandidate(
     screening_status: string;
     screening_notes: string;
     screening_rating: number;
+    ojt_start_date: string;
+    ojt_end_date: string;
   }>
 ): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates/${id}`, {
@@ -724,6 +782,28 @@ export async function updateCandidate(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update candidate');
+  return data;
+}
+
+/** Reject a candidate in OJT: store OJT window and bank fields, set status to rejected. */
+export async function rejectOjtCandidate(
+  id: number,
+  body: {
+    ojt_start_date: string;
+    ojt_end_date: string;
+    bank_name?: string;
+    bank_account_number?: string;
+    bank_account_holder?: string;
+  }
+): Promise<Candidate> {
+  const res = await authFetch(`${API_BASE}/candidates/${id}/reject-ojt`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to reject candidate');
   return data;
 }
 
@@ -1045,41 +1125,8 @@ export async function submitOnboardingForm(token: string, formData: Record<strin
   if (!res.ok) throw new Error(data?.error?.message ?? 'Submit failed');
 }
 
-export type KTPExtractedData = {
-  province?: string;
-  district?: string;
-  nik?: string;
-  name?: string;
-  place_dob?: string;
-  gender?: string;
-  address_1?: string;
-  address_2?: string;
-  address_3?: string;
-  address_4?: string;
-  religion?: string;
-  married_status?: string;
-  occupation?: string;
-  nationality?: string;
-  valid_until?: string;
-  confidence?: number;
-  /** @deprecated use nik */
-  id_number?: string;
-  /** @deprecated use name */
-  full_name?: string;
-  /** @deprecated use place_dob */
-  birth_place?: string;
-  /** @deprecated use place_dob */
-  birth_date?: string;
-  /** @deprecated use address_1..address_4 */
-  address?: string;
-  /** @deprecated use married_status */
-  marital_status?: string;
-};
-
 export type UploadDocumentResponse = {
   document: any;
-  extracted_data?: KTPExtractedData;
-  ocr_confidence?: number;
 };
 
 const ONBOARDING_MAX_FILE_BYTES = 5 * 1024 * 1024; // 5MB
@@ -1151,6 +1198,20 @@ export type EmploymentTermsInput = {
   employment_insurance_no?: string;
   employment_overtime_nominal?: string;
 };
+
+/** Sets the CV to an external URL in candidate_documents.file_path (type cv; file_size/mime null). Use empty file_path to clear. Skipped when a stored CV file exists and you want to keep it. */
+export async function setCandidateCvLink(candidateId: number, filePath: string): Promise<CandidateDocument | void> {
+  const res = await authFetch(`${API_BASE}/candidates/${candidateId}/documents/cv-link`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ file_path: filePath }),
+  });
+  if (res.status === 204) return;
+  const data = await res.json();
+  if (!res.ok) throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Failed to set CV link');
+  return data as CandidateDocument;
+}
 
 export async function updateEmploymentTerms(
   candidateId: number,

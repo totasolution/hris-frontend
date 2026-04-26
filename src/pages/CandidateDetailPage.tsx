@@ -20,6 +20,27 @@ import { mergeCandidateFromApiResponse } from '../utils/mergeCandidate';
 
 type TabType = 'overview' | 'onboarding' | 'documents';
 
+function toDateInputValue(iso?: string | null): string {
+  if (iso == null || String(iso).trim() === '') return '';
+  const t = new Date(String(iso));
+  if (Number.isNaN(t.getTime())) return '';
+  return t.toISOString().slice(0, 10);
+}
+
+/** Href for pasted CV links; adds https if scheme is missing. */
+function toExternalHref(raw: string): string {
+  const t = raw.trim();
+  if (!t) return '#';
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
+function isHttpUrl(s: string | undefined | null): boolean {
+  if (s == null || !String(s).trim()) return false;
+  const t = String(s).trim().toLowerCase();
+  return t.startsWith('http://') || t.startsWith('https://');
+}
+
 const PACKAGE_OPTIONS: { key: string; label: string }[] = [
   { key: 'bpjskes', label: 'BPJS Kesehatan' },
   { key: 'bpjsket', label: 'BPJS Ketenagakerjaan' },
@@ -70,6 +91,7 @@ export default function CandidateDetailPage() {
     sub_district_id?: string;
     village_id?: string;
     branch?: string;
+    cv_url?: string;
   }>({});
   const [employmentTermsSaveLoading, setEmploymentTermsSaveLoading] = useState(false);
   const [packageKeys, setPackageKeys] = useState<string[]>([]);
@@ -141,18 +163,6 @@ export default function CandidateDetailPage() {
 
   const handleCreateLink = async () => {
     if (!candidateId) return;
-    const hasEmploymentTerms =
-      onboardingData?.employment_start_date &&
-      onboardingData?.employment_duration_months &&
-      onboardingData?.employment_salary &&
-      candidate?.province_id &&
-      candidate?.district_id &&
-      candidate?.sub_district_id &&
-      candidate?.village_id;
-    if (!hasEmploymentTerms) {
-      toast.error('Please complete Employment Terms (Start Date, Duration, Salary, Province, District, Sub-district, and Village) before generating the onboarding link.');
-      return;
-    }
     setLinkLoading(true);
     try {
       const link = await api.createOnboardingLink(candidateId);
@@ -296,6 +306,7 @@ export default function CandidateDetailPage() {
     'contract_requested',
     'hired',
   ].includes(candidate.screening_status);
+  const isOjtStatus = (candidate.screening_status ?? '').trim().toLowerCase() === 'ojt';
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
@@ -381,9 +392,11 @@ export default function CandidateDetailPage() {
             packageKeys={packageKeys}
             setPackageKeys={setPackageKeys}
             setCandidate={setCandidate}
-              setDocuments={setDocuments}
+            setDocuments={setDocuments}
+            documents={documents}
+            isOjtStatus={isOjtStatus}
+            canActOnCandidate={canEditCandidate}
             toast={toast}
-            canUploadCandidateDoc={canUploadCandidateDoc}
           />
         )}
 
@@ -471,8 +484,10 @@ function OverviewTab({
   setPackageKeys,
   setCandidate,
   setDocuments,
+  documents,
+  isOjtStatus,
+  canActOnCandidate,
   toast,
-  canUploadCandidateDoc,
 }: {
   candidate: Candidate;
   candidateId: number;
@@ -513,6 +528,7 @@ function OverviewTab({
     sub_district_id?: string;
     village_id?: string;
     branch?: string;
+    cv_url?: string;
   };
   setEmploymentTermsForm: React.Dispatch<React.SetStateAction<{
     start_date?: string;
@@ -533,6 +549,7 @@ function OverviewTab({
     sub_district_id?: string;
     village_id?: string;
     branch?: string;
+    cv_url?: string;
   }>>;
   employmentTermsSaveLoading: boolean;
   setEmploymentTermsSaveLoading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -541,8 +558,10 @@ function OverviewTab({
   setPackageKeys: React.Dispatch<React.SetStateAction<string[]>>;
   setCandidate: React.Dispatch<React.SetStateAction<Candidate | null>>;
   setDocuments: React.Dispatch<React.SetStateAction<CandidateDocument[]>>;
+  documents: CandidateDocument[];
+  isOjtStatus: boolean;
+  canActOnCandidate: boolean;
   toast: ReturnType<typeof useToast>;
-  canUploadCandidateDoc: boolean;
 }) {
   const [subDistrictOptions, setSubDistrictOptions] = useState<api.RegionItem[]>([]);
   const [villageOptions, setVillageOptions] = useState<api.RegionItem[]>([]);
@@ -556,7 +575,21 @@ function OverviewTab({
   const [subDistrictDropdownOpen, setSubDistrictDropdownOpen] = useState(false);
   const [villageSearch, setVillageSearch] = useState('');
   const [villageDropdownOpen, setVillageDropdownOpen] = useState(false);
-  const [employmentCvFile, setEmploymentCvFile] = useState<File | null>(null);
+  const [rejectOjtOpen, setRejectOjtOpen] = useState(false);
+  const [rejectOjtLoading, setRejectOjtLoading] = useState(false);
+  const [rejectOjtForm, setRejectOjtForm] = useState<{
+    ojt_start_date: string;
+    ojt_end_date: string;
+    bank_name: string;
+    bank_account_number: string;
+    bank_account_holder: string;
+  }>({
+    ojt_start_date: '',
+    ojt_end_date: '',
+    bank_name: '',
+    bank_account_number: '',
+    bank_account_holder: '',
+  });
 
   const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
   const selectedDistrictId = (editingEmploymentTerms ? employmentTermsForm.district_id : candidate.district_id)?.trim();
@@ -619,7 +652,50 @@ function OverviewTab({
   // Some legacy records may have an empty status. Treat as submitted so recruiter actions remain usable.
   const screeningStatusForFlow = normalizedScreeningStatus || 'submitted';
 
+  const openRejectOjtPanel = () => {
+    setRejectOjtForm({
+      ojt_start_date: toDateInputValue(candidate.ojt_start_date) || '',
+      ojt_end_date: toDateInputValue(candidate.ojt_end_date) || '',
+      bank_name: onboardingData?.bank_name?.trim() ?? '',
+      bank_account_number: onboardingData?.bank_account_number?.trim() ?? '',
+      bank_account_holder: onboardingData?.bank_account_holder?.trim() ?? '',
+    });
+    setRejectOjtOpen(true);
+  };
+
+  const handleRejectOjtSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectOjtForm.ojt_start_date || !rejectOjtForm.ojt_end_date) {
+      toast.error('OJT start and end dates are required');
+      return;
+    }
+    setRejectOjtLoading(true);
+    try {
+      const updated = await api.rejectOjtCandidate(candidateId, {
+        ojt_start_date: rejectOjtForm.ojt_start_date,
+        ojt_end_date: rejectOjtForm.ojt_end_date,
+        bank_name: rejectOjtForm.bank_name || undefined,
+        bank_account_number: rejectOjtForm.bank_account_number || undefined,
+        bank_account_holder: rejectOjtForm.bank_account_holder || undefined,
+      });
+      setCandidate((prev) => mergeCandidateFromApiResponse(prev, updated, { screeningStatusFallback: 'rejected' }));
+      setRejectOjtOpen(false);
+      toast.success('Candidate rejected. OJT dates and bank details have been saved.');
+      try {
+        const fresh = await api.getOnboardingFormByCandidate(candidateId);
+        setOnboardingData(fresh);
+      } catch {
+        // ignore
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to reject');
+    } finally {
+      setRejectOjtLoading(false);
+    }
+  };
+
   return (
+    <>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className={isOnboardingRelevant ? 'lg:col-span-2 space-y-8' : 'lg:col-span-3 space-y-8'}>
         {/* Status & Info */}
@@ -740,7 +816,8 @@ function OverviewTab({
             </CardBody>
           </Card>
 
-          {/* Employment Terms (filled by recruiter) */}
+          {/* Employment Terms (filled by recruiter) — hidden for rejected candidates */}
+          {screeningStatusForFlow !== 'rejected' && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">Employment Terms</h3>
@@ -749,7 +826,6 @@ function OverviewTab({
                   variant="secondary"
                   className="!py-1.5 !px-4 !text-xs"
                   onClick={() => {
-                    setEmploymentCvFile(null);
                     setEmploymentTermsForm({
                       start_date: onboardingData?.employment_start_date ?? '',
                       duration_months: onboardingData?.employment_duration_months ?? undefined,
@@ -764,6 +840,10 @@ function OverviewTab({
                       insurance_provider: onboardingData?.employment_insurance_provider ?? '',
                       insurance_no: onboardingData?.employment_insurance_no ?? '',
                       overtime_nominal: onboardingData?.employment_overtime_nominal ?? '',
+                      cv_url: (() => {
+                        const cv = documents.find((d) => d.type === 'cv');
+                        return cv && isHttpUrl(cv.file_path) ? cv.file_path : '';
+                      })(),
                       province_id: candidate.province_id ?? '',
                       district_id: candidate.district_id ?? '',
                       sub_district_id: candidate.sub_district_id ?? '',
@@ -818,22 +898,17 @@ function OverviewTab({
                         employment_overtime_nominal: employmentTermsForm.overtime_nominal || undefined,
                       });
 
-                      // Optional: upload CV from Employment Terms panel.
-                      if (employmentCvFile && canUploadCandidateDoc) {
-                        if (employmentCvFile.size > MAX_CANDIDATE_DOCUMENT_SIZE) {
-                          toast.error('CV file is too large (max 5MB).');
-                          return;
-                        }
-                        await api.uploadCandidateDocument(candidateId, employmentCvFile, 'cv');
-                        const updatedDocs = await api.getCandidateDocuments(candidateId);
-                        setDocuments(updatedDocs);
-                        setEmploymentCvFile(null);
-                      }
-
                       setOnboardingData(updatedOnboarding);
                       if (updatedCandidate) {
                         setCandidate((prev) => mergeCandidateFromApiResponse(prev, updatedCandidate));
                       }
+                      const cvDoc = documents.find((d) => d.type === 'cv');
+                      const hadOnlyFile = Boolean(cvDoc && !isHttpUrl(cvDoc.file_path));
+                      const newCv = (employmentTermsForm.cv_url ?? '').trim();
+                      if (!(hadOnlyFile && newCv === '')) {
+                        await api.setCandidateCvLink(candidateId, newCv);
+                      }
+                      setDocuments(await api.getCandidateDocuments(candidateId));
                       setEditingEmploymentTerms(false);
                       toast.success('Employment terms updated');
                     } catch (err) {
@@ -1095,28 +1170,20 @@ function OverviewTab({
                     </div>
                     <Input label="Branch" name="branch" value={employmentTermsForm.branch ?? ''} onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, branch: e.target.value }))} placeholder="Branch name" />
 
-                    {canUploadCandidateDoc && (
-                      <div className="md:col-span-2">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">
-                          CV / Resume
-                        </p>
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            setEmploymentCvFile(f ?? null);
-                          }}
-                          className="block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-brand/10 file:text-brand hover:file:bg-brand/20 file:cursor-pointer"
-                          disabled={employmentTermsSaveLoading}
-                        />
-                        {employmentCvFile && (
-                          <p className="text-xs text-slate-500 mt-2">
-                            Selected: {employmentCvFile.name} ({(employmentCvFile.size / 1024 / 1024).toFixed(2)} MB)
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <div className="md:col-span-2">
+                      <Input
+                        label="CV / resume (link)"
+                        name="cv_url"
+                        type="text"
+                        value={employmentTermsForm.cv_url ?? ''}
+                        onChange={(e) => setEmploymentTermsForm((p) => ({ ...p, cv_url: e.target.value }))}
+                        placeholder="https://... or Drive / portfolio URL"
+                        disabled={employmentTermsSaveLoading}
+                      />
+                      <p className="text-xs text-slate-500 mt-1.5">
+                        Saved as the CV row in documents with the URL in file path. Leave empty to clear a link. If a CV file exists, leave this blank to keep the file, or paste a link to replace it.
+                      </p>
+                    </div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t border-slate-100">
                     <Button type="submit" disabled={employmentTermsSaveLoading}>
@@ -1163,6 +1230,33 @@ function OverviewTab({
                       </p>
                     </div>
                   ) : null)}
+                  {(() => {
+                    const cv = documents.find((d) => d.type === 'cv');
+                    if (!cv) return null;
+                    if (isHttpUrl(cv.file_path)) {
+                      return (
+                        <div className="md:col-span-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">CV / resume (link)</p>
+                          <a
+                            href={toExternalHref(cv.file_path)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-bold text-brand break-all hover:underline"
+                          >
+                            {cv.file_path.trim()}
+                          </a>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="md:col-span-2">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">CV / resume</p>
+                        <p className="text-sm text-slate-600">
+                          File on record ({cv.file_name || 'file'}). Open it from the Documents tab.
+                        </p>
+                      </div>
+                    );
+                  })()}
                   {(!onboardingData?.employment_start_date && !onboardingData?.employment_duration_months && !onboardingData?.employment_salary) && (
                     <div className="md:col-span-2 text-center py-4 text-slate-400 text-sm">
                       No employment terms set yet. Click "Add" to set start date, duration, and salary.
@@ -1172,10 +1266,72 @@ function OverviewTab({
               )}
             </CardBody>
           </Card>
+          )}
         </div>
 
         {isOnboardingRelevant && (
           <div className="space-y-8">
+            {isOjtStatus && showRequestContract && !onboardingData?.hrd_rejected_at && (
+              <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/80 to-white border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-teal-800 uppercase tracking-[0.2em] font-headline">OJT program</h3>
+                      <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                        The candidate is in <span className="font-semibold text-brand-dark">On the Job Training</span>. When OJT is complete, request a contract from HRD or record a rejection with the OJT period and bank details.
+                      </p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardBody className="space-y-4 pt-0">
+                  <ol className="list-decimal pl-5 space-y-1.5 text-sm text-slate-700">
+                    <li>Review employment terms and onboarding data on this page.</li>
+                    <li>Request a contract to continue toward hire, or reject and archive the OJT window.</li>
+                    <li>Rejecting requires OJT start/end dates; bank fields are saved to onboarding for payroll context.</li>
+                  </ol>
+                  {(candidate.ojt_start_date || candidate.ojt_end_date) && (
+                    <div className="flex flex-wrap gap-4 text-sm text-slate-600 bg-white/60 rounded-lg px-3 py-2 border border-teal-100">
+                      {candidate.ojt_start_date && (
+                        <span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">OJT start (saved)</span>
+                          {formatDate(candidate.ojt_start_date, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                      {candidate.ojt_end_date && (
+                        <span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase block">OJT end (saved)</span>
+                          {formatDate(candidate.ojt_end_date, { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-3 pt-1">
+                    <Button
+                      type="button"
+                      onClick={() => setShowConfirmHrd(true)}
+                      disabled={submitHrdLoading || !canActOnCandidate}
+                      className="w-full !py-3.5 !bg-amber-500 hover:!bg-amber-600"
+                    >
+                      {submitHrdLoading ? 'Requesting...' : 'Request contract'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full !py-3.5 !border-slate-200 !text-slate-800"
+                      onClick={openRejectOjtPanel}
+                      disabled={submitHrdLoading || !canActOnCandidate}
+                    >
+                      Reject candidate
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
             {/* Onboarding Control */}
             <Card className="border-brand/20 bg-brand-lighter/20">
               <CardHeader>
@@ -1209,32 +1365,43 @@ function OverviewTab({
                 )}
 
                 {showRequestContract && (
-                  <div className="space-y-4 text-center py-4">
+                  <div className="space-y-4 py-4">
                     {onboardingData?.hrd_rejected_at ? (
-                      <>
-                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 mb-4">
+                      <div className="text-center space-y-4">
+                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
                           <p className="text-xs text-amber-700 font-bold">HRD rejected the previous request</p>
                           {onboardingData.hrd_comment && (
                             <p className="text-xs text-amber-600 mt-2">{onboardingData.hrd_comment}</p>
                           )}
                         </div>
                         <p className="text-sm text-slate-500 leading-relaxed">You can fix any issues and request a contract from HRD again.</p>
-                      </>
+                        <Button
+                          onClick={() => setShowConfirmHrd(true)}
+                          disabled={submitHrdLoading}
+                          className="w-full max-w-md mx-auto !bg-amber-500 hover:!bg-amber-600"
+                        >
+                          {submitHrdLoading ? 'Requesting...' : 'Request Contract'}
+                        </Button>
+                      </div>
+                    ) : isOjtStatus ? (
+                      <p className="text-center text-sm text-slate-500 py-2">
+                        Use the <span className="font-semibold text-slate-700">OJT program</span> card above for request contract and reject.
+                      </p>
                     ) : (
-                      <>
-                        <div className="p-4 bg-green-50 rounded-xl border border-green-100 mb-4">
+                      <div className="text-center space-y-4">
+                        <div className="p-4 bg-green-50 rounded-xl border border-green-100">
                           <p className="text-xs text-green-700 font-bold">✓ Onboarding Form Submitted</p>
                         </div>
                         <p className="text-sm text-slate-500 leading-relaxed">Candidate has provided all required information. You can now request a contract from HRD.</p>
-                      </>
+                        <Button
+                          onClick={() => setShowConfirmHrd(true)}
+                          disabled={submitHrdLoading}
+                          className="w-full max-w-md mx-auto !bg-amber-500 hover:!bg-amber-600"
+                        >
+                          {submitHrdLoading ? 'Requesting...' : 'Request Contract'}
+                        </Button>
+                      </div>
                     )}
-                    <Button
-                      onClick={() => setShowConfirmHrd(true)}
-                      disabled={submitHrdLoading}
-                      className="w-full !bg-amber-500 hover:!bg-amber-600"
-                    >
-                      {submitHrdLoading ? 'Requesting...' : 'Request Contract'}
-                    </Button>
                   </div>
                 )}
 
@@ -1267,6 +1434,110 @@ function OverviewTab({
           </div>
         )}
     </div>
+
+    {rejectOjtOpen && (
+      <div className="fixed inset-0 z-[90] flex justify-end">
+        <button
+          type="button"
+          className="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px]"
+          aria-label="Close reject panel"
+          onClick={() => !rejectOjtLoading && setRejectOjtOpen(false)}
+        />
+        <div
+          className="relative h-full w-full max-w-md bg-white shadow-2xl border-l border-slate-200 flex flex-col animate-in slide-in-from-right duration-200"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reject-ojt-title"
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+            <h2 id="reject-ojt-title" className="text-sm font-bold text-brand-dark font-headline uppercase tracking-widest">
+              Reject after OJT
+            </h2>
+            <button
+              type="button"
+              className="text-slate-400 hover:text-slate-600 text-xl leading-none p-1"
+              disabled={rejectOjtLoading}
+              onClick={() => setRejectOjtOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <form onSubmit={handleRejectOjtSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            <p className="text-sm text-slate-600">
+              Record the OJT period and confirm payroll bank details. The candidate will be moved to <span className="font-semibold">rejected</span>.
+            </p>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5" htmlFor="ojt_start">
+                OJT start
+              </label>
+              <Input
+                id="ojt_start"
+                type="date"
+                value={rejectOjtForm.ojt_start_date}
+                onChange={(e) => setRejectOjtForm((p) => ({ ...p, ojt_start_date: e.target.value }))}
+                required
+                disabled={rejectOjtLoading || !canActOnCandidate}
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5" htmlFor="ojt_end">
+                OJT end
+              </label>
+              <Input
+                id="ojt_end"
+                type="date"
+                value={rejectOjtForm.ojt_end_date}
+                onChange={(e) => setRejectOjtForm((p) => ({ ...p, ojt_end_date: e.target.value }))}
+                required
+                disabled={rejectOjtLoading || !canActOnCandidate}
+              />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Payroll bank (from onboarding)</p>
+              <div className="space-y-3">
+                <Input
+                  label="Bank name"
+                  name="bank_name"
+                  value={rejectOjtForm.bank_name}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, bank_name: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+                <Input
+                  label="Account number"
+                  name="bank_account_number"
+                  value={rejectOjtForm.bank_account_number}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, bank_account_number: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+                <Input
+                  label="Account holder"
+                  name="bank_account_holder"
+                  value={rejectOjtForm.bank_account_holder}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, bank_account_holder: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button type="submit" className="w-full" disabled={rejectOjtLoading || !canActOnCandidate}>
+                {rejectOjtLoading ? 'Saving...' : 'Confirm reject'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                disabled={rejectOjtLoading}
+                onClick={() => setRejectOjtOpen(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -1583,9 +1854,8 @@ function OnboardingTab({
   );
 }
 
-// Document type options for upload (matches backend CandidateDocumentType)
+// Document type options for upload (CV is a link in Employment terms, not uploaded here)
 const CANDIDATE_DOCUMENT_TYPES: { value: api.CandidateDocumentType; label: string }[] = [
-  { value: 'cv', label: 'CV / Resume' },
   { value: 'ktp', label: 'KTP (ID Card)' },
   { value: 'kk', label: 'Kartu Keluarga (KK)' },
   { value: 'skck', label: 'SKCK' },
@@ -1593,6 +1863,7 @@ const CANDIDATE_DOCUMENT_TYPES: { value: api.CandidateDocumentType; label: strin
 ];
 
 function formatDocumentType(t: string): string {
+  if (t === 'cv') return 'CV / Resume (file)';
   return CANDIDATE_DOCUMENT_TYPES.find((o) => o.value === t)?.label ?? t;
 }
 
@@ -1620,7 +1891,7 @@ function DocumentsTab({
   onPreview: (docId: number) => void;
   onDelete: (docId: number) => void;
 }) {
-  const [uploadType, setUploadType] = useState<api.CandidateDocumentType>('cv');
+  const [uploadType, setUploadType] = useState<api.CandidateDocumentType>('ktp');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [fileSizeError, setFileSizeError] = useState<string | null>(null);
@@ -1666,7 +1937,7 @@ function DocumentsTab({
               Upload document
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              Choose the document type and file to upload for this candidate.
+              Choose the document type and file. For a CV, use the external link in Employment terms on the Overview tab instead of uploading a file.
             </p>
           </CardHeader>
           <CardBody className="space-y-6">
@@ -1675,7 +1946,7 @@ function DocumentsTab({
                 <label className="block text-sm font-bold text-slate-700 mb-2">Document type</label>
                 <Select
                   value={uploadType}
-                  onChange={(e) => setUploadType((e.target.value || 'cv') as api.CandidateDocumentType)}
+                  onChange={(e) => setUploadType((e.target.value || 'ktp') as api.CandidateDocumentType)}
                   className="w-full"
                 >
                   {CANDIDATE_DOCUMENT_TYPES.map((opt) => (
@@ -1750,7 +2021,7 @@ function DocumentsTab({
             {documents.length === 0 ? (
               <TR>
                 <TD colSpan={3} className="py-8 text-center text-slate-400">
-                  No documents uploaded yet. Use the form above to add a document.
+                  No documents uploaded yet. Use the form above for KTP and other files; set the CV as a link under Employment terms.
                 </TD>
               </TR>
             ) : (

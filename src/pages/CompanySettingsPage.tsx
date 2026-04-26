@@ -16,6 +16,8 @@ export default function CompanySettingsPage() {
   const [companyAddress, setCompanyAddress] = useState('');
   const [representativeName, setRepresentativeName] = useState('');
   const [representativeTitle, setRepresentativeTitle] = useState('');
+  const [companyStampUrl, setCompanyStampUrl] = useState<string | null>(null);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -26,6 +28,7 @@ export default function CompanySettingsPage() {
         setCompanyAddress(info.company_address || '');
         setRepresentativeName(info.company_representative_name || '');
         setRepresentativeTitle(info.company_representative_title || '');
+        setCompanyStampUrl(info.company_stamp_url ?? null);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : t('pages:companySettings.loadError'));
       } finally {
@@ -34,6 +37,35 @@ export default function CompanySettingsPage() {
     };
     load();
   }, [toast]);
+
+  const handleStampFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setUploadingStamp(true);
+    try {
+      const { company_stamp_url: url } = await api.uploadTenantCompanyStamp(file);
+      setCompanyStampUrl(url);
+      toast.success(t('pages:companySettings.stampUploadSuccess'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('pages:companySettings.stampUploadFailed'));
+    } finally {
+      setUploadingStamp(false);
+    }
+  };
+
+  const handleRemoveStamp = async () => {
+    setUploadingStamp(true);
+    try {
+      await api.deleteTenantCompanyStamp();
+      setCompanyStampUrl(null);
+      toast.success(t('pages:companySettings.stampRemoved'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('pages:companySettings.stampUploadFailed'));
+    } finally {
+      setUploadingStamp(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +161,43 @@ export default function CompanySettingsPage() {
               </Button>
             </div>
           </form>
+
+          <div className="mt-10 pt-8 border-t border-slate-100">
+            <FormGroup>
+              <Label>{t('pages:companySettings.companyStamp')}</Label>
+              <p className="text-xs text-slate-500 mb-3">{t('pages:companySettings.companyStampHint')}</p>
+              {companyStampUrl ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-slate-600">{t('pages:companySettings.currentStamp')}</p>
+                  <div className="inline-block border border-slate-200 rounded-xl p-2 bg-white max-w-xs">
+                    <img src={companyStampUrl} alt="" className="max-h-32 w-auto object-contain" />
+                  </div>
+                  <div className="text-[10px] text-slate-400 break-all">{companyStampUrl}</div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 mb-2">{t('pages:companySettings.noStamp')}</p>
+              )}
+              <div className="flex flex-wrap items-center gap-3 mt-4">
+                <label className="inline-flex">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    className="hidden"
+                    onChange={handleStampFile}
+                    disabled={uploadingStamp}
+                  />
+                  <span className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold bg-brand text-white cursor-pointer hover:opacity-90 disabled:opacity-50">
+                    {uploadingStamp ? t('pages:companySettings.uploadingStamp') : t('pages:companySettings.uploadStamp')}
+                  </span>
+                </label>
+                {companyStampUrl && (
+                  <Button type="button" variant="secondary" onClick={handleRemoveStamp} disabled={uploadingStamp}>
+                    {t('pages:companySettings.removeStamp')}
+                  </Button>
+                )}
+              </div>
+            </FormGroup>
+          </div>
         </CardBody>
       </Card>
 

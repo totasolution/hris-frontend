@@ -15,6 +15,7 @@ import RolesPage from './pages/RolesPage';
 import UserFormPage from './pages/UserFormPage';
 import UsersPage from './pages/UsersPage';
 import CandidatesPage from './pages/CandidatesPage';
+import OjtCandidatesPage from './pages/OjtCandidatesPage';
 import RecruitmentBoardPage from './pages/RecruitmentBoardPage';
 import RecruitmentStatisticsPage from './pages/RecruitmentStatisticsPage';
 import CandidateFormPage from './pages/CandidateFormPage';
@@ -101,6 +102,7 @@ function AppRoutes() {
         <Route path="recruitment/board" element={<RecruitmentBoardPage />} />
         <Route path="recruitment/statistics" element={<RecruitmentStatisticsPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="recruitment/ojt" element={<OjtCandidatesPage />} />
         <Route path="candidates/new" element={<CandidateFormPage />} />
         <Route path="candidates/:id" element={<CandidateDetailPage />} />
         <Route path="candidates/:id/edit" element={<CandidateFormPage />} />

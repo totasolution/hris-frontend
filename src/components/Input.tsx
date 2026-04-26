@@ -5,18 +5,20 @@ type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   error?: string;
 };
 
-export function Input({ label, error, className = '', ...props }: InputProps) {
+export function Input({ label, error, className = '', required, ...props }: InputProps) {
   return (
     <div className="space-y-1.5">
       {label && (
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
           {label}
+          {required && <span className="text-red-500 ml-0.5" aria-hidden>*</span>}
         </label>
       )}
       <input
         className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all ${
           error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : ''
         } ${className}`}
+        required={required}
         {...props}
       />
       {error && <p className="text-xs font-medium text-red-500">{error}</p>}
@@ -24,18 +26,20 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
   );
 }
 
-export function Textarea({ label, error, className = '', ...props }: any) {
+export function Textarea({ label, error, className = '', required, ...props }: any) {
   return (
     <div className="space-y-1.5">
       {label && (
         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
           {label}
+          {required && <span className="text-red-500 ml-0.5" aria-hidden>*</span>}
         </label>
       )}
       <textarea
         className={`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all ${
           error ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500' : ''
         } ${className}`}
+        required={required}
         {...props}
       />
       {error && <p className="text-xs font-medium text-red-500">{error}</p>}

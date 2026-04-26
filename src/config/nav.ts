@@ -40,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'recruitmentStatistics', path: '/recruitment/statistics', permission: 'recruitment:statistics', group: 'recruitment', icon: 'chart' },
   { label: 'recruitmentBoard', path: '/recruitment/board', permission: 'recruitment:read', group: 'recruitment', icon: 'board' },
   { label: 'candidates', path: '/candidates', permission: 'recruitment:read', group: 'recruitment', icon: 'candidates' },
+  { label: 'ojtCandidates', path: '/recruitment/ojt', permission: 'candidate:read', group: 'recruitment', icon: 'candidates' },
   { label: 'onboardingStatus', path: '/onboarding/status', permission: 'recruitment:read', group: 'recruitment', icon: 'pending', badgeKey: 'onboardingFollowUp' },
   { label: 'pendingHrd', path: '/onboarding/pending-hrd', permissionsAny: ['rc:view', 'rc:approve'], group: 'recruitment', icon: 'pending' },
   { label: 'internalEmployees', path: '/employees/internal', permissionsAny: ['employee_internal:read'], group: 'people', icon: 'employees' },
