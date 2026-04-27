@@ -293,7 +293,6 @@ export default function CandidateDetailPage() {
     (candidate.screening_status === 'onboarding' && !hasActiveOnboardingLink);
   const showRequestContract =
     candidate.screening_status === 'onboarding_completed' ||
-    candidate.screening_status === 'ojt' ||
     (candidate.screening_status === 'contract_requested' && !!onboardingData?.hrd_rejected_at);
   const contractRequestedWaitingHrd =
     candidate.screening_status === 'contract_requested' && !onboardingData?.hrd_rejected_at;
@@ -1271,7 +1270,7 @@ function OverviewTab({
 
         {isOnboardingRelevant && (
           <div className="space-y-8">
-            {isOjtStatus && showRequestContract && !onboardingData?.hrd_rejected_at && (
+            {isOjtStatus && !onboardingData?.hrd_rejected_at && (
               <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/80 to-white border">
                 <CardHeader className="pb-2">
                   <div className="flex items-start gap-3">
@@ -1283,7 +1282,7 @@ function OverviewTab({
                     <div>
                       <h3 className="text-xs font-bold text-teal-800 uppercase tracking-[0.2em] font-headline">OJT program</h3>
                       <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                        The candidate is in <span className="font-semibold text-brand-dark">On the Job Training</span>. When OJT is complete, request a contract from HRD or record a rejection with the OJT period and bank details.
+                        The candidate is in <span className="font-semibold text-brand-dark">On the Job Training</span>. Valid actions are approve to onboarding, or reject and archive the OJT period with bank details.
                       </p>
                     </div>
                   </div>
@@ -1291,7 +1290,7 @@ function OverviewTab({
                 <CardBody className="space-y-4 pt-0">
                   <ol className="list-decimal pl-5 space-y-1.5 text-sm text-slate-700">
                     <li>Review employment terms and onboarding data on this page.</li>
-                    <li>Request a contract to continue toward hire, or reject and archive the OJT window.</li>
+                    <li>Approve to continue to <span className="font-semibold">onboarding</span>, or reject and archive the OJT window.</li>
                     <li>Rejecting requires OJT start/end dates; bank fields are saved to onboarding for payroll context.</li>
                   </ol>
                   {(candidate.ojt_start_date || candidate.ojt_end_date) && (
@@ -1313,11 +1312,11 @@ function OverviewTab({
                   <div className="flex flex-col gap-3 pt-1">
                     <Button
                       type="button"
-                      onClick={() => setShowConfirmHrd(true)}
+                      onClick={() => handleStatusUpdate('onboarding')}
                       disabled={submitHrdLoading || !canActOnCandidate}
-                      className="w-full !py-3.5 !bg-amber-500 hover:!bg-amber-600"
+                      className="w-full !py-3.5 !bg-teal-600 hover:!bg-teal-700"
                     >
-                      {submitHrdLoading ? 'Requesting...' : 'Request contract'}
+                      Approve to onboarding
                     </Button>
                     <Button
                       type="button"
@@ -1383,10 +1382,6 @@ function OverviewTab({
                           {submitHrdLoading ? 'Requesting...' : 'Request Contract'}
                         </Button>
                       </div>
-                    ) : isOjtStatus ? (
-                      <p className="text-center text-sm text-slate-500 py-2">
-                        Use the <span className="font-semibold text-slate-700">OJT program</span> card above for request contract and reject.
-                      </p>
                     ) : (
                       <div className="text-center space-y-4">
                         <div className="p-4 bg-green-50 rounded-xl border border-green-100">
