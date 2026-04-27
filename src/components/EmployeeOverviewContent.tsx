@@ -195,6 +195,8 @@ export function EmployeeOverviewContent({
           {employeeInfoEditing ? (
             <EmployeeInfoForm
               initial={employee}
+              departments={departments}
+              clients={clients}
               saving={employeeInfoSaving}
               onCancel={() => setEmployeeInfoEditing(false)}
               onSave={handleSaveEmployeeInfo}
@@ -227,13 +229,26 @@ export function EmployeeOverviewContent({
                 }
               />
               <Field label="NIP / Employee number" value={employee.employee_number} />
+              <Field label="Privy ID" value={employee.privy_id} />
               <Field label="Email" value={employee.email} />
               <Field label="Company Email" value={employee.company_email} />
               <Field label="Phone Number" value={employee.phone} />
               <Field label="Hire Date" value={employee.hire_date ? formatDate(employee.hire_date) : '—'} />
               <Field label="Join Date" value={displayDate ? formatDate(displayDate) : '—'} />
               <Field label="Position" value={employee.position} />
-              <Field label="Placement Location" value={employee.placement_location} />
+              <Field label="Placement Province" value={employee.placement_location} />
+              <Field
+                label="Placement District"
+                value={employee.placement_district_name?.trim() || employee.placement_district_id}
+              />
+              <Field
+                label="Placement Sub District"
+                value={employee.placement_sub_district_name?.trim() || employee.placement_sub_district_id}
+              />
+              <Field
+                label="Placement Village"
+                value={employee.placement_village_name?.trim() || employee.placement_village_id}
+              />
               <Field label="Branch" value={employee.branch} />
               <Field
                 label="Department"
@@ -506,19 +521,26 @@ export function EmployeeOverviewContent({
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <p className="md:col-span-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest font-headline">
+                Alamat sesuai KTP
+              </p>
               <Field label="Address (Street)" value={employee.address} block />
-              <Field label="RT/RW" value={employee.rt_rw} />
-              <Field label="Kelurahan / Village" value={employee.village} />
-              <Field label="Province" value={employee.province} />
-              <Field label="Kabupaten / Kota" value={employee.district} />
-              <Field label="Kecamatan / Sub-District" value={employee.sub_district} />
-              <Field label="Zip Code" value={employee.zip_code} />
+              <Field label="RT/RW" value={employee.ktp_rt_rw} />
+              <Field label="Province" value={employee.ktp_province} />
+              <Field label="Kabupaten / Kota" value={employee.ktp_district} />
+              <Field label="Kecamatan" value={employee.ktp_sub_district} />
+              <Field
+                label="Same as KTP address"
+                value={employee.domicile_same_as_ktp === true ? 'Yes' : employee.domicile_same_as_ktp === false ? 'No' : undefined}
+              />
+              <p className="md:col-span-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest font-headline pt-2 border-t border-slate-100">
+                Alamat domisili
+              </p>
               <Field label="Domicile Address (Street)" value={employee.domicile_address} block />
               <Field label="Domicile RT/RW" value={employee.domicile_rt_rw} />
               <Field label="Domicile Province" value={employee.domicile_province} />
               <Field label="Domicile Kabupaten / Kota" value={employee.domicile_district} />
-              <Field label="Domicile Kecamatan / Sub-District" value={employee.domicile_sub_district} />
-              <Field label="Domicile Zip Code" value={employee.domicile_zip_code} />
+              <Field label="Domicile Kecamatan" value={employee.domicile_sub_district} />
             </div>
           )}
         </CardBody>
@@ -571,10 +593,12 @@ function InputRow({
   label,
   value,
   onChange,
+  disabled,
 }: {
   label: string;
   value?: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <label className="block">
@@ -582,8 +606,101 @@ function InputRow({
       <input
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand/30"
+        disabled={disabled}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:bg-slate-50 disabled:text-slate-500"
       />
+    </label>
+  );
+}
+
+function SelectRow({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="block">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">{label}</p>
+      <select
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand/30 bg-white"
+      >
+        {options.map((opt) => (
+          <option key={`${label}-${opt.value}`} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function SearchableSelectRow({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Search...',
+  disabled,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const selectedLabel = options.find((opt) => opt.value === (value ?? ''))?.label ?? '';
+  const [query, setQuery] = useState(selectedLabel);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setQuery(selectedLabel);
+  }, [selectedLabel]);
+
+  const filtered = options.filter((opt) => opt.label.toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <label className="block relative">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 font-headline">{label}</p>
+      <input
+        value={query}
+        placeholder={placeholder}
+        disabled={disabled}
+        onFocus={() => !disabled && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onChange={(e) => {
+          if (disabled) return;
+          setQuery(e.target.value);
+          setOpen(true);
+          if (!e.target.value) onChange('');
+        }}
+        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-brand-dark focus:outline-none focus:ring-2 focus:ring-brand/30 disabled:bg-slate-50 disabled:text-slate-500"
+      />
+      {open && !disabled && filtered.length > 0 && (
+        <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+          {filtered.slice(0, 80).map((opt) => (
+            <button
+              key={`${label}-${opt.value}`}
+              type="button"
+              className="block w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(opt.value);
+                setQuery(opt.label);
+                setOpen(false);
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
     </label>
   );
 }
@@ -621,9 +738,20 @@ function toNullableString(value?: string): string | null {
   return cleanString(value) ?? null;
 }
 
-function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeInformationPayload>) {
+function EmployeeInfoForm({
+  initial,
+  departments,
+  clients,
+  saving,
+  onCancel,
+  onSave,
+}: EditorProps<Employee, api.EmployeeInformationPayload> & {
+  departments: Department[];
+  clients: Client[];
+}) {
   const [form, setForm] = useState({
     employee_number: initial.employee_number ?? '',
+    privy_id: initial.privy_id ?? '',
     email: initial.email ?? '',
     company_email: initial.company_email ?? '',
     phone: initial.phone ?? '',
@@ -635,6 +763,10 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
     termination_reason: initial.termination_reason ?? '',
     position: initial.position ?? '',
     placement_location: initial.placement_location ?? '',
+    placement_district_id: initial.placement_district_id ?? '',
+    placement_sub_district_id: initial.placement_sub_district_id ?? '',
+    placement_village_id: initial.placement_village_id ?? '',
+    placement_province_id: '',
     branch: initial.branch ?? '',
     employment_contract_type: initial.employment_contract_type ?? '',
     contract_duration_months: initial.contract_duration_months != null ? String(initial.contract_duration_months) : '',
@@ -645,6 +777,7 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
   useEffect(() => {
     setForm({
       employee_number: initial.employee_number ?? '',
+      privy_id: initial.privy_id ?? '',
       email: initial.email ?? '',
       company_email: initial.company_email ?? '',
       phone: initial.phone ?? '',
@@ -656,6 +789,10 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
       termination_reason: initial.termination_reason ?? '',
       position: initial.position ?? '',
       placement_location: initial.placement_location ?? '',
+      placement_district_id: initial.placement_district_id ?? '',
+      placement_sub_district_id: initial.placement_sub_district_id ?? '',
+      placement_village_id: initial.placement_village_id ?? '',
+      placement_province_id: '',
       branch: initial.branch ?? '',
       employment_contract_type: initial.employment_contract_type ?? '',
       contract_duration_months: initial.contract_duration_months != null ? String(initial.contract_duration_months) : '',
@@ -664,6 +801,48 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
     });
   }, [initial]);
 
+  const [provinces, setProvinces] = useState<api.RegionItem[]>([]);
+  const [districts, setDistricts] = useState<api.RegionItem[]>([]);
+  const [subDistricts, setSubDistricts] = useState<api.RegionItem[]>([]);
+  const [villages, setVillages] = useState<api.RegionItem[]>([]);
+
+  useEffect(() => {
+    api.getRegionsProvinces().then((list) => {
+      setProvinces(list);
+      if (!form.placement_province_id && form.placement_location) {
+        const match = list.find((p) => p.name.toLowerCase() === form.placement_location.toLowerCase());
+        if (match) {
+          setForm((s) => ({ ...s, placement_province_id: match.id }));
+        }
+      }
+    }).catch(() => setProvinces([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!form.placement_province_id) {
+      setDistricts([]);
+      return;
+    }
+    api.getRegionsDistricts(form.placement_province_id).then(setDistricts).catch(() => setDistricts([]));
+  }, [form.placement_province_id]);
+
+  useEffect(() => {
+    if (!form.placement_district_id) {
+      setSubDistricts([]);
+      return;
+    }
+    api.getRegionsSubDistricts(form.placement_district_id).then(setSubDistricts).catch(() => setSubDistricts([]));
+  }, [form.placement_district_id]);
+
+  useEffect(() => {
+    if (!form.placement_sub_district_id) {
+      setVillages([]);
+      return;
+    }
+    api.getRegionsVillages(form.placement_sub_district_id).then(setVillages).catch(() => setVillages([]));
+  }, [form.placement_sub_district_id]);
+
   return (
     <form
       className="space-y-4"
@@ -671,6 +850,7 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
         e.preventDefault();
         await onSave({
           employee_number: toNullableString(form.employee_number),
+          privy_id: toNullableString(form.privy_id),
           email: toNullableString(form.email),
           company_email: toNullableString(form.company_email),
           phone: toNullableString(form.phone),
@@ -682,6 +862,9 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
           termination_reason: toNullableString(form.termination_reason),
           position: toNullableString(form.position),
           placement_location: toNullableString(form.placement_location),
+          placement_district_id: toNullableString(form.placement_district_id),
+          placement_sub_district_id: toNullableString(form.placement_sub_district_id),
+          placement_village_id: toNullableString(form.placement_village_id),
           branch: toNullableString(form.branch),
           employment_contract_type: toNullableString(form.employment_contract_type),
           contract_duration_months: parseNumberOrNull(form.contract_duration_months),
@@ -692,21 +875,57 @@ function EmployeeInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Emp
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <InputRow label="NIP / Employee number" value={form.employee_number} onChange={(v) => setForm((s) => ({ ...s, employee_number: v }))} />
+        <InputRow label="Privy ID" value={form.privy_id} onChange={(v) => setForm((s) => ({ ...s, privy_id: v }))} />
         <InputRow label="Email" value={form.email} onChange={(v) => setForm((s) => ({ ...s, email: v }))} />
         <InputRow label="Company Email" value={form.company_email} onChange={(v) => setForm((s) => ({ ...s, company_email: v }))} />
         <InputRow label="Phone Number" value={form.phone} onChange={(v) => setForm((s) => ({ ...s, phone: v }))} />
-        <InputRow label="Status" value={form.status} onChange={(v) => setForm((s) => ({ ...s, status: v }))} />
-        <InputRow label="Contract Type (pkwt/partnership)" value={form.employment_contract_type} onChange={(v) => setForm((s) => ({ ...s, employment_contract_type: v }))} />
+        <SearchableSelectRow label="Status" value={form.status} onChange={(v) => setForm((s) => ({ ...s, status: v }))} options={[
+          { value: 'active', label: 'Active' },
+          { value: 'terminated', label: 'Terminated' },
+          { value: 'resigned', label: 'Resigned' },
+          { value: 'contract_ended', label: 'Contract Ended' },
+        ]} />
+        <SearchableSelectRow label="Contract Type" value={form.employment_contract_type} onChange={(v) => setForm((s) => ({ ...s, employment_contract_type: v }))} options={[
+          { value: 'pkwt', label: 'PKWT' },
+          { value: 'partnership', label: 'Partnership' },
+        ]} />
         <InputRow label="Contract duration (months)" value={form.contract_duration_months} onChange={(v) => setForm((s) => ({ ...s, contract_duration_months: v }))} />
         <DateInputRow label="Hire Date" value={form.hire_date} onChange={(v) => setForm((s) => ({ ...s, hire_date: v }))} />
         <DateInputRow label="Join Date" value={form.join_date} onChange={(v) => setForm((s) => ({ ...s, join_date: v }))} />
-        <InputRow label="Offboarding Type" value={form.termination_type} onChange={(v) => setForm((s) => ({ ...s, termination_type: v }))} />
+        <SearchableSelectRow label="Offboarding Type" value={form.termination_type} onChange={(v) => setForm((s) => ({ ...s, termination_type: v }))} options={[
+          { value: 'termination', label: 'Termination' },
+          { value: 'resignation', label: 'Resignation' },
+          { value: 'contract_end', label: 'Contract End' },
+        ]} />
         <DateInputRow label="Last Working Date" value={form.last_working_date} onChange={(v) => setForm((s) => ({ ...s, last_working_date: v }))} />
         <InputRow label="Position" value={form.position} onChange={(v) => setForm((s) => ({ ...s, position: v }))} />
-        <InputRow label="Placement Location" value={form.placement_location} onChange={(v) => setForm((s) => ({ ...s, placement_location: v }))} />
+        <SearchableSelectRow label="Placement Province" value={form.placement_province_id} onChange={(v) => {
+          const selected = provinces.find((p) => p.id === v);
+          setForm((s) => ({
+            ...s,
+            placement_province_id: v,
+            placement_location: selected?.name ?? '',
+            placement_district_id: '',
+            placement_sub_district_id: '',
+            placement_village_id: '',
+          }));
+        }} options={[...provinces.map((p) => ({ value: p.id, label: p.name }))]} />
+        <SearchableSelectRow label="Placement District" value={form.placement_district_id} onChange={(v) => setForm((s) => ({ ...s, placement_district_id: v, placement_sub_district_id: '', placement_village_id: '' }))} options={[...districts.map((d) => ({ value: d.id, label: d.name }))]} />
+        <SearchableSelectRow label="Placement Sub District" value={form.placement_sub_district_id} onChange={(v) => setForm((s) => ({ ...s, placement_sub_district_id: v, placement_village_id: '' }))} options={[...subDistricts.map((d) => ({ value: d.id, label: d.name }))]} />
+        <SearchableSelectRow label="Placement Village" value={form.placement_village_id} onChange={(v) => setForm((s) => ({ ...s, placement_village_id: v }))} options={[...villages.map((d) => ({ value: d.id, label: d.name }))]} />
         <InputRow label="Branch" value={form.branch} onChange={(v) => setForm((s) => ({ ...s, branch: v }))} />
-        <InputRow label="Department ID" value={form.department_id} onChange={(v) => setForm((s) => ({ ...s, department_id: v }))} />
-        <InputRow label="Client ID" value={form.client_id} onChange={(v) => setForm((s) => ({ ...s, client_id: v }))} />
+        <SearchableSelectRow
+          label="Department"
+          value={form.department_id}
+          onChange={(v) => setForm((s) => ({ ...s, department_id: v }))}
+          options={departments.map((d) => ({ value: String(d.id), label: d.name }))}
+        />
+        <SearchableSelectRow
+          label="Client"
+          value={form.client_id}
+          onChange={(v) => setForm((s) => ({ ...s, client_id: v }))}
+          options={clients.map((cl) => ({ value: String(cl.id), label: cl.name }))}
+        />
         <div className="md:col-span-2">
           <InputRow label="Termination Reason" value={form.termination_reason} onChange={(v) => setForm((s) => ({ ...s, termination_reason: v }))} />
         </div>
@@ -930,78 +1149,298 @@ function EmergencyContactForm({ initial, saving, onCancel, onSave }: EditorProps
 function AddressInfoForm({ initial, saving, onCancel, onSave }: EditorProps<Employee, api.EmployeeAddressPayload>) {
   const [form, setForm] = useState({
     address: initial.address ?? '',
-    rt_rw: initial.rt_rw ?? '',
-    village: initial.village ?? '',
-    sub_district: initial.sub_district ?? '',
-    district: initial.district ?? '',
-    province: initial.province ?? '',
-    zip_code: initial.zip_code ?? '',
+    ktp_rt_rw: initial.ktp_rt_rw ?? '',
+    ktp_province: initial.ktp_province ?? '',
+    ktp_district: initial.ktp_district ?? '',
+    ktp_sub_district: initial.ktp_sub_district ?? '',
     domicile_address: initial.domicile_address ?? '',
     domicile_rt_rw: initial.domicile_rt_rw ?? '',
     domicile_province: initial.domicile_province ?? '',
     domicile_district: initial.domicile_district ?? '',
     domicile_sub_district: initial.domicile_sub_district ?? '',
-    domicile_zip_code: initial.domicile_zip_code ?? '',
+    domicile_same_as_ktp: initial.domicile_same_as_ktp ?? false,
+    ktp_province_id: '',
+    ktp_district_id: '',
+    ktp_sub_district_id: '',
+    dom_province_id: '',
+    dom_district_id: '',
+    dom_sub_district_id: '',
   });
 
   useEffect(() => {
     setForm({
       address: initial.address ?? '',
-      rt_rw: initial.rt_rw ?? '',
-      village: initial.village ?? '',
-      sub_district: initial.sub_district ?? '',
-      district: initial.district ?? '',
-      province: initial.province ?? '',
-      zip_code: initial.zip_code ?? '',
+      ktp_rt_rw: initial.ktp_rt_rw ?? '',
+      ktp_province: initial.ktp_province ?? '',
+      ktp_district: initial.ktp_district ?? '',
+      ktp_sub_district: initial.ktp_sub_district ?? '',
       domicile_address: initial.domicile_address ?? '',
       domicile_rt_rw: initial.domicile_rt_rw ?? '',
       domicile_province: initial.domicile_province ?? '',
       domicile_district: initial.domicile_district ?? '',
       domicile_sub_district: initial.domicile_sub_district ?? '',
-      domicile_zip_code: initial.domicile_zip_code ?? '',
+      domicile_same_as_ktp: initial.domicile_same_as_ktp ?? false,
+      ktp_province_id: '',
+      ktp_district_id: '',
+      ktp_sub_district_id: '',
+      dom_province_id: '',
+      dom_district_id: '',
+      dom_sub_district_id: '',
     });
   }, [initial]);
+
+  const [provinces, setProvinces] = useState<api.RegionItem[]>([]);
+  const [ktpDistricts, setKtpDistricts] = useState<api.RegionItem[]>([]);
+  const [ktpSubDistricts, setKtpSubDistricts] = useState<api.RegionItem[]>([]);
+  const [domDistricts, setDomDistricts] = useState<api.RegionItem[]>([]);
+  const [domSubDistricts, setDomSubDistricts] = useState<api.RegionItem[]>([]);
+
+  useEffect(() => {
+    api
+      .getRegionsProvinces()
+      .then((list) => {
+        setProvinces(list);
+        setForm((s) => {
+          const ktpMatch = s.ktp_province
+            ? list.find((p) => p.name.toLowerCase() === s.ktp_province.toLowerCase())
+            : undefined;
+          const domMatch = s.domicile_province
+            ? list.find((p) => p.name.toLowerCase() === s.domicile_province.toLowerCase())
+            : undefined;
+          return {
+            ...s,
+            ktp_province_id: ktpMatch?.id ?? s.ktp_province_id,
+            dom_province_id: domMatch?.id ?? s.dom_province_id,
+          };
+        });
+      })
+      .catch(() => setProvinces([]));
+  }, []);
+
+  useEffect(() => {
+    if (!form.ktp_province_id) {
+      setKtpDistricts([]);
+      return;
+    }
+    api.getRegionsDistricts(form.ktp_province_id).then(setKtpDistricts).catch(() => setKtpDistricts([]));
+  }, [form.ktp_province_id]);
+
+  useEffect(() => {
+    if (!form.ktp_district_id) {
+      setKtpSubDistricts([]);
+      return;
+    }
+    api.getRegionsSubDistricts(form.ktp_district_id).then(setKtpSubDistricts).catch(() => setKtpSubDistricts([]));
+  }, [form.ktp_district_id]);
+
+  useEffect(() => {
+    if (!form.ktp_district?.trim() || ktpDistricts.length === 0) return;
+    const m = ktpDistricts.find((d) => d.name.toLowerCase() === form.ktp_district.toLowerCase());
+    if (m) {
+      setForm((s) => (s.ktp_district_id === m.id ? s : { ...s, ktp_district_id: m.id }));
+    }
+  }, [ktpDistricts, form.ktp_district]);
+
+  useEffect(() => {
+    if (!form.ktp_sub_district?.trim() || ktpSubDistricts.length === 0) return;
+    const m = ktpSubDistricts.find((d) => d.name.toLowerCase() === form.ktp_sub_district.toLowerCase());
+    if (m) {
+      setForm((s) => (s.ktp_sub_district_id === m.id ? s : { ...s, ktp_sub_district_id: m.id }));
+    }
+  }, [ktpSubDistricts, form.ktp_sub_district]);
+
+  useEffect(() => {
+    if (!form.dom_province_id) {
+      setDomDistricts([]);
+      return;
+    }
+    api.getRegionsDistricts(form.dom_province_id).then(setDomDistricts).catch(() => setDomDistricts([]));
+  }, [form.dom_province_id]);
+
+  useEffect(() => {
+    if (!form.dom_district_id) {
+      setDomSubDistricts([]);
+      return;
+    }
+    api.getRegionsSubDistricts(form.dom_district_id).then(setDomSubDistricts).catch(() => setDomSubDistricts([]));
+  }, [form.dom_district_id]);
+
+  useEffect(() => {
+    if (!form.domicile_district?.trim() || domDistricts.length === 0) return;
+    const m = domDistricts.find((d) => d.name.toLowerCase() === form.domicile_district.toLowerCase());
+    if (m) {
+      setForm((s) => (s.dom_district_id === m.id ? s : { ...s, dom_district_id: m.id }));
+    }
+  }, [domDistricts, form.domicile_district]);
+
+  useEffect(() => {
+    if (!form.domicile_sub_district?.trim() || domSubDistricts.length === 0) return;
+    const m = domSubDistricts.find((d) => d.name.toLowerCase() === form.domicile_sub_district.toLowerCase());
+    if (m) {
+      setForm((s) => (s.dom_sub_district_id === m.id ? s : { ...s, dom_sub_district_id: m.id }));
+    }
+  }, [domSubDistricts, form.domicile_sub_district]);
+
+  const domLocked = form.domicile_same_as_ktp;
 
   return (
     <form
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
+        const same = form.domicile_same_as_ktp;
         await onSave({
           address: toNullableString(form.address),
-          rt_rw: toNullableString(form.rt_rw),
-          village: toNullableString(form.village),
-          sub_district: toNullableString(form.sub_district),
-          district: toNullableString(form.district),
-          province: toNullableString(form.province),
-          zip_code: toNullableString(form.zip_code),
-          domicile_address: toNullableString(form.domicile_address),
-          domicile_rt_rw: toNullableString(form.domicile_rt_rw),
-          domicile_province: toNullableString(form.domicile_province),
-          domicile_district: toNullableString(form.domicile_district),
-          domicile_sub_district: toNullableString(form.domicile_sub_district),
-          domicile_zip_code: toNullableString(form.domicile_zip_code),
+          ktp_rt_rw: toNullableString(form.ktp_rt_rw),
+          ktp_province: toNullableString(form.ktp_province),
+          ktp_district: toNullableString(form.ktp_district),
+          ktp_sub_district: toNullableString(form.ktp_sub_district),
+          domicile_address: same ? toNullableString(form.address) : toNullableString(form.domicile_address),
+          domicile_rt_rw: same ? toNullableString(form.ktp_rt_rw) : toNullableString(form.domicile_rt_rw),
+          domicile_province: same ? toNullableString(form.ktp_province) : toNullableString(form.domicile_province),
+          domicile_district: same ? toNullableString(form.ktp_district) : toNullableString(form.domicile_district),
+          domicile_sub_district: same ? toNullableString(form.ktp_sub_district) : toNullableString(form.domicile_sub_district),
+          domicile_same_as_ktp: form.domicile_same_as_ktp,
         });
       }}
     >
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-headline">Alamat sesuai KTP</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
           <InputRow label="Address (Street)" value={form.address} onChange={(v) => setForm((s) => ({ ...s, address: v }))} />
         </div>
-        <InputRow label="RT/RW" value={form.rt_rw} onChange={(v) => setForm((s) => ({ ...s, rt_rw: v }))} />
-        <InputRow label="Kelurahan / Village" value={form.village} onChange={(v) => setForm((s) => ({ ...s, village: v }))} />
-        <InputRow label="Province" value={form.province} onChange={(v) => setForm((s) => ({ ...s, province: v }))} />
-        <InputRow label="Kabupaten / Kota" value={form.district} onChange={(v) => setForm((s) => ({ ...s, district: v }))} />
-        <InputRow label="Kecamatan / Sub-District" value={form.sub_district} onChange={(v) => setForm((s) => ({ ...s, sub_district: v }))} />
-        <InputRow label="Zip Code" value={form.zip_code} onChange={(v) => setForm((s) => ({ ...s, zip_code: v }))} />
+        <InputRow label="RT/RW" value={form.ktp_rt_rw} onChange={(v) => setForm((s) => ({ ...s, ktp_rt_rw: v }))} />
+        <SearchableSelectRow
+          label="Province"
+          value={form.ktp_province_id}
+          onChange={(v) => {
+            const selected = provinces.find((p) => p.id === v);
+            setForm((s) => ({
+              ...s,
+              ktp_province_id: v,
+              ktp_province: selected?.name ?? '',
+              ktp_district_id: '',
+              ktp_district: '',
+              ktp_sub_district_id: '',
+              ktp_sub_district: '',
+            }));
+          }}
+          options={provinces.map((p) => ({ value: p.id, label: p.name }))}
+        />
+        <SearchableSelectRow
+          label="Kabupaten / Kota"
+          value={form.ktp_district_id}
+          onChange={(v) => {
+            const selected = ktpDistricts.find((d) => d.id === v);
+            setForm((s) => ({
+              ...s,
+              ktp_district_id: v,
+              ktp_district: selected?.name ?? '',
+              ktp_sub_district_id: '',
+              ktp_sub_district: '',
+            }));
+          }}
+          options={ktpDistricts.map((d) => ({ value: d.id, label: d.name }))}
+        />
+        <SearchableSelectRow
+          label="Kecamatan"
+          value={form.ktp_sub_district_id}
+          onChange={(v) => {
+            const selected = ktpSubDistricts.find((d) => d.id === v);
+            setForm((s) => ({ ...s, ktp_sub_district_id: v, ktp_sub_district: selected?.name ?? '' }));
+          }}
+          options={ktpSubDistricts.map((d) => ({ value: d.id, label: d.name }))}
+        />
+      </div>
+
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={form.domicile_same_as_ktp}
+          onChange={(e) => {
+            const on = e.target.checked;
+            setForm((s) => ({
+              ...s,
+              domicile_same_as_ktp: on,
+              ...(on
+                ? {
+                    dom_province_id: s.ktp_province_id,
+                    dom_district_id: s.ktp_district_id,
+                    dom_sub_district_id: s.ktp_sub_district_id,
+                    domicile_province: s.ktp_province,
+                    domicile_district: s.ktp_district,
+                    domicile_sub_district: s.ktp_sub_district,
+                  }
+                : {}),
+            }));
+          }}
+          className="rounded border-slate-300 text-brand focus:ring-brand/40"
+        />
+        <span className="text-sm font-medium text-slate-700">Alamat domisili sama dengan KTP</span>
+      </label>
+
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-headline pt-2 border-t border-slate-100">
+        Alamat domisili
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <InputRow label="Domicile Address (Street)" value={form.domicile_address} onChange={(v) => setForm((s) => ({ ...s, domicile_address: v }))} />
+          <InputRow
+            label="Domicile Address (Street)"
+            value={domLocked ? form.address : form.domicile_address}
+            onChange={(v) => setForm((s) => ({ ...s, domicile_address: v }))}
+            disabled={domLocked}
+          />
         </div>
-        <InputRow label="Domicile RT/RW" value={form.domicile_rt_rw} onChange={(v) => setForm((s) => ({ ...s, domicile_rt_rw: v }))} />
-        <InputRow label="Domicile Province" value={form.domicile_province} onChange={(v) => setForm((s) => ({ ...s, domicile_province: v }))} />
-        <InputRow label="Domicile Kabupaten / Kota" value={form.domicile_district} onChange={(v) => setForm((s) => ({ ...s, domicile_district: v }))} />
-        <InputRow label="Domicile Kecamatan / Sub-District" value={form.domicile_sub_district} onChange={(v) => setForm((s) => ({ ...s, domicile_sub_district: v }))} />
-        <InputRow label="Domicile Zip Code" value={form.domicile_zip_code} onChange={(v) => setForm((s) => ({ ...s, domicile_zip_code: v }))} />
+        <InputRow
+          label="Domicile RT/RW"
+          value={domLocked ? form.ktp_rt_rw : form.domicile_rt_rw}
+          onChange={(v) => setForm((s) => ({ ...s, domicile_rt_rw: v }))}
+          disabled={domLocked}
+        />
+        <SearchableSelectRow
+          label="Domicile Province"
+          value={form.dom_province_id}
+          disabled={domLocked}
+          onChange={(v) => {
+            const selected = provinces.find((p) => p.id === v);
+            setForm((s) => ({
+              ...s,
+              dom_province_id: v,
+              domicile_province: selected?.name ?? '',
+              dom_district_id: '',
+              domicile_district: '',
+              dom_sub_district_id: '',
+              domicile_sub_district: '',
+            }));
+          }}
+          options={provinces.map((p) => ({ value: p.id, label: p.name }))}
+        />
+        <SearchableSelectRow
+          label="Domicile Kabupaten / Kota"
+          value={form.dom_district_id}
+          disabled={domLocked}
+          onChange={(v) => {
+            const selected = domDistricts.find((d) => d.id === v);
+            setForm((s) => ({
+              ...s,
+              dom_district_id: v,
+              domicile_district: selected?.name ?? '',
+              dom_sub_district_id: '',
+              domicile_sub_district: '',
+            }));
+          }}
+          options={domDistricts.map((d) => ({ value: d.id, label: d.name }))}
+        />
+        <SearchableSelectRow
+          label="Domicile Kecamatan"
+          value={form.dom_sub_district_id}
+          disabled={domLocked}
+          onChange={(v) => {
+            const selected = domSubDistricts.find((d) => d.id === v);
+            setForm((s) => ({ ...s, dom_sub_district_id: v, domicile_sub_district: selected?.name ?? '' }));
+          }}
+          options={domSubDistricts.map((d) => ({ value: d.id, label: d.name }))}
+        />
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600">Cancel</button>

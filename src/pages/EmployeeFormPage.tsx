@@ -87,17 +87,16 @@ export default function EmployeeFormPage() {
   const [emergencyContactRelationship, setEmergencyContactRelationship] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
 
-  // Address (KTP)
+  // Address (KTP + domisili, same field names as onboarding)
   const [address, setAddress] = useState('');
-  const [rtRw, setRtRw] = useState('');
-  const [village, setVillage] = useState('');
-  const [province, setProvince] = useState('');
+  const [ktpRtRw, setKtpRtRw] = useState('');
+  const [ktpProvince, setKtpProvince] = useState('');
   const [provinceId, setProvinceId] = useState('');
-  const [district, setDistrict] = useState('');
+  const [ktpDistrict, setKtpDistrict] = useState('');
   const [districtId, setDistrictId] = useState('');
-  const [subDistrict, setSubDistrict] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  // Domicile (structured, same as KTP)
+  const [ktpSubDistrict, setKtpSubDistrict] = useState('');
+  const [domicileSameAsKtp, setDomicileSameAsKtp] = useState(false);
+  // Domicile (structured)
   const [domicileAddress, setDomicileAddress] = useState('');
   const [domicileRtRw, setDomicileRtRw] = useState('');
   const [domicileProvince, setDomicileProvince] = useState('');
@@ -105,7 +104,6 @@ export default function EmployeeFormPage() {
   const [domicileDistrict, setDomicileDistrict] = useState('');
   const [domicileDistrictId, setDomicileDistrictId] = useState('');
   const [domicileSubDistrict, setDomicileSubDistrict] = useState('');
-  const [domicileZipCode, setDomicileZipCode] = useState('');
 
   // Role & placement
   const [position, setPosition] = useState('');
@@ -150,26 +148,26 @@ export default function EmployeeFormPage() {
 
   // Resolve KTP province/district names to IDs so RegionSelect can cascade when editing
   useEffect(() => {
-    if (!province?.trim()) {
+    if (!ktpProvince?.trim()) {
       setProvinceId('');
       setDistrictId('');
       return;
     }
-    api.getRegionsProvinces(province.trim()).then((list) => {
+    api.getRegionsProvinces(ktpProvince.trim()).then((list) => {
       const first = list[0];
       if (first) setProvinceId(first.id);
     }).catch(() => {});
-  }, [province]);
+  }, [ktpProvince]);
   useEffect(() => {
-    if (!provinceId || !district?.trim()) {
+    if (!provinceId || !ktpDistrict?.trim()) {
       setDistrictId('');
       return;
     }
-    api.getRegionsDistricts(provinceId, district.trim()).then((list) => {
+    api.getRegionsDistricts(provinceId, ktpDistrict.trim()).then((list) => {
       const first = list[0];
       if (first) setDistrictId(first.id);
     }).catch(() => {});
-  }, [provinceId, district]);
+  }, [provinceId, ktpDistrict]);
 
   // Resolve domicile province/district names to IDs for RegionSelect cascade when editing
   useEffect(() => {
@@ -244,18 +242,16 @@ export default function EmployeeFormPage() {
         setEmergencyContactRelationship(e.emergency_contact_relationship ?? '');
         setEmergencyPhone(e.emergency_phone ?? '');
         setAddress(e.address ?? '');
-        setRtRw(e.rt_rw ?? '');
-        setVillage(e.village ?? '');
-        setProvince(e.province ?? '');
-        setDistrict(e.district ?? '');
-        setSubDistrict(e.sub_district ?? '');
-        setZipCode(e.zip_code ?? '');
+        setKtpRtRw(e.ktp_rt_rw ?? '');
+        setKtpProvince(e.ktp_province ?? '');
+        setKtpDistrict(e.ktp_district ?? '');
+        setKtpSubDistrict(e.ktp_sub_district ?? '');
+        setDomicileSameAsKtp(e.domicile_same_as_ktp ?? false);
         setDomicileAddress(e.domicile_address ?? '');
         setDomicileRtRw(e.domicile_rt_rw ?? '');
         setDomicileProvince(e.domicile_province ?? '');
         setDomicileDistrict(e.domicile_district ?? '');
         setDomicileSubDistrict(e.domicile_sub_district ?? '');
-        setDomicileZipCode(e.domicile_zip_code ?? '');
         setPosition(e.position ?? '');
         setPlacementLocation(e.placement_location ?? '');
         setBranch(e.branch ?? '');
@@ -326,18 +322,16 @@ export default function EmployeeFormPage() {
         emergency_contact_relationship: emergencyContactRelationship.trim() || undefined,
         emergency_phone: emergencyPhone.trim() || undefined,
         address: address.trim() || undefined,
-        rt_rw: rtRw.trim() || undefined,
-        village: village.trim() || undefined,
-        province: province.trim() || undefined,
-        district: district.trim() || undefined,
-        sub_district: subDistrict.trim() || undefined,
-        zip_code: zipCode.trim() || undefined,
-        domicile_address: domicileAddress.trim() || undefined,
-        domicile_rt_rw: domicileRtRw.trim() || undefined,
-        domicile_province: domicileProvince.trim() || undefined,
-        domicile_district: domicileDistrict.trim() || undefined,
-        domicile_sub_district: domicileSubDistrict.trim() || undefined,
-        domicile_zip_code: domicileZipCode.trim() || undefined,
+        ktp_rt_rw: ktpRtRw.trim() || undefined,
+        ktp_province: ktpProvince.trim() || undefined,
+        ktp_district: ktpDistrict.trim() || undefined,
+        ktp_sub_district: ktpSubDistrict.trim() || undefined,
+        domicile_same_as_ktp: domicileSameAsKtp,
+        domicile_address: (domicileSameAsKtp ? address : domicileAddress).trim() || undefined,
+        domicile_rt_rw: (domicileSameAsKtp ? ktpRtRw : domicileRtRw).trim() || undefined,
+        domicile_province: (domicileSameAsKtp ? ktpProvince : domicileProvince).trim() || undefined,
+        domicile_district: (domicileSameAsKtp ? ktpDistrict : domicileDistrict).trim() || undefined,
+        domicile_sub_district: (domicileSameAsKtp ? ktpSubDistrict : domicileSubDistrict).trim() || undefined,
         position: position.trim() || undefined,
         placement_location: placementLocation.trim() || undefined,
         branch: branch.trim() || undefined,
@@ -818,76 +812,76 @@ export default function EmployeeFormPage() {
                 className="md:col-span-2"
               />
               <Input
-                label="RT/RW"
-                value={rtRw}
-                onChange={(e) => setRtRw(e.target.value)}
+                label="RT/RW (KTP)"
+                value={ktpRtRw}
+                onChange={(e) => setKtpRtRw(e.target.value)}
                 placeholder="e.g. 01/02"
               />
-              <Input
-                label="Kelurahan / Village"
-                value={village}
-                onChange={(e) => setVillage(e.target.value)}
-              />
               <RegionSelect
-                label="Province"
+                label="Province (KTP)"
                 type="province"
-                value={province}
+                value={ktpProvince}
                 onChange={(name, id) => {
-                  setProvince(name);
+                  setKtpProvince(name);
                   setProvinceId(id ?? '');
-                  setDistrict('');
+                  setKtpDistrict('');
                   setDistrictId('');
-                  setSubDistrict('');
+                  setKtpSubDistrict('');
                 }}
                 placeholder="Cari provinsi..."
               />
               <RegionSelect
-                label="Kabupaten / Kota"
+                label="Kabupaten / Kota (KTP)"
                 type="district"
                 provinceId={provinceId}
-                value={district}
+                value={ktpDistrict}
                 onChange={(name, id) => {
-                  setDistrict(name);
+                  setKtpDistrict(name);
                   setDistrictId(id ?? '');
-                  setSubDistrict('');
+                  setKtpSubDistrict('');
                 }}
                 placeholder="Cari kabupaten/kota..."
               />
               <RegionSelect
-                label="Kecamatan / Sub-District"
+                label="Kecamatan (KTP)"
                 type="sub_district"
                 districtId={districtId}
-                value={subDistrict}
-                onChange={(name) => setSubDistrict(name)}
+                value={ktpSubDistrict}
+                onChange={(name) => setKtpSubDistrict(name)}
                 placeholder="Cari kecamatan..."
               />
-              <Input
-                label="Zip Code"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
-                placeholder="e.g. 12345"
-              />
+              <label className="md:col-span-2 flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={domicileSameAsKtp}
+                  onChange={(e) => setDomicileSameAsKtp(e.target.checked)}
+                  className="rounded border-slate-300 text-brand focus:ring-brand/40"
+                />
+                <span className="text-sm font-medium text-slate-700">Alamat domisili sama dengan KTP</span>
+              </label>
               <div className="md:col-span-2 border-t border-slate-200 pt-6 mt-2">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Domicile Address (Alamat Domisili)</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Textarea
                     label="Street (Jalan, Nomor)"
-                    value={domicileAddress}
+                    value={domicileSameAsKtp ? address : domicileAddress}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDomicileAddress(e.target.value)}
                     rows={2}
                     className="md:col-span-2"
                     placeholder="Alamat jalan dan nomor rumah domisili"
+                    disabled={domicileSameAsKtp}
                   />
                   <Input
                     label="RT/RW"
-                    value={domicileRtRw}
+                    value={domicileSameAsKtp ? ktpRtRw : domicileRtRw}
                     onChange={(e) => setDomicileRtRw(e.target.value)}
                     placeholder="e.g. 01/02"
+                    disabled={domicileSameAsKtp}
                   />
                   <RegionSelect
                     label="Province"
                     type="province"
-                    value={domicileProvince}
+                    value={domicileSameAsKtp ? ktpProvince : domicileProvince}
                     onChange={(name, id) => {
                       setDomicileProvince(name);
                       setDomicileProvinceId(id ?? '');
@@ -896,32 +890,29 @@ export default function EmployeeFormPage() {
                       setDomicileSubDistrict('');
                     }}
                     placeholder="Cari provinsi..."
+                    disabled={domicileSameAsKtp}
                   />
                   <RegionSelect
                     label="Kabupaten / Kota"
                     type="district"
-                    provinceId={domicileProvinceId}
-                    value={domicileDistrict}
+                    provinceId={domicileSameAsKtp ? provinceId : domicileProvinceId}
+                    value={domicileSameAsKtp ? ktpDistrict : domicileDistrict}
                     onChange={(name, id) => {
                       setDomicileDistrict(name);
                       setDomicileDistrictId(id ?? '');
                       setDomicileSubDistrict('');
                     }}
                     placeholder="Cari kabupaten/kota..."
+                    disabled={domicileSameAsKtp}
                   />
                   <RegionSelect
-                    label="Kecamatan / Sub-District"
+                    label="Kecamatan"
                     type="sub_district"
-                    districtId={domicileDistrictId}
-                    value={domicileSubDistrict}
+                    districtId={domicileSameAsKtp ? districtId : domicileDistrictId}
+                    value={domicileSameAsKtp ? ktpSubDistrict : domicileSubDistrict}
                     onChange={(name) => setDomicileSubDistrict(name)}
                     placeholder="Cari kecamatan..."
-                  />
-                  <Input
-                    label="Zip Code"
-                    value={domicileZipCode}
-                    onChange={(e) => setDomicileZipCode(e.target.value)}
-                    placeholder="e.g. 12345"
+                    disabled={domicileSameAsKtp}
                   />
                 </div>
               </div>

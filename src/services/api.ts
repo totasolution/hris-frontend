@@ -1367,6 +1367,7 @@ export type Employee = {
   termination_date?: string;
   last_working_date?: string;
   termination_reason?: string;
+  privy_id?: string;
   // Personal Information
   identification_id?: string;
   id_expired_date?: string;
@@ -1388,26 +1389,29 @@ export type Employee = {
   emergency_contact?: string;
   emergency_contact_relationship?: string;
   emergency_phone?: string;
-  // Address
-  address?: string;           // KTP address (alamat sesuai KTP)
-  rt_rw?: string;             // RT/RW e.g. 01/02
-  domicile_address?: string;  // Domicile street / full
+  // Address (same field names as onboarding_form_data)
+  address?: string;
+  ktp_rt_rw?: string;
+  ktp_province?: string;
+  ktp_district?: string;
+  ktp_sub_district?: string;
+  domicile_address?: string;
   domicile_rt_rw?: string;
   domicile_province?: string;
   domicile_district?: string;
   domicile_sub_district?: string;
-  domicile_zip_code?: string;
-  village?: string;
-  sub_district?: string;
-  district?: string;
-  province?: string;
-  zip_code?: string;
+  domicile_same_as_ktp?: boolean;
   // Role & placement
   position?: string;
   placement_location?: string;
+  /** Province display/name from candidate. */
   placement_district_id?: string;
   placement_sub_district_id?: string;
   placement_village_id?: string;
+  /** Hydrated region names for placement IDs (read-only). */
+  placement_district_name?: string;
+  placement_sub_district_name?: string;
+  placement_village_name?: string;
   branch?: string;
   // BPJS (Indonesian social security)
   bpjstk_id?: string;  // BPJS Tenaga Kerja ID
@@ -1468,8 +1472,12 @@ export type EmployeeInformationPayload = {
   termination_type?: string | null;
   last_working_date?: string | null;
   termination_reason?: string | null;
+  privy_id?: string | null;
   position?: string | null;
   placement_location?: string | null;
+  placement_district_id?: string | null;
+  placement_sub_district_id?: string | null;
+  placement_village_id?: string | null;
   branch?: string | null;
   employment_contract_type?: string | null;
   contract_duration_months?: number | null;
@@ -1515,18 +1523,16 @@ export type EmployeeEmergencyPayload = {
 
 export type EmployeeAddressPayload = {
   address?: string | null;
-  rt_rw?: string | null;
-  village?: string | null;
-  sub_district?: string | null;
-  district?: string | null;
-  province?: string | null;
-  zip_code?: string | null;
+  ktp_rt_rw?: string | null;
+  ktp_province?: string | null;
+  ktp_district?: string | null;
+  ktp_sub_district?: string | null;
   domicile_address?: string | null;
   domicile_rt_rw?: string | null;
   domicile_province?: string | null;
   domicile_district?: string | null;
   domicile_sub_district?: string | null;
-  domicile_zip_code?: string | null;
+  domicile_same_as_ktp?: boolean | null;
 };
 
 export async function getEmployees(params?: {
