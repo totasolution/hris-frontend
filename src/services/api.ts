@@ -838,7 +838,6 @@ export type RecruitmentStatistics = {
     active: number;
     hired: number;
     rejected: number;
-    new_this_period: number;
     hired_this_period: number;
   };
 };
@@ -850,6 +849,8 @@ export async function getRecruitmentStatistics(params?: {
   year?: number;
   month?: number;
   week?: number;
+  /** When true, server bypasses in-memory cache and reloads from the database (still refreshes cache for others). */
+  nocache?: boolean;
 }): Promise<RecruitmentStatistics> {
   const q = new URLSearchParams();
   if (params?.client_id) q.set('client_id', String(params.client_id));
@@ -858,6 +859,7 @@ export async function getRecruitmentStatistics(params?: {
   if (params?.year) q.set('year', String(params.year));
   if (params?.month) q.set('month', String(params.month));
   if (params?.week) q.set('week', String(params.week));
+  if (params?.nocache) q.set('nocache', '1');
   const url = q.toString() ? `${API_BASE}/recruitment/statistics?${q}` : `${API_BASE}/recruitment/statistics`;
   const res = await authFetch(url);
   const data = await res.json();

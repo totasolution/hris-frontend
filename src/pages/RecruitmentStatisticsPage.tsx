@@ -17,7 +17,7 @@ const STATUS_GROUPS: Record<string, string[]> = {
   Screening: ['new', 'screening', 'screened_pass', 'screened_fail', 'submitted', 'interview_scheduled', 'interview_passed', 'interview_failed', 'onboarding', 'onboarding_completed'],
   Rejected: ['rejected'],
   OJT: ['ojt'],
-  Hired: ['contract_requested','Hired'],
+  Hired: ['contract_requested', 'hired'],
 };
 
 function getWeekRange(year: number, week: number): string {
@@ -104,12 +104,17 @@ export default function RecruitmentStatisticsPage() {
   });
   const [clients, setClients] = useState<Client[]>([]);
   const [provinces, setProvinces] = useState<RegionItem[]>([]);
+  /** When true, API uses nocache=1 so aggregates are read from the DB instead of the 24h server cache. */
+  const [freshFromDatabase, setFreshFromDatabase] = useState(false);
 
   const loadStats = async () => {
     setLoading(true);
     setError(null);
     try {
-      const params = buildRecruitmentStatisticsParams(periodFilter, weekFilter, monthFilter, clientId, provinceId);
+      const params = {
+        ...buildRecruitmentStatisticsParams(periodFilter, weekFilter, monthFilter, clientId, provinceId),
+        ...(freshFromDatabase ? { nocache: true as const } : {}),
+      };
       const data = await api.getRecruitmentStatistics(params);
       setStats(data);
     } catch (e) {
@@ -121,7 +126,7 @@ export default function RecruitmentStatisticsPage() {
 
   useEffect(() => {
     loadStats();
-  }, [clientId, provinceId, periodFilter, weekFilter, monthFilter]);
+  }, [clientId, provinceId, periodFilter, weekFilter, monthFilter, freshFromDatabase]);
 
   const downloadHiredByRecruiterReport = async () => {
     setReportDownloading(true);
@@ -252,6 +257,22 @@ export default function RecruitmentStatisticsPage() {
               isSearchable
             />
           </div>
+          <div className="flex flex-col gap-1 min-w-[11rem]">
+            <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Data source</span>
+            <span className="text-[10px] text-slate-400 -mt-0.5">Default: server cache (24h)</span>
+            <label
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 cursor-pointer select-none hover:bg-slate-100/80"
+              title="Unchecked (default): use cached aggregates. Checked: reload from the database for these filters."
+            >
+              <input
+                type="checkbox"
+                checked={freshFromDatabase}
+                onChange={(e) => setFreshFromDatabase(e.target.checked)}
+                className="rounded border-slate-300 text-brand focus:ring-brand"
+              />
+              <span>Fresh from database</span>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -263,12 +284,11 @@ export default function RecruitmentStatisticsPage() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <StatCard title="Total Candidates" value={stats?.totals.all ?? 0} loading={loading} color="brand" link="/candidates" className="!p-4" />
         <StatCard title="Active" value={stats?.totals.active ?? 0} loading={loading} color="blue" link={candidatesLink({})} className="!p-4" />
         <StatCard title="Hired" value={stats?.totals.hired ?? 0} loading={loading} color="green" link={candidatesLink({ status: 'hired' })} className="!p-4" />
         <StatCard title="Rejected" value={stats?.totals.rejected ?? 0} loading={loading} color="red" link={candidatesLink({ status: 'rejected' })} className="!p-4" />
-        <StatCard title={periodFilter === 'week' ? 'New This Week' : 'New This Month'} value={stats?.totals.new_this_period ?? 0} loading={loading} color="orange" className="!p-4" />
         <StatCard title={periodFilter === 'week' ? 'Hired This Week' : 'Hired This Month'} value={stats?.totals.hired_this_period ?? 0} loading={loading} color="green" className="!p-4" />
       </div>
 
