@@ -1793,12 +1793,18 @@ export async function deleteEmployeeDocument(employeeId: number, documentId: num
 }
 
 // Contracts
+export type ContractKind = 'initial' | 'extension';
+
 export type Contract = {
   id: number;
   tenant_id: number;
   employee_id?: number;
   employee_name?: string;
   contract_number?: string;
+  contract_start?: string;
+  contract_end?: string;
+  contract_kind: ContractKind;
+  parent_contract_id?: number;
   status: string;
   file_path?: string;
   contract_signed_url?: string; // Link to signed document by 3rd party (template-based only)
@@ -1933,6 +1939,18 @@ export async function updateContract(id: number, body: Partial<Contract>): Promi
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update contract');
+  return data;
+}
+
+export async function extendContract(id: number, body?: { contract_number?: string; duration_months?: number }): Promise<Contract> {
+  const res = await authFetch(`${API_BASE}/contracts/${id}/extend`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body ?? {}),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to extend contract');
   return data;
 }
 

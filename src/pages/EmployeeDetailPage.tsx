@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardBody, CardHeader } from '../components/Card';
@@ -151,7 +151,7 @@ export default function EmployeeDetailPage() {
         )}
 
         {activeTab === 'contracts' && (
-          <ContractsTab contracts={contracts} employeeId={employeeId} toast={toast} returnTo={`/employees/${employeeId}`} onPreview={openPreview} />
+          <ContractsTab contracts={contracts} employeeId={employeeId} toast={toast} returnTo={`/employees/${employeeId}`} onPreview={openPreview} onExtended={load} />
         )}
 
         {activeTab === 'documents' && (
@@ -215,20 +215,68 @@ function OverviewTab({
 }
 
 // Contracts Tab Component
-function ContractsTab({ 
-  contracts, 
+function ContractsTab({
+  contracts,
   employeeId,
   toast,
   returnTo,
   onPreview,
-}: { 
-  contracts: Contract[]; 
+  onExtended,
+}: {
+  contracts: Contract[];
   employeeId: number;
   toast: ReturnType<typeof useToast>;
   returnTo: string;
   onPreview: (getUrl: () => Promise<string>, title: string) => void;
+  onExtended?: () => void;
 }) {
+  const [extendTarget, setExtendTarget] = useState<Contract | null>(null);
+  const [extendForm, setExtendForm] = useState({ contract_number: '', duration_months: '' });
+  const [extending, setExtending] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // Close drawer on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExtendTarget(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const openExtendDrawer = (contract: Contract) => {
+    setExtendForm({ contract_number: '', duration_months: '' });
+    setExtendTarget(contract);
+  };
+
+  const handleExtendSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extendTarget) return;
+    setExtending(true);
+    try {
+      const months = extendForm.duration_months ? parseInt(extendForm.duration_months, 10) : undefined;
+      await api.extendContract(extendTarget.id, {
+        contract_number: extendForm.contract_number || undefined,
+        duration_months: months,
+      });
+      toast.success('Extension contract created as draft.');
+      setExtendTarget(null);
+      onExtended?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to extend contract');
+    } finally {
+      setExtending(false);
+    }
+  };
+
+  const formatPeriod = (start?: string, end?: string) => {
+    if (!start && !end) return null;
+    const fmt = (d: string) => formatDate(d, { year: 'numeric', month: 'short', day: 'numeric' });
+    if (start && end) return `${fmt(start)} – ${fmt(end)}`;
+    if (start) return `From ${fmt(start)}`;
+    return `Until ${end ? formatDate(end, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}`;
+  };
+
   return (
+    <>
     <Card className="overflow-hidden">
       <CardHeader className="flex justify-between items-center">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] font-headline">
@@ -238,9 +286,9 @@ function ContractsTab({
       <Table>
         <THead>
           <TR>
-            <TH>Contract Number</TH>
+            <TH>Contract</TH>
+            <TH>Period</TH>
             <TH>Status</TH>
-            <TH>Created</TH>
             <TH>Signed</TH>
             <TH className="text-right">Actions</TH>
           </TR>
@@ -253,80 +301,212 @@ function ContractsTab({
               </TD>
             </TR>
           ) : (
-            contracts.map((contract) => (
-              <TR key={contract.id}>
-                <TD className="font-medium text-brand-dark">
-                  {contract.contract_number || `#${contract.id}`}
-                </TD>
-                <TD>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    contract.status === 'signed' ? 'bg-green-100 text-green-700' :
-                    contract.status === 'sent_for_signature' ? 'bg-amber-100 text-amber-700' :
-                    contract.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {contract.status.replace(/_/g, ' ')}
-                  </span>
-                </TD>
-                <TD className="text-sm text-slate-500">
-                  {contract.created_at ? formatDate(contract.created_at) : '—'}
-                </TD>
-                <TD className="text-sm text-slate-500">
-                  {contract.signed_at ? formatDate(contract.signed_at) : '—'}
-                </TD>
-                <TD className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Link
-                      to={returnTo ? `/contracts/${contract.id}/edit?return=${encodeURIComponent(returnTo)}` : `/contracts/${contract.id}/edit`}
-                      className="p-2 text-slate-400 hover:text-brand transition-colors"
-                      title="View/Edit contract"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </Link>
-                    {contract.file_path && (
-                      <>
+            contracts.map((contract) => {
+              const period = formatPeriod(contract.contract_start, contract.contract_end);
+              const isExtensionAllowed = contract.status === 'signed';
+              return (
+                <TR key={contract.id}>
+                  <TD>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-brand-dark">
+                        {contract.contract_number || `#${contract.id}`}
+                      </span>
+                      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        contract.contract_kind === 'extension'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {contract.contract_kind === 'extension' ? 'Extension' : 'Initial'}
+                      </span>
+                    </div>
+                  </TD>
+                  <TD className="text-sm text-slate-500">
+                    {period ?? '—'}
+                  </TD>
+                  <TD>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                      contract.status === 'signed' ? 'bg-green-100 text-green-700' :
+                      contract.status === 'sent_for_signature' ? 'bg-amber-100 text-amber-700' :
+                      contract.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {contract.status.replace(/_/g, ' ')}
+                    </span>
+                  </TD>
+                  <TD className="text-sm text-slate-500">
+                    {contract.signed_at ? formatDate(contract.signed_at) : '—'}
+                  </TD>
+                  <TD className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {isExtensionAllowed && (
                         <button
                           type="button"
-                          onClick={() => onPreview(
-                            () => api.getContractPresignedUrl(contract.id),
-                            contract.contract_number || `Contract #${contract.id}`
-                          )}
-                          className="p-2 text-slate-400 hover:text-brand transition-colors"
-                          title="Preview"
+                          onClick={() => openExtendDrawer(contract)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors"
+                          title="Extend contract"
                         >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
+                          Extend
                         </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await api.downloadContractDocument(contract.id);
-                            } catch {
-                              toast.error('Failed to open document');
-                            }
-                          }}
-                          className="p-2 text-slate-400 hover:text-brand transition-colors"
-                          title="Download document"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </TD>
-              </TR>
-            ))
+                      )}
+                      <Link
+                        to={returnTo ? `/contracts/${contract.id}/edit?return=${encodeURIComponent(returnTo)}` : `/contracts/${contract.id}/edit`}
+                        className="p-2 text-slate-400 hover:text-brand transition-colors"
+                        title="View/Edit contract"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </Link>
+                      {contract.file_path && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onPreview(
+                              () => api.getContractPresignedUrl(contract.id),
+                              contract.contract_number || `Contract #${contract.id}`
+                            )}
+                            className="p-2 text-slate-400 hover:text-brand transition-colors"
+                            title="Preview"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await api.downloadContractDocument(contract.id);
+                              } catch {
+                                toast.error('Failed to open document');
+                              }
+                            }}
+                            className="p-2 text-slate-400 hover:text-brand transition-colors"
+                            title="Download document"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </TD>
+                </TR>
+              );
+            })
           )}
         </TBody>
       </Table>
     </Card>
+
+      {/* Extend Contract Drawer */}
+      {extendTarget && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setExtendTarget(null)}
+          />
+          {/* Slide-over panel */}
+          <div
+            ref={drawerRef}
+            className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl flex flex-col"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 pt-8 pb-6 border-b border-slate-100">
+              <div>
+                <h2 className="text-xl font-black text-brand-dark font-headline tracking-tight">Extend Contract</h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Extending: {extendTarget.contract_number || `#${extendTarget.id}`}
+                  {extendTarget.contract_end && (
+                    <span className="ml-1">
+                      · ends {formatDate(extendTarget.contract_end, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExtendTarget(null)}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleExtendSubmit} className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  New Contract Number <span className="font-normal text-slate-400">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={extendForm.contract_number}
+                  onChange={(e) => setExtendForm((f) => ({ ...f, contract_number: e.target.value }))}
+                  placeholder="e.g. PKW/2025/001-EXT"
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Duration <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    required
+                    value={extendForm.duration_months}
+                    onChange={(e) => setExtendForm((f) => ({ ...f, duration_months: e.target.value }))}
+                    placeholder="e.g. 12"
+                    className="w-32 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                  />
+                  <span className="text-sm text-slate-500">months</span>
+                </div>
+                {extendTarget.contract_end && extendForm.duration_months && parseInt(extendForm.duration_months, 10) > 0 && (() => {
+                  const startDate = new Date(extendTarget.contract_end);
+                  startDate.setDate(startDate.getDate() + 1);
+                  const endDate = new Date(startDate);
+                  endDate.setMonth(endDate.getMonth() + parseInt(extendForm.duration_months, 10));
+                  endDate.setDate(endDate.getDate() - 1);
+                  const fmt = (d: Date) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                  return (
+                    <p className="mt-2 text-xs text-slate-500">
+                      New period: <span className="font-semibold text-slate-700">{fmt(startDate)}</span> – <span className="font-semibold text-slate-700">{fmt(endDate)}</span>
+                    </p>
+                  );
+                })()}
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setExtendTarget(null)}
+                  disabled={extending}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={extending}
+                  className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors disabled:opacity-50"
+                >
+                  {extending ? 'Creating…' : 'Create Extension'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
