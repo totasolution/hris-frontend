@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import Select from 'react-select';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
@@ -12,6 +13,26 @@ import { useToast } from '../components/Toast';
 import type { PayslipUpload } from '../services/api';
 import * as api from '../services/api';
 import { formatDate } from '../utils/formatDate';
+
+const clientSelectStyles = {
+  control: (base: any, state: any) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    border: state.isFocused ? '1px solid #107BC7' : '1px solid #e2e8f0',
+    boxShadow: 'none',
+    minHeight: '40px',
+    fontSize: '0.875rem',
+    '&:hover': { border: '1px solid #107BC7' },
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+  }),
+  placeholder: (base: any) => ({ ...base, color: '#94a3b8', fontSize: '0.875rem' }),
+};
 
 /** Parse CSV text into rows; handles quoted fields with commas. */
 function parseCSV(text: string): string[][] {
@@ -193,18 +214,22 @@ export default function PayslipUploadsPage() {
             </p>
             <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-center gap-3">
               {clients.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <select
-                    value={selectedClientId ?? ''}
-                    onChange={(e) => setSelectedClientId(e.target.value ? Number(e.target.value) : undefined)}
-                    required
-                    className={`rounded-xl border px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand ${!selectedClientId ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
-                  >
-                    <option value="" disabled>Select client *</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                <div className="flex flex-col gap-1 min-w-[220px]">
+                  <Select
+                    options={clients.map((c) => ({ value: c.id, label: c.name }))}
+                    value={selectedClientId ? { value: selectedClientId, label: clients.find((c) => c.id === selectedClientId)?.name ?? '' } : null}
+                    onChange={(opt) => setSelectedClientId(opt?.value ?? undefined)}
+                    placeholder="Select client *"
+                    isClearable={false}
+                    styles={{
+                      ...clientSelectStyles,
+                      control: (base: any, state: any) => ({
+                        ...clientSelectStyles.control(base, state),
+                        borderColor: !selectedClientId ? '#fca5a5' : state.isFocused ? '#107BC7' : '#e2e8f0',
+                        backgroundColor: !selectedClientId ? '#fff1f2' : 'white',
+                      }),
+                    }}
+                  />
                   {!selectedClientId && (
                     <p className="text-xs text-red-500">Client is required</p>
                   )}
@@ -310,16 +335,16 @@ export default function PayslipUploadsPage() {
           </h3>
           <div className="flex items-center gap-3">
             {clients.length > 0 && (
-              <select
-                value={filterClientId ?? ''}
-                onChange={(e) => { setFilterClientId(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
-                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
-              >
-                <option value="">All clients</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <Select
+                options={[{ value: 0, label: 'All clients' }, ...clients.map((c) => ({ value: c.id, label: c.name }))]}
+                value={filterClientId
+                  ? { value: filterClientId, label: clients.find((c) => c.id === filterClientId)?.name ?? '' }
+                  : { value: 0, label: 'All clients' }}
+                onChange={(opt) => { setFilterClientId(opt && opt.value !== 0 ? opt.value : undefined); setPage(1); }}
+                isClearable={false}
+                styles={clientSelectStyles}
+                className="min-w-[180px]"
+              />
             )}
             <Link to="/payslips" className="text-brand text-sm font-medium hover:underline">
               {t('pages:payslipUploads.backToPayslips', 'Back to Payslips')}
