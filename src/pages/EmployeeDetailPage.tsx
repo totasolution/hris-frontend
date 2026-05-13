@@ -4,15 +4,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { EmployeeOverviewContent } from '../components/EmployeeOverviewContent';
+import { OnboardingDeclarationChecklistView } from '../components/OnboardingDeclarationChecklistView';
 import { PageHeader } from '../components/PageHeader';
 import { useToast } from '../components/Toast';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
-import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument } from '../services/api';
+import type { Employee, Contract, PaklaringDocument, WarningLetter, EmployeeDocument, OnboardingFormData, DeclarationChecklistData } from '../services/api';
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download';
 import { formatDate, formatDateLong } from '../utils/formatDate';
 
-type TabType = 'overview' | 'contracts' | 'documents' | 'history';
+type TabType = 'overview' | 'contracts' | 'documents' | 'history' | 'declaration';
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ export default function EmployeeDetailPage() {
   const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
   const [detailDepartments, setDetailDepartments] = useState<api.Department[]>([]);
   const [detailClients, setDetailClients] = useState<api.Client[]>([]);
+  const [onboardingData, setOnboardingData] = useState<OnboardingFormData | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +76,9 @@ export default function EmployeeDetailPage() {
       setEmployeeDocuments(documentsData);
       setDetailDepartments(depts);
       setDetailClients(clis);
+      if (emp.candidate_id) {
+        api.getOnboardingFormByCandidate(emp.candidate_id).then(setOnboardingData).catch(() => {});
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
     } finally {
@@ -98,6 +103,7 @@ export default function EmployeeDetailPage() {
     { id: 'contracts', label: 'Contracts' },
     { id: 'documents', label: 'Documents' },
     { id: 'history', label: 'History' },
+    { id: 'declaration', label: 'Declaration' },
   ];
 
   return (
@@ -163,6 +169,15 @@ export default function EmployeeDetailPage() {
 
         {activeTab === 'history' && (
           <HistoryTab employee={employee} contracts={contracts} warnings={warnings} />
+        )}
+
+        {activeTab === 'declaration' && (
+          onboardingData?.declaration_checklist
+            ? <OnboardingDeclarationChecklistView
+                data={onboardingData.declaration_checklist as DeclarationChecklistData}
+                submittedAt={onboardingData.submitted_at}
+              />
+            : <Card><CardBody className="py-12 text-center text-slate-400">No declaration data available.</CardBody></Card>
         )}
       </div>
 

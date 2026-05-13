@@ -611,6 +611,9 @@ export type Candidate = {
   submitted_to_client_at?: string;
   ojt_start_date?: string;
   ojt_end_date?: string;
+  bank_name?: string;
+  bank_account_number?: string;
+  bank_account_holder?: string;
   created_by?: number;
   pic_name?: string;
   client_name?: string;
@@ -1358,6 +1361,7 @@ export type Employee = {
   department_id?: number;
   client_id?: number;
   client_name?: string;
+  pic_name?: string;
   full_name: string;
   email: string;
   company_email?: string;

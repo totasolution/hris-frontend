@@ -198,6 +198,7 @@ export default function ExternalEmployeesPage() {
               <TR>
                 <TH>{t('employees.fullName')}</TH>
                 <TH>{t('employees.client')}</TH>
+                <TH>PIC</TH>
                 <TH>{t('employees.employeeNumber')}</TH>
                 <TH>{t('employees.emailAddress')}</TH>
                 <TH>{t('common:status')}</TH>
@@ -207,7 +208,7 @@ export default function ExternalEmployeesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={6} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
@@ -220,6 +221,7 @@ export default function ExternalEmployeesPage() {
                       </Link>
                     </TD>
                     <TD className="text-slate-600">{e.client_name || '—'}</TD>
+                    <TD className="text-slate-600">{e.pic_name || '—'}</TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
                     <TD>{e.email}</TD>
                     <TD>

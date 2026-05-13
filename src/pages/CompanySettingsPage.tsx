@@ -17,6 +17,7 @@ export default function CompanySettingsPage() {
   const [representativeName, setRepresentativeName] = useState('');
   const [representativeTitle, setRepresentativeTitle] = useState('');
   const [companyStampUrl, setCompanyStampUrl] = useState<string | null>(null);
+  const [stampVersion, setStampVersion] = useState(0);
   const [uploadingStamp, setUploadingStamp] = useState(false);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function CompanySettingsPage() {
     try {
       const { company_stamp_url: url } = await api.uploadTenantCompanyStamp(file);
       setCompanyStampUrl(url);
+      setStampVersion((v) => v + 1);
       toast.success(t('pages:companySettings.stampUploadSuccess'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('pages:companySettings.stampUploadFailed'));
@@ -170,7 +172,7 @@ export default function CompanySettingsPage() {
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-slate-600">{t('pages:companySettings.currentStamp')}</p>
                   <div className="inline-block border border-slate-200 rounded-xl p-2 bg-white max-w-xs">
-                    <img src={companyStampUrl} alt="" className="max-h-32 w-auto object-contain" />
+                    <img src={stampVersion > 0 ? `${companyStampUrl}?v=${stampVersion}` : companyStampUrl} alt="" className="max-h-32 w-auto object-contain" />
                   </div>
                   <div className="text-[10px] text-slate-400 break-all">{companyStampUrl}</div>
                 </div>

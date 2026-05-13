@@ -105,6 +105,7 @@ export default function InternalEmployeesPage() {
             <THead>
               <TR>
                 <TH>{t('employees.fullName')}</TH>
+                <TH>PIC</TH>
                 <TH>{t('employees.employeeNumber')}</TH>
                 <TH>{t('employees.emailAddress')}</TH>
                 <TH>{t('common:status')}</TH>
@@ -114,7 +115,7 @@ export default function InternalEmployeesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-12 text-center text-slate-400">
+                  <TD colSpan={6} className="py-12 text-center text-slate-400">
                     {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
@@ -126,6 +127,7 @@ export default function InternalEmployeesPage() {
                         {e.full_name}
                       </Link>
                     </TD>
+                    <TD className="text-slate-600">{e.pic_name || '—'}</TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
                     <TD>{e.email}</TD>
                     <TD>
