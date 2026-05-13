@@ -52,11 +52,14 @@ export default function PayslipUploadsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [clients, setClients] = useState<api.Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<number | undefined>(undefined);
+  const [filterClientId, setFilterClientId] = useState<number | undefined>(undefined);
 
   const loadUploads = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.listPayslipUploads({ page, limit: UPLOADS_PER_PAGE });
+      const result = await api.listPayslipUploads({ page, limit: UPLOADS_PER_PAGE, client_id: filterClientId });
       setUploads(result.data);
       setTotal(result.total);
     } catch {
@@ -65,11 +68,15 @@ export default function PayslipUploadsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, filterClientId]);
 
   useEffect(() => {
     loadUploads();
   }, [loadUploads]);
+
+  useEffect(() => {
+    if (canUpload) api.getClients().then(setClients).catch(() => {});
+  }, [canUpload]);
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] ?? null;
@@ -122,7 +129,7 @@ export default function PayslipUploadsPage() {
     if (!previewFile) return;
     setUploading(true);
     try {
-      const res = await api.bulkUploadPayslipsFromCSV(previewFile);
+      const res = await api.bulkUploadPayslipsFromCSV(previewFile, selectedClientId);
       const created = res.count ?? 0;
       const failedCount = res.failed?.length ?? 0;
       if (failedCount > 0) {
@@ -185,12 +192,31 @@ export default function PayslipUploadsPage() {
               )}
             </p>
             <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-center gap-3">
+              {clients.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <select
+                    value={selectedClientId ?? ''}
+                    onChange={(e) => setSelectedClientId(e.target.value ? Number(e.target.value) : undefined)}
+                    required
+                    className={`rounded-xl border px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand ${!selectedClientId ? 'border-red-300 bg-red-50' : 'border-slate-200'}`}
+                  >
+                    <option value="" disabled>Select client *</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  {!selectedClientId && (
+                    <p className="text-xs text-red-500">Client is required</p>
+                  )}
+                </div>
+              )}
               <input
                 id="payslip-csv-input"
                 type="file"
                 accept=".csv,text/csv"
                 onChange={handleFileSelect}
-                className="text-slate-600 max-w-xs text-sm"
+                disabled={clients.length > 0 && !selectedClientId}
+                className="text-slate-600 max-w-xs text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               />
               <Button
                 type="button"
@@ -232,7 +258,7 @@ export default function PayslipUploadsPage() {
             <Button variant="secondary" onClick={closePreview} disabled={uploading}>
               {t('common:cancel', 'Cancel')}
             </Button>
-            <Button onClick={handleConfirmUpload} disabled={uploading}>
+            <Button onClick={handleConfirmUpload} disabled={uploading || (clients.length > 0 && !selectedClientId)}>
               {uploading ? t('pages:payslips.uploading') : t('pages:payslipUploads.confirmAndUpload', 'Confirm & Upload')}
             </Button>
           </>
@@ -278,13 +304,27 @@ export default function PayslipUploadsPage() {
       </Modal>
 
       <Card>
-        <div className="p-4 flex items-center justify-between border-b border-slate-100">
+        <div className="p-4 flex items-center justify-between gap-4 border-b border-slate-100 flex-wrap">
           <h3 className="text-sm font-semibold text-slate-700">
             {t('pages:payslipUploads.historyTitle', 'Upload history')}
           </h3>
-          <Link to="/payslips" className="text-brand text-sm font-medium hover:underline">
-            {t('pages:payslipUploads.backToPayslips', 'Back to Payslips')}
-          </Link>
+          <div className="flex items-center gap-3">
+            {clients.length > 0 && (
+              <select
+                value={filterClientId ?? ''}
+                onChange={(e) => { setFilterClientId(e.target.value ? Number(e.target.value) : undefined); setPage(1); }}
+                className="rounded-xl border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+              >
+                <option value="">All clients</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+            <Link to="/payslips" className="text-brand text-sm font-medium hover:underline">
+              {t('pages:payslipUploads.backToPayslips', 'Back to Payslips')}
+            </Link>
+          </div>
         </div>
         {loading ? (
           <CardBody className="py-8 text-center text-slate-500 text-sm">
@@ -301,6 +341,7 @@ export default function PayslipUploadsPage() {
             <THead>
               <TR>
                 <TH>{t('pages:payslipUploads.fileName', 'File')}</TH>
+                <TH>Client</TH>
                 <TH>{t('pages:payslipUploads.uploadedBy', 'Uploaded by')}</TH>
                 <TH>{t('pages:payslipUploads.uploadedAt', 'Uploaded')}</TH>
                 <TH>{t('pages:payslipUploads.totalRows', 'Rows')}</TH>
@@ -313,6 +354,7 @@ export default function PayslipUploadsPage() {
               {uploads.map((u) => (
                 <TR key={u.id}>
                   <TD className="font-medium">{u.file_name ?? '—'}</TD>
+                  <TD className="text-slate-600">{u.client_name || '—'}</TD>
                   <TD>{u.uploaded_by_name ?? '—'}</TD>
                   <TD>{formatDate(u.created_at)}</TD>
                   <TD>{u.total_rows}</TD>

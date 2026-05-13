@@ -2317,6 +2317,8 @@ export type Payslip = {
 export type PayslipUpload = {
   id: number;
   tenant_id: number;
+  client_id?: number;
+  client_name?: string;
   uploaded_by?: number;
   uploaded_by_name?: string;
   file_name?: string;
@@ -2352,10 +2354,11 @@ export type PayslipUploadListResult = {
 };
 
 /** List payslip CSV uploads for the current tenant (paginated). Default page=1, limit=20. */
-export async function listPayslipUploads(opts?: { page?: number; limit?: number }): Promise<PayslipUploadListResult> {
+export async function listPayslipUploads(opts?: { page?: number; limit?: number; client_id?: number }): Promise<PayslipUploadListResult> {
   const params = new URLSearchParams();
   if (opts?.page != null) params.set('page', String(opts.page));
   if (opts?.limit != null) params.set('limit', String(opts.limit));
+  if (opts?.client_id != null) params.set('client_id', String(opts.client_id));
   const q = params.toString() ? `?${params}` : '';
   const res = await authFetch(`${API_BASE}/payslip-uploads${q}`);
   const data = await res.json();
@@ -2460,10 +2463,12 @@ export async function bulkUploadPayslips(
 
 /** Upload a CSV file containing multiple payslips (matched by employee NIK). */
 export async function bulkUploadPayslipsFromCSV(
-  file: File
+  file: File,
+  clientId?: number
 ): Promise<{ data: Payslip[]; count: number; failed: string[] }> {
   const form = new FormData();
   form.append('file', file);
+  if (clientId) form.append('client_id', String(clientId));
   const token = getAccessToken();
   const headers: HeadersInit = {};
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
