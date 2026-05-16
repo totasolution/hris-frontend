@@ -17,6 +17,8 @@ import type {
   EmployeeDocument,
   Payslip,
   DeclarationChecklistData,
+  Department,
+  Client,
 } from '../services/api';
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download.ts';
@@ -31,6 +33,8 @@ export type MySpaceContext = {
   warnings: WarningLetter[];
   employeeDocuments: EmployeeDocument[];
   payslips: Payslip[];
+  departments: Department[];
+  clients: Client[];
   loadContractsAndDocuments: (employeeId: number) => Promise<void>;
   toast: ReturnType<typeof useToast>;
 };
@@ -43,6 +47,8 @@ export function MySpaceLayout() {
   const [warnings, setWarnings] = useState<WarningLetter[]>([]);
   const [employeeDocuments, setEmployeeDocuments] = useState<EmployeeDocument[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
@@ -77,6 +83,8 @@ export function MySpaceLayout() {
       .then(setEmployee)
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
       .finally(() => setLoading(false));
+    api.getDepartments().then(setDepartments).catch(() => {});
+    api.getClients().then(setClients).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -99,6 +107,8 @@ export function MySpaceLayout() {
     warnings,
     employeeDocuments,
     payslips,
+    departments,
+    clients,
     loadContractsAndDocuments,
     toast,
   };
@@ -249,7 +259,7 @@ export function MyProfilePage() {
           </button>
         </nav>
       </div>
-      {tab === 'profile' && <EmployeeOverviewContent employee={ctx.employee} />}
+      {tab === 'profile' && <EmployeeOverviewContent employee={ctx.employee} departments={ctx.departments} clients={ctx.clients} />}
       {tab === 'declarations' && <MyDeclarationsTab />}
       {tab === 'password' && <AccountTab toast={ctx.toast} />}
     </div>
