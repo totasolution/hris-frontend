@@ -2484,9 +2484,12 @@ export async function bulkUploadPayslipsFromCSV(
 }
 
 /** Download the standard payslip CSV template. */
-export async function downloadPayslipCSVTemplate(): Promise<Blob> {
-  const res = await authFetch(`${API_BASE}/payslip-uploads/template-csv`, {
+export async function downloadPayslipCSVTemplate(clientId?: number): Promise<Blob> {
+  const q = clientId ? `?client_id=${clientId}` : '';
+  const res = await authFetch(`${API_BASE}/payslip-uploads/template-csv${q}`, {
     method: 'GET',
+    credentials: 'include',
+    headers: authHeaders(),
   });
   if (!res.ok) {
     const data = await res.text();

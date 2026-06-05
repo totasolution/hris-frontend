@@ -209,7 +209,7 @@ export default function PayslipUploadsPage() {
             <p className="text-xs text-slate-500">
               {t(
                 'pages:payslips.bulkUploadCSVHelp',
-                'Upload a .csv file with columns: employee_name (informational, for preview only), nip, year, month, city, print_date (YYYY-MM-DD), prepared_by, kategori, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, tunjangan_jabatan, tunjangan_lain_lain, tunjangan_training, tunjangan_mess, tunjangan_komunikasi, lembur, rapel_lembur, reimbursment, tunjangan_hari_raya, perjalanan_dinas, bonus, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, bpjs_tk_bpu, potongan_asuransi, potongan_absen, potongan_gaji, potongan_hutang, potongan_lain_lain, admin_bank, denda, rapel_potongan_bpjs, thp, tax_rate_ter, sisa_cuti, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id.'
+                'Upload a .csv file with columns: employee_name (informational, for preview only), nip, year, month, city, print_date (YYYY-MM-DD), prepared_by, kategori, tax_rate_ter, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, tunjangan_jabatan, tunjangan_lain_lain, tunjangan_training, tunjangan_mess, tunjangan_komunikasi, lembur, rapel_lembur, reimbursment, tunjangan_hari_raya, perjalanan_dinas, bonus, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, bpjs_tk_bpu, potongan_asuransi, potongan_absen, potongan_gaji, potongan_hutang, potongan_lain_lain, admin_bank, denda, rapel_potongan_bpjs, thp, sisa_cuti, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id.'
               )}
             </p>
             <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-center gap-3">
@@ -248,11 +248,15 @@ export default function PayslipUploadsPage() {
                 variant="secondary"
                 onClick={async () => {
                   try {
-                    const blob = await api.downloadPayslipCSVTemplate();
+                    const blob = await api.downloadPayslipCSVTemplate(selectedClientId);
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'payslip_template.xlsx';
+                    const clientName = selectedClientId
+                      ? (clients.find((c) => c.id === selectedClientId)?.name ?? 'client')
+                          .toLowerCase().replace(/\s+/g, '-')
+                      : 'template';
+                    a.download = `payslip-${clientName}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
