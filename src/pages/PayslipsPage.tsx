@@ -36,6 +36,7 @@ export default function PayslipsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const toast = useToast();
 
   const handlePreview = async (p: Payslip) => {
@@ -128,6 +129,20 @@ export default function PayslipsPage() {
     }
   };
 
+  const handleDelete = async (p: Payslip) => {
+    if (!window.confirm(`Delete payslip for ${p.employee_name ?? `#${p.employee_id}`} — ${p.period_label}? This cannot be undone.`)) return;
+    setDeletingId(p.id);
+    try {
+      await api.deletePayslip(p.id);
+      toast.success('Payslip deleted.');
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete payslip');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const searchTrimmed = employeeNameSearch.trim().toLowerCase();
   const filteredList = searchTrimmed
     ? list.filter((p) => {
@@ -179,31 +194,6 @@ export default function PayslipsPage() {
               <option key={m.value || 'all'} value={m.value}>{m.value === '' ? t('pages:payslips.allMonths') : m.label}</option>
             ))}
           </Select>
-        </div>
-        <div className="ml-auto">
-          <button
-            type="button"
-            onClick={handleDeletePeriod}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-xs font-semibold uppercase tracking-wide text-red-700 bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!month}
-          >
-            <svg
-              className="w-4 h-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 6h18" />
-              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              <path d="M10 11v6" />
-              <path d="M14 11v6" />
-              <path d="M5 6l1 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-14" />
-            </svg>
-            {t('pages:payslips.deletePeriodButton', 'Delete payslips for period')}
-          </button>
         </div>
       </div>
 
@@ -266,6 +256,17 @@ export default function PayslipsPage() {
                         >
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(p)}
+                          disabled={deletingId === p.id}
+                          className="p-2 text-slate-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                          title="Delete payslip"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>
