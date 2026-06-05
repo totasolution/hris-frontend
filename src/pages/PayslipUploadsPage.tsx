@@ -209,7 +209,7 @@ export default function PayslipUploadsPage() {
             <p className="text-xs text-slate-500">
               {t(
                 'pages:payslips.bulkUploadCSVHelp',
-                'Upload a .csv file with columns: employee_name (informational, for preview only), nip, year, month, city, print_date (YYYY-MM-DD), prepared_by, kategori, tax_rate_ter, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, tunjangan_jabatan, tunjangan_lain_lain, tunjangan_training, tunjangan_mess, tunjangan_komunikasi, lembur, rapel_lembur, reimbursment, tunjangan_hari_raya, perjalanan_dinas, bonus, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, bpjs_tk_bpu, potongan_asuransi, potongan_absen, potongan_gaji, potongan_hutang, potongan_lain_lain, admin_bank, denda, rapel_potongan_bpjs, thp, sisa_cuti, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id.'
+                'Upload a .csv file with columns: employee_name (informational, for preview only), nip, year, month, city, print_date (YYYY-MM-DD), prepared_by, kategori, tax_rate_ter, gaji, tunjangan_transportasi, insentif, lembur_luar_kota, rapel_salary, refund, kompensasi, tunjangan_jabatan, tunjangan_lain_lain, tunjangan_training, tunjangan_mess, tunjangan_komunikasi, lembur, rapel_lembur, reimbursment, tunjangan_hari_raya, perjalanan_dinas, bonus, bpjs_naker, bpjs_pensiun, bpjs_kesehatan, pph21, bpjs_tk_bpu, potongan_asuransi, potongan_absen, potongan_gaji, potongan_hutang, potongan_lain_lain, admin_bank, denda, rapel_potongan_bpjs, thp, sisa_cuti, bpjs_ketenagakerjaan_id, bpjs_kesehatan_id, bpjs_bpu_id.'
               )}
             </p>
             <form onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-center gap-3">
@@ -298,7 +298,7 @@ export default function PayslipUploadsPage() {
             {t('pages:payslipUploads.previewSubtitle', 'Review the CSV content below. Click Confirm & Upload to proceed.')}
           </p>
           <div className="max-h-[60vh] overflow-auto rounded-xl border border-slate-200">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-max min-w-full text-sm border-collapse">
               <thead className="sticky top-0 bg-slate-50 border-b border-slate-200">
                 <tr>
                   {previewRows?.[0]?.map((cell, i) => (
