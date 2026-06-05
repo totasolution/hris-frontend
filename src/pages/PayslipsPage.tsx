@@ -72,50 +72,6 @@ export default function PayslipsPage() {
     }
   }, [year, month, t]);
 
-  const handleDeletePeriod = async () => {
-    const parsedYear = parseInt(year, 10);
-    const parsedMonth = month ? parseInt(month, 10) : NaN;
-    if (!parsedYear || Number.isNaN(parsedMonth)) {
-      toast.error(t('pages:payslips.deletePeriodMissing', 'Please select a valid year and month.'));
-      return;
-    }
-    const label = `${MONTHS.find((m) => m.value === month)?.label ?? month}/${parsedYear}`;
-    const confirmed = window.confirm(
-      t(
-        'pages:payslips.confirmDeletePeriod',
-        'Delete all payslips for period {{period}}? This action cannot be undone.',
-        { period: label }
-      )
-    );
-    if (!confirmed) return;
-
-    try {
-      const result = await api.deletePayslipsByPeriod(parsedYear, parsedMonth);
-      if (result.deleted === 0) {
-        toast.warning(
-          t(
-            'pages:payslips.deletePeriodNoRows',
-            'No payslips found for the selected period.'
-          )
-        );
-      } else {
-        toast.success(
-          t(
-            'pages:payslips.deletePeriodSuccess',
-            '{{count}} payslips deleted for {{period}}.',
-            { count: result.deleted, period: label }
-          )
-        );
-      }
-      await load();
-    } catch (e) {
-      toast.error(
-        e instanceof Error
-          ? e.message
-          : t('pages:payslips.deletePeriodFailed', 'Failed to delete payslips for this period.')
-      );
-    }
-  };
 
   useEffect(() => {
     load();
