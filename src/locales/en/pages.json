@@ -37,7 +37,16 @@
     "editEmployee": "Edit Employee",
     "downloadEmployees": "Download XLSX",
     "downloadEmployeesHint": "Select a client to download employee data",
-    "downloadEmployeesError": "Failed to download employees"
+    "downloadEmployeesError": "Failed to download employees",
+    "downloadTemplate": "Download Template",
+    "downloadTemplateHint": "Select a client to download the bulk-update template",
+    "downloadTemplateError": "Failed to download template",
+    "importTemplate": "Import",
+    "importTemplateError": "Failed to import template",
+    "importResultTitle": "Import result",
+    "importUpdated": "{{count}} updated",
+    "importSkipped": "{{count}} skipped",
+    "importDismiss": "Dismiss"
   },
   "clients": {
     "title": "Clients",

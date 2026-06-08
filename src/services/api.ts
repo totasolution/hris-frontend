@@ -1728,6 +1728,52 @@ export async function downloadEmployees(clientId: number): Promise<void> {
   downloadBlob(xlsxBlob, filename);
 }
 
+/** Download the prefilled bulk-update template (XLSX) for the given client (client_id required). */
+export async function downloadEmployeeTemplate(clientId: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/employees/template?client_id=${clientId}`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as { error?: { message?: string } })?.error?.message ?? 'Download failed');
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('Content-Disposition');
+  const filename = parseFilenameFromDisposition(disposition) ?? `employee-template-client-${clientId}.xlsx`;
+  const xlsxBlob = new Blob([blob], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  downloadBlob(xlsxBlob, filename);
+}
+
+export type EmployeeTemplateRowResult = {
+  row: number;
+  employee_id: string;
+  name?: string;
+  status: 'updated' | 'error';
+  message?: string;
+};
+
+export type EmployeeTemplateUploadResult = {
+  updated: number;
+  skipped: number;
+  rows: EmployeeTemplateRowResult[];
+};
+
+/** Upload a filled-in bulk-update template (XLSX). Matches rows by EmployeeID and updates editable fields. */
+export async function uploadEmployeeTemplate(file: File): Promise<EmployeeTemplateUploadResult> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await authFetch(`${API_BASE}/employees/template/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Upload failed');
+  return data as EmployeeTemplateUploadResult;
+}
+
 // Employee Documents
 export type EmployeeDocument = {
   id: number;

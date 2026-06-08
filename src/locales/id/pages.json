@@ -37,7 +37,16 @@
     "editEmployee": "Ubah Karyawan",
     "downloadEmployees": "Unduh XLSX",
     "downloadEmployeesHint": "Pilih klien untuk mengunduh data karyawan",
-    "downloadEmployeesError": "Gagal mengunduh karyawan"
+    "downloadEmployeesError": "Gagal mengunduh karyawan",
+    "downloadTemplate": "Unduh Template",
+    "downloadTemplateHint": "Pilih klien untuk mengunduh template pembaruan massal",
+    "downloadTemplateError": "Gagal mengunduh template",
+    "importTemplate": "Impor",
+    "importTemplateError": "Gagal mengimpor template",
+    "importResultTitle": "Hasil impor",
+    "importUpdated": "{{count}} diperbarui",
+    "importSkipped": "{{count}} dilewati",
+    "importDismiss": "Tutup"
   },
   "clients": {
     "title": "Klien",
