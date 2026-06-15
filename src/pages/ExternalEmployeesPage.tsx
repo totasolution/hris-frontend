@@ -43,6 +43,8 @@ const clientSelectStyles = {
   }),
 };
 
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
 export default function ExternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
@@ -55,13 +57,14 @@ export default function ExternalEmployeesPage() {
   const statusFilter = searchParams.get('status') || '';
   const clientId = searchParams.get('client_id') || '';
   const search = searchParams.get('q') || '';
+  const perPageParam = parseInt(searchParams.get('per_page') || '10', 10);
+  const perPage = PER_PAGE_OPTIONS.includes(perPageParam) ? perPageParam : 10;
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [clients, setClients] = useState<api.Client[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
 
   const updateParams = (changes: Record<string, string>, resetPage = false) => {
     setSearchParams(
@@ -80,6 +83,7 @@ export default function ExternalEmployeesPage() {
   const setStatusFilter = (value: string) => updateParams({ status: value }, true);
   const setClientId = (value: string) => updateParams({ client_id: value }, true);
   const setSearch = (value: string) => updateParams({ q: value }, true);
+  const setPerPage = (value: number) => updateParams({ per_page: value !== 10 ? String(value) : '' }, true);
   const setPage = (value: number) => updateParams({ page: value > 1 ? String(value) : '' });
   const [downloading, setDownloading] = useState(false);
   const [templateDownloading, setTemplateDownloading] = useState(false);
@@ -115,7 +119,7 @@ export default function ExternalEmployeesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, clientId, search, page]);
+  }, [statusFilter, clientId, search, page, perPage]);
 
   const handleDownload = async () => {
     if (!clientId) return;
@@ -305,6 +309,16 @@ export default function ExternalEmployeesPage() {
             isClearable
           />
         </div>
+        <div className="w-40">
+          <NativeSelect
+            value={String(perPage)}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+          >
+            {PER_PAGE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{t('common:rowsPerPage', { n })}</option>
+            ))}
+          </NativeSelect>
+        </div>
       </div>
 
       {error && (
@@ -381,7 +395,6 @@ export default function ExternalEmployeesPage() {
             page={page}
             totalPages={totalPages}
             total={total}
-            perPage={perPage}
             onPageChange={setPage}
           />
         </Card>

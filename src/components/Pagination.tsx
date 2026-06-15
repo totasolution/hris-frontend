@@ -4,20 +4,16 @@ type PaginationProps = {
   page: number;
   totalPages: number;
   total: number;
-  perPage: number;
+  /** Accepted for backwards-compat with existing callers; no longer rendered. */
+  perPage?: number;
   onPageChange: (page: number) => void;
 };
 
-export function Pagination({ page, totalPages, total, perPage, onPageChange }: PaginationProps) {
+export function Pagination({ page, totalPages, total, onPageChange }: PaginationProps) {
   const { t } = useTranslation('common');
   if (total === 0) return null;
-  const start = (page - 1) * perPage + 1;
-  const end = Math.min(page * perPage, total);
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
-      <p className="text-sm text-slate-600">
-        {t('paginationShowing', { start, end, total })}
-      </p>
+    <div className="flex items-center justify-center px-4 py-3 border-t border-slate-100 bg-slate-50/50">
       <div className="flex items-center gap-2">
         <button
           onClick={() => onPageChange(page - 1)}

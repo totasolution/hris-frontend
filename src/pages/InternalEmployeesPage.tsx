@@ -11,6 +11,8 @@ import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee } from '../services/api';
 import * as api from '../services/api';
 
+const PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
 export default function InternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
@@ -21,12 +23,13 @@ export default function InternalEmployeesPage() {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
   const statusFilter = searchParams.get('status') || '';
   const search = searchParams.get('q') || '';
+  const perPageParam = parseInt(searchParams.get('per_page') || '10', 10);
+  const perPage = PER_PAGE_OPTIONS.includes(perPageParam) ? perPageParam : 10;
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const perPage = 10;
 
   const updateParams = (changes: Record<string, string>, resetPage = false) => {
     setSearchParams(
@@ -44,6 +47,7 @@ export default function InternalEmployeesPage() {
   };
   const setStatusFilter = (value: string) => updateParams({ status: value }, true);
   const setSearch = (value: string) => updateParams({ q: value }, true);
+  const setPerPage = (value: number) => updateParams({ per_page: value !== 10 ? String(value) : '' }, true);
   const setPage = (value: number) => updateParams({ page: value > 1 ? String(value) : '' });
 
   const load = async () => {
@@ -69,7 +73,7 @@ export default function InternalEmployeesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, search, page]);
+  }, [statusFilter, search, page, perPage]);
 
   return (
     <div className="space-y-8">
@@ -99,6 +103,16 @@ export default function InternalEmployeesPage() {
             <option value="terminated">{t('employees.statusTerminated')}</option>
             <option value="resigned">{t('employees.statusResigned')}</option>
             <option value="contract_ended">{t('employees.statusContractEnded')}</option>
+          </NativeSelect>
+        </div>
+        <div className="w-40">
+          <NativeSelect
+            value={String(perPage)}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+          >
+            {PER_PAGE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{t('common:rowsPerPage', { n })}</option>
+            ))}
           </NativeSelect>
         </div>
       </div>
@@ -175,7 +189,6 @@ export default function InternalEmployeesPage() {
             page={page}
             totalPages={totalPages}
             total={total}
-            perPage={perPage}
             onPageChange={setPage}
           />
         </Card>
