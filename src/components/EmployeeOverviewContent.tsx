@@ -203,6 +203,7 @@ export function EmployeeOverviewContent({
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Full Name" value={employee.full_name} />
               <Field label="Employee Status">
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
@@ -750,6 +751,7 @@ function EmployeeInfoForm({
   clients: Client[];
 }) {
   const [form, setForm] = useState({
+    full_name: initial.full_name ?? '',
     employee_number: initial.employee_number ?? '',
     privy_id: initial.privy_id ?? '',
     email: initial.email ?? '',
@@ -776,6 +778,7 @@ function EmployeeInfoForm({
 
   useEffect(() => {
     setForm({
+      full_name: initial.full_name ?? '',
       employee_number: initial.employee_number ?? '',
       privy_id: initial.privy_id ?? '',
       email: initial.email ?? '',
@@ -849,6 +852,7 @@ function EmployeeInfoForm({
       onSubmit={async (e) => {
         e.preventDefault();
         await onSave({
+          full_name: form.full_name.trim(),
           employee_number: toNullableString(form.employee_number),
           privy_id: toNullableString(form.privy_id),
           email: toNullableString(form.email),
@@ -874,6 +878,7 @@ function EmployeeInfoForm({
       }}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InputRow label="Full Name" value={form.full_name} onChange={(v) => setForm((s) => ({ ...s, full_name: v }))} />
         <InputRow label="NIP / Employee number" value={form.employee_number} onChange={(v) => setForm((s) => ({ ...s, employee_number: v }))} />
         <InputRow label="Privy ID" value={form.privy_id} onChange={(v) => setForm((s) => ({ ...s, privy_id: v }))} />
         <InputRow label="Email" value={form.email} onChange={(v) => setForm((s) => ({ ...s, email: v }))} />

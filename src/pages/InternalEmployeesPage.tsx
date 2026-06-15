@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ButtonLink } from '../components/Button';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,15 +15,36 @@ export default function InternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
   const canCreate = permissions.includes('employee_internal:create');
+  // Filters & pagination live in the URL so navigating to an employee and back
+  // (browser back / the detail page's Back button) restores the exact same view.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+  const statusFilter = searchParams.get('status') || '';
+  const search = searchParams.get('q') || '';
   const [list, setList] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const perPage = 10;
+
+  const updateParams = (changes: Record<string, string>, resetPage = false) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(changes)) {
+          if (value) next.set(key, value);
+          else next.delete(key);
+        }
+        if (resetPage) next.delete('page');
+        return next;
+      },
+      { replace: true },
+    );
+  };
+  const setStatusFilter = (value: string) => updateParams({ status: value }, true);
+  const setSearch = (value: string) => updateParams({ q: value }, true);
+  const setPage = (value: number) => updateParams({ page: value > 1 ? String(value) : '' });
 
   const load = async () => {
     setLoading(true);
@@ -64,20 +85,14 @@ export default function InternalEmployeesPage() {
             type="text"
             placeholder={t('employees.searchPlaceholder')}
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
           />
         </div>
         <div className="w-64">
           <NativeSelect
             value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="">{t('employees.allStatuses')}</option>
             <option value="active">{t('employees.statusActive')}</option>

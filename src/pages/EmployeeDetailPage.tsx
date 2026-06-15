@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardBody, CardHeader } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
@@ -17,6 +17,7 @@ type TabType = 'overview' | 'contracts' | 'documents' | 'history' | 'declaration
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [paklaringDocs, setPaklaringDocs] = useState<PaklaringDocument[]>([]);
@@ -98,6 +99,18 @@ export default function EmployeeDetailPage() {
     );
   }
 
+  // Return to the exact previous list view (filters/pagination are encoded in the
+  // list URL, so browser-back restores them). Fall back to the matching list when
+  // the page was opened directly (no in-app history to go back to).
+  const handleBack = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) {
+      navigate(-1);
+    } else {
+      navigate(`/employees/${employee.employee_type === 'external' ? 'external' : 'internal'}`);
+    }
+  };
+
   const tabs: { id: TabType; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'contracts', label: 'Contracts' },
@@ -108,6 +121,16 @@ export default function EmployeeDetailPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 font-body">
+      <button
+        type="button"
+        onClick={handleBack}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back
+      </button>
       <PageHeader
         title={employee.full_name}
         subtitle={employee.email}

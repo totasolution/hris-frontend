@@ -1466,6 +1466,7 @@ export type EmployeeFamily = {
 };
 
 export type EmployeeInformationPayload = {
+  full_name?: string | null;
   employee_number?: string | null;
   department_id?: number | null;
   client_id?: number | null;
