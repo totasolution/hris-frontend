@@ -14,7 +14,7 @@ export function Pagination({ page, totalPages, total, perPage, onPageChange }: P
   const start = (page - 1) * perPage + 1;
   const end = Math.min(page * perPage, total);
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+    <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
       <p className="text-sm text-slate-600">
         {t('paginationShowing', { start, end, total })}
       </p>
