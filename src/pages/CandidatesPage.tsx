@@ -64,7 +64,7 @@ export default function CandidatesPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
   const [clients, setClients] = useState<Client[]>([]);
   const [users, setUsers] = useState<User[]>([]);
 
@@ -94,7 +94,7 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     load();
-  }, [page]);
+  }, [page, perPage]);
 
   const handleSearch = () => {
     setPage(1);
@@ -327,6 +327,7 @@ export default function CandidatesPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

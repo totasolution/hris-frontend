@@ -18,6 +18,7 @@ export default function PayslipUploadDetailPage() {
   const [detail, setDetail] = useState<api.PayslipUploadDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(ROWS_PER_PAGE);
 
   const loadDetail = useCallback(async () => {
     const uploadId = id ? parseInt(id, 10) : NaN;
@@ -28,7 +29,7 @@ export default function PayslipUploadDetailPage() {
     }
     setLoading(true);
     try {
-      const d = await api.getPayslipUploadDetail(uploadId, { page, limit: ROWS_PER_PAGE });
+      const d = await api.getPayslipUploadDetail(uploadId, { page, limit: perPage });
       setDetail(d);
     } catch {
       toast.error(t('pages:payslipUploads.detailLoadError', 'Failed to load upload details'));
@@ -36,7 +37,7 @@ export default function PayslipUploadDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, page, toast, t]);
+  }, [id, page, perPage, toast, t]);
 
   useEffect(() => {
     loadDetail();
@@ -58,7 +59,7 @@ export default function PayslipUploadDetailPage() {
     );
   }
 
-  const totalPages = detail ? Math.max(1, Math.ceil(detail.total_rows / ROWS_PER_PAGE)) : 1;
+  const totalPages = detail ? Math.max(1, Math.ceil(detail.total_rows / perPage)) : 1;
 
   return (
     <div className="space-y-8">
@@ -129,7 +130,7 @@ export default function PayslipUploadDetailPage() {
                   page={page}
                   totalPages={totalPages}
                   total={detail.total_rows}
-                  perPage={ROWS_PER_PAGE}
+                  perPage={perPage}
                   onPageChange={setPage}
                 />
               )}
@@ -162,13 +163,14 @@ export default function PayslipUploadDetailPage() {
                 </TBody>
               </Table>
             )}
-            {totalPages > 1 && (
+            {detail.total_rows > 0 && (
               <div className="p-4 border-t border-slate-100 flex justify-center">
                 <Pagination
                   page={page}
                   totalPages={totalPages}
                   total={detail.total_rows}
-                  perPage={ROWS_PER_PAGE}
+                  perPage={perPage}
+                  onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
                   onPageChange={setPage}
                 />
               </div>

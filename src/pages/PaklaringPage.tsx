@@ -26,7 +26,7 @@ export default function PaklaringPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
   const { permissions = [] } = useAuth();
   const canCreate = permissions.includes('paklaring:create');
   const canDelete = permissions.includes('paklaring:delete');
@@ -227,6 +227,7 @@ export default function PaklaringPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

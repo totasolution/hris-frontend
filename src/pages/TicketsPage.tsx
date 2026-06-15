@@ -21,7 +21,7 @@ export default function TicketsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
   const [departments, setDepartments] = useState<api.Department[]>([]);
 
   const load = async () => {
@@ -47,7 +47,7 @@ export default function TicketsPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, departmentId, search, page]);
+  }, [statusFilter, departmentId, search, page, perPage]);
 
   useEffect(() => {
     api.getDepartments().then(setDepartments).catch(() => {});
@@ -170,6 +170,7 @@ export default function TicketsPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

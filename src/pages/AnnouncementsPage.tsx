@@ -23,6 +23,7 @@ export default function AnnouncementsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(PER_PAGE);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [clients, setClients] = useState<api.Client[]>([]);
@@ -40,7 +41,7 @@ export default function AnnouncementsPage() {
       const res = await api.getAnnouncements({
         publishedOnly: !canManage,
         page,
-        per_page: PER_PAGE,
+        per_page: perPage,
       });
       setList(res.data);
       setTotal(res.total);
@@ -54,7 +55,7 @@ export default function AnnouncementsPage() {
 
   useEffect(() => {
     load();
-  }, [canManage, page]);
+  }, [canManage, page, perPage]);
 
   const handleDelete = async (id: number) => {
     if (!window.confirm(t('pages:announcements.deleteConfirm'))) return;
@@ -164,7 +165,8 @@ export default function AnnouncementsPage() {
             page={page}
             totalPages={totalPages}
             total={total}
-            perPage={PER_PAGE}
+            perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

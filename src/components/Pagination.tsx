@@ -1,12 +1,15 @@
 import { useTranslation } from 'react-i18next';
 
+const DEFAULT_PER_PAGE_OPTIONS = [10, 25, 50, 100];
+
 type PaginationProps = {
   page: number;
   totalPages: number;
   total: number;
   perPage?: number;
-  /** When provided alongside onPerPageChange, renders a rows-per-page selector. */
+  /** Override the default [10, 25, 50, 100] options. */
   perPageOptions?: number[];
+  /** When provided, renders a rows-per-page selector. */
   onPerPageChange?: (perPage: number) => void;
   onPageChange: (page: number) => void;
 };
@@ -22,7 +25,12 @@ export function Pagination({
 }: PaginationProps) {
   const { t } = useTranslation('common');
   if (total === 0) return null;
-  const showPerPage = !!(onPerPageChange && perPageOptions && perPageOptions.length > 0);
+  const showPerPage = !!onPerPageChange;
+  // Ensure the current page size is selectable even if it isn't a default option.
+  const baseOptions = perPageOptions ?? DEFAULT_PER_PAGE_OPTIONS;
+  const options = perPage != null && !baseOptions.includes(perPage)
+    ? [...baseOptions, perPage].sort((a, b) => a - b)
+    : baseOptions;
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-3 border-t border-slate-100 bg-slate-50/50">
       <div className="flex items-center gap-2">
@@ -50,8 +58,8 @@ export function Pagination({
           onChange={(e) => onPerPageChange!(Number(e.target.value))}
           className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
         >
-          {perPageOptions!.map((n) => (
-            <option key={n} value={n}>{t('rowsPerPage', { n })}</option>
+          {options.map((n) => (
+            <option key={n} value={n}>{n}</option>
           ))}
         </select>
       )}

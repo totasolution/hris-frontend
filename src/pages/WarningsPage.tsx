@@ -19,7 +19,7 @@ export default function WarningsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
 
   const load = async () => {
     setLoading(true);
@@ -42,7 +42,7 @@ export default function WarningsPage() {
 
   useEffect(() => {
     load();
-  }, [search, page]);
+  }, [search, page, perPage]);
 
   return (
     <div className="space-y-8">
@@ -150,6 +150,7 @@ export default function WarningsPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

@@ -72,6 +72,7 @@ export default function PayslipUploadsPage() {
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(UPLOADS_PER_PAGE);
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<api.Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(undefined);
@@ -80,7 +81,7 @@ export default function PayslipUploadsPage() {
   const loadUploads = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await api.listPayslipUploads({ page, limit: UPLOADS_PER_PAGE, client_id: filterClientId });
+      const result = await api.listPayslipUploads({ page, limit: perPage, client_id: filterClientId });
       setUploads(result.data);
       setTotal(result.total);
     } catch {
@@ -89,7 +90,7 @@ export default function PayslipUploadsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, filterClientId]);
+  }, [page, perPage, filterClientId]);
 
   useEffect(() => {
     loadUploads();
@@ -177,7 +178,7 @@ export default function PayslipUploadsPage() {
       closePreview();
       setPage(1);
       try {
-        const result = await api.listPayslipUploads({ page: 1, limit: UPLOADS_PER_PAGE });
+        const result = await api.listPayslipUploads({ page: 1, limit: perPage });
         setUploads(result.data);
         setTotal(result.total);
       } catch {
@@ -191,7 +192,7 @@ export default function PayslipUploadsPage() {
   };
 
 
-  const totalPages = Math.max(1, Math.ceil(total / UPLOADS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
 
   return (
     <div className="space-y-8">
@@ -402,13 +403,14 @@ export default function PayslipUploadsPage() {
             </TBody>
           </Table>
         )}
-        {!loading && total > UPLOADS_PER_PAGE && (
+        {!loading && total > 0 && (
           <div className="border-t border-slate-100">
             <Pagination
               page={page}
               totalPages={totalPages}
               total={total}
-              perPage={UPLOADS_PER_PAGE}
+              perPage={perPage}
+              onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
               onPageChange={setPage}
             />
           </div>

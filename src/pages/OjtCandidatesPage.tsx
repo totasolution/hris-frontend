@@ -47,7 +47,7 @@ export default function OjtCandidatesPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
 
   const load = useCallback(async () => {
     if (!canRead) {
@@ -232,6 +232,7 @@ export default function OjtCandidatesPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

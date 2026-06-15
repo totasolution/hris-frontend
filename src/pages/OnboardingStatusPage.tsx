@@ -54,7 +54,7 @@ export default function OnboardingStatusPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
   const [clients, setClients] = useState<Client[]>([]);
 
   const load = async () => {
@@ -84,7 +84,7 @@ export default function OnboardingStatusPage() {
 
   useEffect(() => {
     load();
-  }, [searchName, clientId, page]);
+  }, [searchName, clientId, page, perPage]);
 
   useEffect(() => {
     api.getClients().then(setClients).catch(() => {});
@@ -203,6 +203,7 @@ export default function OnboardingStatusPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

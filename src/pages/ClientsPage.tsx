@@ -19,6 +19,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(PER_PAGE);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState('');
@@ -34,7 +35,7 @@ export default function ClientsPage() {
     try {
       const res = await api.getClientsPaginated({
         page,
-        per_page: PER_PAGE,
+        per_page: perPage,
         search: search.trim() || undefined,
       });
       setList(res.data);
@@ -49,7 +50,7 @@ export default function ClientsPage() {
 
   useEffect(() => {
     load();
-  }, [page, search]);
+  }, [page, search, perPage]);
 
   const handleDelete = async () => {
     if (!clientToDelete) return;
@@ -185,7 +186,8 @@ export default function ClientsPage() {
             page={page}
             totalPages={totalPages}
             total={total}
-            perPage={PER_PAGE}
+            perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>

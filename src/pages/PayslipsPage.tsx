@@ -31,7 +31,7 @@ export default function PayslipsPage() {
   const [month, setMonth] = useState<string>('');
   const [employeeNameSearch, setEmployeeNameSearch] = useState('');
   const [page, setPage] = useState(1);
-  const perPage = 20;
+  const [perPage, setPerPage] = useState(20);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -238,6 +238,7 @@ export default function PayslipsPage() {
               totalPages={totalPages}
               total={total}
               perPage={perPage}
+              onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
               onPageChange={setPage}
             />
           )}

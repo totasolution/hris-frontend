@@ -34,7 +34,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage] = useState(10);
+  const [perPage, setPerPage] = useState(10);
   const [resetUser, setResetUser] = useState<User | null>(null);
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
@@ -65,7 +65,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     load();
-  }, [search, page]);
+  }, [search, page, perPage]);
 
   const openResetModal = (u: User) => {
     setResetUser(u);
@@ -208,6 +208,7 @@ export default function UsersPage() {
             totalPages={totalPages}
             total={total}
             perPage={perPage}
+            onPerPageChange={(n) => { setPerPage(n); setPage(1); }}
             onPageChange={setPage}
           />
         </Card>
