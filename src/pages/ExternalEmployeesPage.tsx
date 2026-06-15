@@ -309,16 +309,6 @@ export default function ExternalEmployeesPage() {
             isClearable
           />
         </div>
-        <div className="w-40">
-          <NativeSelect
-            value={String(perPage)}
-            onChange={(e) => setPerPage(Number(e.target.value))}
-          >
-            {PER_PAGE_OPTIONS.map((n) => (
-              <option key={n} value={n}>{t('common:rowsPerPage', { n })}</option>
-            ))}
-          </NativeSelect>
-        </div>
       </div>
 
       {error && (
@@ -395,6 +385,9 @@ export default function ExternalEmployeesPage() {
             page={page}
             totalPages={totalPages}
             total={total}
+            perPage={perPage}
+            perPageOptions={PER_PAGE_OPTIONS}
+            onPerPageChange={setPerPage}
             onPageChange={setPage}
           />
         </Card>
