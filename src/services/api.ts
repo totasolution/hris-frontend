@@ -1705,9 +1705,19 @@ export async function updateEmployeeFamily(employeeId: number, body: EmployeeFam
   return data ?? {};
 }
 
-/** Download employees as XLSX for the given client (client_id required). Includes all employee data. */
-export async function downloadEmployees(clientId: number): Promise<void> {
-  const res = await authFetch(`${API_BASE}/employees/download?client_id=${clientId}`, {
+export type EmployeeDownloadType = 'internal' | 'external';
+
+/** Build the download query: external is scoped by client_id, internal covers all internal employees. */
+function employeeDownloadQuery(clientId: number | null, employeeType: EmployeeDownloadType): string {
+  const params = new URLSearchParams();
+  if (employeeType === 'internal') params.set('employee_type', 'internal');
+  else if (clientId != null) params.set('client_id', String(clientId));
+  return params.toString();
+}
+
+/** Download employees as XLSX. External requires a client_id; internal covers all internal employees. */
+export async function downloadEmployees(clientId: number | null, employeeType: EmployeeDownloadType = 'external'): Promise<void> {
+  const res = await authFetch(`${API_BASE}/employees/download?${employeeDownloadQuery(clientId, employeeType)}`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1717,7 +1727,7 @@ export async function downloadEmployees(clientId: number): Promise<void> {
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition');
-  const rawFilename = parseFilenameFromDisposition(disposition) ?? `employees-client-${clientId}.xlsx`;
+  const rawFilename = parseFilenameFromDisposition(disposition) ?? `employees-${employeeType === 'internal' ? 'internal' : `client-${clientId}`}.xlsx`;
   const filename = rawFilename.toLowerCase().endsWith('.csv')
     ? `${rawFilename.slice(0, -4)}.xlsx`
     : rawFilename.toLowerCase().endsWith('.xlsx')
@@ -1729,9 +1739,9 @@ export async function downloadEmployees(clientId: number): Promise<void> {
   downloadBlob(xlsxBlob, filename);
 }
 
-/** Download the prefilled bulk-update template (XLSX) for the given client (client_id required). */
-export async function downloadEmployeeTemplate(clientId: number): Promise<void> {
-  const res = await authFetch(`${API_BASE}/employees/template?client_id=${clientId}`, {
+/** Download the prefilled bulk-update template (XLSX). External requires a client_id; internal covers all internal employees. */
+export async function downloadEmployeeTemplate(clientId: number | null, employeeType: EmployeeDownloadType = 'external'): Promise<void> {
+  const res = await authFetch(`${API_BASE}/employees/template?${employeeDownloadQuery(clientId, employeeType)}`, {
     credentials: 'include',
     headers: authHeaders(),
   });
@@ -1741,7 +1751,7 @@ export async function downloadEmployeeTemplate(clientId: number): Promise<void> 
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition');
-  const filename = parseFilenameFromDisposition(disposition) ?? `employee-template-client-${clientId}.xlsx`;
+  const filename = parseFilenameFromDisposition(disposition) ?? `employee-template-${employeeType === 'internal' ? 'internal' : `client-${clientId}`}.xlsx`;
   const xlsxBlob = new Blob([blob], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
@@ -1763,9 +1773,10 @@ export type EmployeeTemplateUploadResult = {
 };
 
 /** Upload a filled-in bulk-update template (XLSX). Matches rows by EmployeeID and updates editable fields. */
-export async function uploadEmployeeTemplate(file: File): Promise<EmployeeTemplateUploadResult> {
+export async function uploadEmployeeTemplate(file: File, employeeType: EmployeeDownloadType = 'external'): Promise<EmployeeTemplateUploadResult> {
   const form = new FormData();
   form.append('file', file);
+  if (employeeType === 'internal') form.append('employee_type', 'internal');
   const res = await authFetch(`${API_BASE}/employees/template/upload`, {
     method: 'POST',
     body: form,
