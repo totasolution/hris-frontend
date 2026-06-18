@@ -25,6 +25,7 @@ const METRICS: Record<string, MetricDef> = {
       { key: 'activity', type: 'select', label: 'Activity', options: [
         { value: 'candidates_processed', label: 'Candidates processed (recruiter)' },
         { value: 'meetings_held', label: 'Meetings held (BD)' },
+        { value: 'meetings_scheduled', label: 'Meetings booked (BD)' },
       ] },
       { key: 'window_days', type: 'number', label: 'Window (days)', placeholder: '1 = today' },
       { key: 'min_count', type: 'number', label: 'Minimum count' },
