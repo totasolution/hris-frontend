@@ -4,7 +4,7 @@
  * Role slugs match backend roles.slug (e.g. tenant_admin, hrd, recruiter).
  */
 
-export type NavGroupId = 'home' | 'setup' | 'recruitment' | 'people' | 'support' | 'mySpace';
+export type NavGroupId = 'home' | 'setup' | 'recruitment' | 'business' | 'people' | 'support' | 'mySpace';
 
 export type NavItem = {
   label: string;
@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'recruitmentStatistics', path: '/recruitment/statistics', permission: 'recruitment:statistics', group: 'recruitment', icon: 'chart' },
   { label: 'recruitmentBoard', path: '/recruitment/board', permission: 'recruitment:read', group: 'recruitment', icon: 'board' },
   { label: 'candidates', path: '/candidates', permission: 'recruitment:read', group: 'recruitment', icon: 'candidates' },
-  { label: 'meetings', path: '/meetings', permission: 'meeting:read', group: 'recruitment', icon: 'candidates' },
+  { label: 'meetings', path: '/meetings', permission: 'meeting:read', group: 'business', icon: 'candidates' },
   { label: 'ojtCandidates', path: '/recruitment/ojt', permission: 'candidate:read', group: 'recruitment', icon: 'candidates' },
   { label: 'onboardingStatus', path: '/onboarding/status', permission: 'recruitment:read', group: 'recruitment', icon: 'pending', badgeKey: 'onboardingFollowUp' },
   { label: 'pendingHrd', path: '/onboarding/pending-hrd', permissionsAny: ['rc:view', 'rc:approve'], group: 'recruitment', icon: 'pending' },
@@ -63,7 +63,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'myPayslips', path: '/me/payslips', permission: 'my_space:read', group: 'mySpace', icon: 'payslip', exact: true },
   { label: 'myTickets', path: '/me/tickets', permission: 'my_space:read', group: 'mySpace', icon: 'tickets', exact: true },
   { label: 'departments', path: '/departments', permission: 'department:manage', group: 'setup', icon: 'departments' },
-  { label: 'clients', path: '/clients', permission: 'client:manage', group: 'setup', icon: 'clients' },
+  { label: 'clients', path: '/clients', permission: 'client:manage', group: 'business', icon: 'clients' },
   { label: 'users', path: '/users', permission: 'user:read', group: 'setup', icon: 'users' },
   { label: 'roles', path: '/roles', permission: 'role:manage', group: 'setup', icon: 'roles' },
 ];
@@ -72,6 +72,7 @@ export const NAV_ITEMS: NavItem[] = [
 export const NAV_GROUP_LABELS: Record<NavGroupId, string> = {
   home: 'groupHome',
   recruitment: 'groupRecruitment',
+  business: 'groupBusiness',
   people: 'groupPeople',
   support: 'groupSupport',
   mySpace: 'groupMySpace',

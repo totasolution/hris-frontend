@@ -11,7 +11,7 @@ import {
 import { NotificationBell } from './NotificationBell';
 import * as api from '../services/api';
 
-const GROUP_ORDER: NavGroupId[] = ['home', 'recruitment', 'people', 'support', 'mySpace', 'setup'];
+const GROUP_ORDER: NavGroupId[] = ['home', 'recruitment', 'business', 'people', 'support', 'mySpace', 'setup'];
 
 function groupNavItems(items: NavItem[]): Map<NavGroupId, NavItem[]> {
   const map = new Map<NavGroupId, NavItem[]>();

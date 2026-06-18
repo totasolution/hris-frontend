@@ -3076,6 +3076,7 @@ export type Meeting = {
   owner_user_id: number;
   owner_name?: string;
   client_id?: number | null;
+  client_name?: string | null;
   title: string;
   contact_name?: string | null;
   scheduled_at: string;
