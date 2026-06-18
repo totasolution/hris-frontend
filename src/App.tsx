@@ -37,6 +37,7 @@ import WarningFormPage from './pages/WarningFormPage';
 import MySpaceLayout, { MyProfilePage, MyContractsPage, MyDocumentsPage, MyPayslipsPage, MyTicketsOutlet } from './pages/MySpacePage';
 import MyWarningsPage from './pages/MyWarningsPage';
 import TicketsPage from './pages/TicketsPage';
+import MeetingsPage from './pages/MeetingsPage';
 import TicketDetailPage from './pages/TicketDetailPage';
 import NewTicketPage from './pages/NewTicketPage';
 import MyTicketsPage from './pages/MyTicketsPage';
@@ -102,6 +103,7 @@ function AppRoutes() {
         <Route path="recruitment/board" element={<RecruitmentBoardPage />} />
         <Route path="recruitment/statistics" element={<RecruitmentStatisticsPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
+        <Route path="meetings" element={<MeetingsPage />} />
         <Route path="recruitment/ojt" element={<OjtCandidatesPage />} />
         <Route path="candidates/new" element={<CandidateFormPage />} />
         <Route path="candidates/:id" element={<CandidateDetailPage />} />

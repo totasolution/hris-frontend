@@ -3065,3 +3065,90 @@ export async function getMyOnboardingDeclarations(): Promise<MyOnboardingDeclara
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load onboarding declarations');
   return data as MyOnboardingDeclarationsResponse;
 }
+
+// ===================== Meetings (Business Development) =====================
+
+export type MeetingStatus = 'scheduled' | 'held' | 'cancelled' | 'no_show';
+
+export type Meeting = {
+  id: number;
+  tenant_id: number;
+  owner_user_id: number;
+  owner_name?: string;
+  client_id?: number | null;
+  title: string;
+  contact_name?: string | null;
+  scheduled_at: string;
+  status: MeetingStatus;
+  outcome?: string | null;
+  follow_up_due_at?: string | null;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MeetingInput = {
+  owner_user_id?: number;
+  client_id?: number | null;
+  title: string;
+  contact_name?: string | null;
+  scheduled_at: string;
+  status?: MeetingStatus;
+  outcome?: string | null;
+  follow_up_due_at?: string | null;
+  notes?: string | null;
+};
+
+export type MeetingListResult = {
+  data: Meeting[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+};
+
+export async function getMeetings(params?: {
+  owner_id?: number;
+  status?: string;
+  search?: string;
+  page?: number;
+  per_page?: number;
+}): Promise<MeetingListResult> {
+  const q = new URLSearchParams();
+  if (params?.owner_id) q.set('owner_id', String(params.owner_id));
+  if (params?.status) q.set('status', params.status);
+  if (params?.search) q.set('search', params.search);
+  if (params?.page) q.set('page', String(params.page));
+  if (params?.per_page) q.set('per_page', String(params.per_page));
+  const res = await authFetch(`${API_BASE}/meetings?${q.toString()}`, {
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load meetings');
+  return data as MeetingListResult;
+}
+
+export async function createMeeting(body: MeetingInput): Promise<Meeting> {
+  const res = await authFetch(`${API_BASE}/meetings`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create meeting');
+  return data as Meeting;
+}
+
+export async function updateMeeting(id: number, body: MeetingInput): Promise<Meeting> {
+  const res = await authFetch(`${API_BASE}/meetings/${id}`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update meeting');
+  return data as Meeting;
+}
