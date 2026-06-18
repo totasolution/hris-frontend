@@ -64,6 +64,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'myTickets', path: '/me/tickets', permission: 'my_space:read', group: 'mySpace', icon: 'tickets', exact: true },
   { label: 'departments', path: '/departments', permission: 'department:manage', group: 'setup', icon: 'departments' },
   { label: 'clients', path: '/clients', permission: 'client:manage', group: 'business', icon: 'clients' },
+  { label: 'alertsBuilder', path: '/alerts', permission: 'alert:read', group: 'setup', icon: 'pending' },
   { label: 'users', path: '/users', permission: 'user:read', group: 'setup', icon: 'users' },
   { label: 'roles', path: '/roles', permission: 'role:manage', group: 'setup', icon: 'roles' },
 ];

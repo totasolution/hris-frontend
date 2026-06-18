@@ -3153,3 +3153,98 @@ export async function updateMeeting(id: number, body: MeetingInput): Promise<Mee
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update meeting');
   return data as Meeting;
 }
+
+// ===================== Alerts Builder (KPI rules) =====================
+
+export type AlertRule = {
+  id: number;
+  tenant_id: number;
+  name: string;
+  metric_key: string;
+  params?: Record<string, unknown> | null;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  schedule_hour: number;
+  schedule_dow?: number | null;
+  schedule_dom?: number | null;
+  recipient_mode: 'role_in_dept' | 'subject' | 'subject_owner' | 'global_role' | 'direct_email';
+  recipient_role_id?: number | null;
+  direct_emails?: string;
+  message_subject?: string;
+  message_body?: string;
+  dedup_hours: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AlertInput = {
+  name: string;
+  metric_key: string;
+  params?: Record<string, unknown>;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  schedule_hour: number;
+  schedule_dow?: number | null;
+  schedule_dom?: number | null;
+  recipient_mode: AlertRule['recipient_mode'];
+  recipient_role_id?: number | null;
+  direct_emails?: string;
+  message_subject?: string;
+  message_body?: string;
+  dedup_hours?: number;
+  active?: boolean;
+};
+
+export type AlertLogEntry = {
+  id: number;
+  rule_id: number;
+  subject_key: string;
+  period_key: string;
+  status: 'sent' | 'skipped' | 'error';
+  recipients?: string;
+  detail?: string;
+  sent_at: string;
+};
+
+export async function getAlerts(): Promise<AlertRule[]> {
+  const res = await authFetch(`${API_BASE}/alerts`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load alerts');
+  return (data.data ?? []) as AlertRule[];
+}
+
+export async function createAlert(body: AlertInput): Promise<AlertRule> {
+  const res = await authFetch(`${API_BASE}/alerts`, { method: 'POST', credentials: 'include', headers: authHeaders(), body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to create alert');
+  return data as AlertRule;
+}
+
+export async function updateAlert(id: number, body: AlertInput): Promise<AlertRule> {
+  const res = await authFetch(`${API_BASE}/alerts/${id}`, { method: 'PUT', credentials: 'include', headers: authHeaders(), body: JSON.stringify(body) });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to update alert');
+  return data as AlertRule;
+}
+
+export async function setAlertActive(id: number, active: boolean): Promise<void> {
+  const res = await authFetch(`${API_BASE}/alerts/${id}/active`, { method: 'PUT', credentials: 'include', headers: authHeaders(), body: JSON.stringify({ active }) });
+  if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d?.error?.message ?? 'Failed to update alert'); }
+}
+
+export async function deleteAlert(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/alerts/${id}`, { method: 'DELETE', credentials: 'include', headers: authHeaders() });
+  if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d?.error?.message ?? 'Failed to delete alert'); }
+}
+
+export async function getAlertLog(limit = 100): Promise<AlertLogEntry[]> {
+  const res = await authFetch(`${API_BASE}/alerts/log?limit=${limit}`, { credentials: 'include', headers: authHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to load alert log');
+  return (data.data ?? []) as AlertLogEntry[];
+}
+
+/** Manually trigger evaluation of all due alert rules now (ops/testing). */
+export async function runAlerts(): Promise<void> {
+  const res = await authFetch(`${API_BASE}/kpi/run`, { method: 'POST', credentials: 'include', headers: authHeaders() });
+  if (!res.ok && res.status !== 202) { const d = await res.json().catch(() => ({})); throw new Error(d?.error?.message ?? 'Failed to run'); }
+}

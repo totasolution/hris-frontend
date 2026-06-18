@@ -39,5 +39,6 @@
   "groupSetup": "Settings",
   "appTitle": "HRIS",
   "meetings": "Meetings",
-  "groupBusiness": "Business"
+  "groupBusiness": "Business",
+  "alertsBuilder": "Alerts Builder"
 }

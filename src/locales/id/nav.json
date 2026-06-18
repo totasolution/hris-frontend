@@ -39,5 +39,6 @@
   "groupSetup": "Pengaturan",
   "appTitle": "HRIS",
   "meetings": "Pertemuan",
-  "groupBusiness": "Bisnis"
+  "groupBusiness": "Bisnis",
+  "alertsBuilder": "Pembuat Peringatan"
 }
