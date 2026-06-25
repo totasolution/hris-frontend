@@ -31,6 +31,8 @@ export default function ContractFormPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<api.Employee | null>(null);
   const [contractNumber, setContractNumber] = useState<string>('');
   const [contractSignedUrl, setContractSignedUrl] = useState<string>('');
+  const [contractStart, setContractStart] = useState<string>('');
+  const [contractEnd, setContractEnd] = useState<string>('');
   const [status, setStatus] = useState('draft');
   const [contract, setContract] = useState<api.Contract | null>(null);
   const [loading, setLoading] = useState(isEdit);
@@ -97,6 +99,8 @@ export default function ContractFormPage() {
         setEmployeeId(c.employee_id ? String(c.employee_id) : '');
         setContractNumber(c.contract_number ?? '');
         setContractSignedUrl(c.contract_signed_url ?? '');
+        setContractStart(c.contract_start ?? '');
+        setContractEnd(c.contract_end ?? '');
         setStatus(c.status ?? 'draft');
         if (c.file_path?.endsWith('/contract.pdf')) setCreationMode('template');
         else if (c.file_path) setCreationMode('manual');
@@ -163,6 +167,8 @@ export default function ContractFormPage() {
         contract_number: contractNumber || undefined,
         status,
         contract_signed_url: creationMode === 'template' ? (contractSignedUrl || undefined) : undefined,
+        contract_start: contractStart || undefined,
+        contract_end: contractEnd || undefined,
       };
       if (isEdit && id) {
         await api.updateContract(parseInt(id, 10), body);
@@ -356,6 +362,20 @@ export default function ContractFormPage() {
                 <option value="cancelled">Cancelled</option>
               </NativeSelect>
             </div>
+
+            {isEdit && creationMode === 'template' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormGroup>
+                  <Label>Contract Start</Label>
+                  <Input type="date" value={contractStart} onChange={(e) => setContractStart(e.target.value)} />
+                </FormGroup>
+                <FormGroup>
+                  <Label>Contract End</Label>
+                  <Input type="date" value={contractEnd} onChange={(e) => setContractEnd(e.target.value)} />
+                  <p className="text-xs text-slate-400 mt-1">Override the auto-computed period. Leave as-is to keep the current dates.</p>
+                </FormGroup>
+              </div>
+            )}
 
             {creationMode === 'template' && (
               <FormGroup>
