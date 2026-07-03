@@ -17,6 +17,24 @@ function getReturnPath(search: string): string | null {
   return returnTo;
 }
 
+/** Full recruitment pipeline statuses (must match backend domain.ScreeningStatus). */
+const SCREENING_STATUSES: { value: string; label: string }[] = [
+  { value: 'new', label: 'New' },
+  { value: 'screening', label: 'Screening' },
+  { value: 'screened_pass', label: 'Screened Pass' },
+  { value: 'screened_fail', label: 'Screened Fail' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'interview_scheduled', label: 'Interview Scheduled' },
+  { value: 'interview_passed', label: 'Interview Passed' },
+  { value: 'interview_failed', label: 'Interview Failed' },
+  { value: 'onboarding', label: 'Onboarding' },
+  { value: 'onboarding_completed', label: 'Onboarding Completed' },
+  { value: 'ojt', label: 'OJT' },
+  { value: 'contract_requested', label: 'Contract Requested' },
+  { value: 'hired', label: 'Hired' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
 export default function CandidateFormPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
@@ -31,6 +49,8 @@ export default function CandidateFormPage() {
   const [phone, setPhone] = useState('');
   const [clientId, setClientId] = useState<string>('');
   const [employmentType, setEmploymentType] = useState<api.CandidateEmploymentType | ''>('');
+  const [screeningStatus, setScreeningStatus] = useState<string>('');
+  const [initialStatus, setInitialStatus] = useState<string>('');
   const [ojtOption, setOjtOption] = useState(false);
   const [position, setPosition] = useState('');
   const [placementLocation, setPlacementLocation] = useState('');
@@ -69,6 +89,8 @@ export default function CandidateFormPage() {
           setPhone(c.phone ?? '');
           setClientId(c.client_id ? String(c.client_id) : '');
           setEmploymentType((c.employment_type as api.CandidateEmploymentType) ?? '');
+          setScreeningStatus(c.screening_status ?? '');
+          setInitialStatus(c.screening_status ?? '');
           setOjtOption(c.ojt_option ?? false);
           setPosition(c.position ?? '');
           setProvinceId(c.province_id ?? '');
@@ -137,6 +159,10 @@ export default function CandidateFormPage() {
         // Always send employment_type on edit so the backend persists it (value or null to clear)
         ...(isEdit && {
           employment_type: employmentType || null,
+        }),
+        // Send screening_status on edit only when it actually changed
+        ...(isEdit && screeningStatus && screeningStatus !== initialStatus && {
+          screening_status: screeningStatus,
         }),
         ...(!isEdit && { employment_type: employmentType || undefined }),
       };
@@ -216,6 +242,26 @@ export default function CandidateFormPage() {
       <Card>
         <CardBody>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {isEdit && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <Select
+                    label="Candidate Status"
+                    value={screeningStatus}
+                    onChange={(e) => setScreeningStatus(e.target.value)}
+                  >
+                    {SCREENING_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </Select>
+                  {initialStatus === 'ojt' && (
+                    <p className="text-xs text-amber-600">
+                      OJT candidates can only be moved to Onboarding (approve) or Rejected.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input
                 label="Full Name"
