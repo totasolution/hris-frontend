@@ -249,6 +249,7 @@
     "statusExpired": "Expired",
     "statusCancelled": "Cancelled",
     "contract": "Contract",
+    "employee": "Employee",
     "createdDate": "Created Date",
     "noContractsFound": "No contracts found.",
     "loadError": "Failed to load contracts.",

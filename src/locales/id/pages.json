@@ -249,6 +249,7 @@
     "statusExpired": "Kadaluarsa",
     "statusCancelled": "Dibatalkan",
     "contract": "Kontrak",
+    "employee": "Karyawan",
     "createdDate": "Tanggal Dibuat",
     "noContractsFound": "Tidak ada kontrak ditemukan.",
     "loadError": "Gagal memuat kontrak.",

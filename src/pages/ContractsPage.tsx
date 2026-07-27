@@ -131,6 +131,7 @@ export default function ContractsPage() {
             <THead>
               <TR>
                 <TH>{t('pages:contracts.contract')}</TH>
+                <TH>{t('pages:contracts.employee')}</TH>
                 <TH>{t('common:status')}</TH>
                 <TH>{t('pages:contracts.createdDate')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -139,7 +140,7 @@ export default function ContractsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={4} className="py-12 text-center text-slate-400">
+                  <TD colSpan={5} className="py-12 text-center text-slate-400">
                     {t('pages:contracts.noContractsFound')}
                   </TD>
                 </TR>
@@ -150,14 +151,12 @@ export default function ContractsPage() {
                       <div className="font-bold text-[#0f172a]">
                         {c.contract_number || `#${c.id}`}
                       </div>
-                      {c.employee_name && (
-                        <div className="text-sm text-slate-600 mt-1">
-                          {c.employee_name}
-                        </div>
-                      )}
-                      {!c.contract_number && !c.employee_name && (
+                      {!c.contract_number && (
                         <div className="text-xs text-slate-400">ID: {c.id}</div>
                       )}
+                    </TD>
+                    <TD>
+                      <span className="text-sm text-slate-700">{c.employee_name || '—'}</span>
                     </TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
