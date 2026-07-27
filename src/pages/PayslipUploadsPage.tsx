@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card, CardBody } from '../components/Card';
 import { Modal } from '../components/Modal';
+import { Drawer } from '../components/Drawer';
 import { PageHeader } from '../components/PageHeader';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { Pagination } from '../components/Pagination';
@@ -77,6 +78,12 @@ export default function PayslipUploadsPage() {
   const [clients, setClients] = useState<api.Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(undefined);
   const [filterClientId, setFilterClientId] = useState<number | undefined>(undefined);
+  const [templateType, setTemplateType] = useState<'pkwt' | 'mitra'>('pkwt');
+  // Download drawer (pick client + template type before generating the XLSX template).
+  const [downloadDrawerOpen, setDownloadDrawerOpen] = useState(false);
+  const [drawerClientId, setDrawerClientId] = useState<number | undefined>(undefined);
+  const [drawerType, setDrawerType] = useState<'pkwt' | 'mitra'>('pkwt');
+  const [downloading, setDownloading] = useState(false);
 
   const loadUploads = useCallback(async () => {
     setLoading(true);
@@ -151,7 +158,7 @@ export default function PayslipUploadsPage() {
     if (!previewFile) return;
     setUploading(true);
     try {
-      const res = await api.bulkUploadPayslipsFromCSV(previewFile, selectedClientId);
+      const res = await api.bulkUploadPayslipsFromCSV(previewFile, selectedClientId, templateType);
       const created = res.count ?? 0;
       const failedCount = res.failed?.length ?? 0;
       if (failedCount > 0) {
@@ -191,6 +198,29 @@ export default function PayslipUploadsPage() {
     }
   };
 
+
+  const handleDownloadTemplate = async () => {
+    setDownloading(true);
+    try {
+      const blob = await api.downloadPayslipCSVTemplate(drawerClientId, drawerType);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const clientName = drawerClientId
+        ? (clients.find((c) => c.id === drawerClientId)?.name ?? 'client').toLowerCase().replace(/\s+/g, '-')
+        : 'template';
+      a.download = `payslip-${drawerType}-${clientName}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadDrawerOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('pages:payslips.uploadFailed'));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const totalPages = Math.max(1, Math.ceil(total / perPage));
 
@@ -236,6 +266,15 @@ export default function PayslipUploadsPage() {
                   )}
                 </div>
               )}
+              <select
+                value={templateType}
+                onChange={(e) => setTemplateType(e.target.value as 'pkwt' | 'mitra')}
+                title="Template type"
+                className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+              >
+                <option value="pkwt">PKWT</option>
+                <option value="mitra">Mitra</option>
+              </select>
               <input
                 id="payslip-csv-input"
                 type="file"
@@ -247,24 +286,10 @@ export default function PayslipUploadsPage() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={async () => {
-                  try {
-                    const blob = await api.downloadPayslipCSVTemplate(selectedClientId);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    const clientName = selectedClientId
-                      ? (clients.find((c) => c.id === selectedClientId)?.name ?? 'client')
-                          .toLowerCase().replace(/\s+/g, '-')
-                      : 'template';
-                    a.download = `payslip-${clientName}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : t('pages:payslips.uploadFailed'));
-                  }
+                onClick={() => {
+                  setDrawerClientId(selectedClientId);
+                  setDrawerType(templateType);
+                  setDownloadDrawerOpen(true);
                 }}
               >
                 {t('pages:payslips.downloadTemplate', 'Download template')}
@@ -416,6 +441,61 @@ export default function PayslipUploadsPage() {
           </div>
         )}
       </Card>
+
+      <Drawer
+        isOpen={downloadDrawerOpen}
+        onClose={() => setDownloadDrawerOpen(false)}
+        title={t('pages:payslips.downloadTemplate', 'Download template')}
+      >
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Client</label>
+            <Select
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              value={drawerClientId ? { value: drawerClientId, label: clients.find((c) => c.id === drawerClientId)?.name ?? '' } : null}
+              onChange={(opt) => setDrawerClientId(opt?.value ?? undefined)}
+              placeholder="Select client"
+              isClearable
+              styles={clientSelectStyles}
+            />
+            <p className="text-xs text-slate-400">Karyawan aktif client ini akan di‑prefill (nama + NIP), difilter sesuai tipe.</p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Jenis Template</label>
+            <div className="grid grid-cols-2 gap-3">
+              {(['pkwt', 'mitra'] as const).map((tp) => (
+                <button
+                  key={tp}
+                  type="button"
+                  onClick={() => setDrawerType(tp)}
+                  className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                    drawerType === tp
+                      ? 'border-brand bg-brand/5 text-brand'
+                      : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {tp === 'pkwt' ? 'PKWT' : 'Mitra'}
+                  <span className="block text-[11px] font-normal text-slate-400 mt-0.5">
+                    {tp === 'pkwt' ? 'Allowance Slip' : 'Rincian Jasa Layanan'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 pt-2">
+            <Button type="button" onClick={handleDownloadTemplate} disabled={downloading}>
+              {downloading ? 'Menyiapkan…' : t('pages:payslips.downloadTemplate', 'Download template')}
+            </Button>
+            <button
+              type="button"
+              onClick={() => setDownloadDrawerOpen(false)}
+              className="text-sm font-bold text-slate-400 hover:text-slate-600 uppercase tracking-widest"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      </Drawer>
     </div>
   );
 }

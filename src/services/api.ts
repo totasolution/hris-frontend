@@ -2516,11 +2516,13 @@ export async function bulkUploadPayslips(
 /** Upload a CSV file containing multiple payslips (matched by employee NIK). */
 export async function bulkUploadPayslipsFromCSV(
   file: File,
-  clientId?: number
+  clientId?: number,
+  template?: string
 ): Promise<{ data: Payslip[]; count: number; failed: string[] }> {
   const form = new FormData();
   form.append('file', file);
   if (clientId) form.append('client_id', String(clientId));
+  if (template) form.append('template', template);
   const token = getAccessToken();
   const headers: HeadersInit = {};
   if (token) (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
@@ -2535,9 +2537,12 @@ export async function bulkUploadPayslipsFromCSV(
   return { data: data.data ?? [], count: data.count ?? 0, failed: data.failed ?? [] };
 }
 
-/** Download the standard payslip CSV template. */
-export async function downloadPayslipCSVTemplate(clientId?: number): Promise<Blob> {
-  const q = clientId ? `?client_id=${clientId}` : '';
+/** Download the payslip XLSX template for a client + template type (pkwt | mitra). */
+export async function downloadPayslipCSVTemplate(clientId?: number, template?: string): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (clientId) params.set('client_id', String(clientId));
+  if (template) params.set('template', template);
+  const q = params.toString() ? `?${params.toString()}` : '';
   const res = await authFetch(`${API_BASE}/payslip-uploads/template-csv${q}`, {
     method: 'GET',
     credentials: 'include',
