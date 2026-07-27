@@ -78,7 +78,7 @@ export default function PayslipUploadsPage() {
   const [clients, setClients] = useState<api.Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | undefined>(undefined);
   const [filterClientId, setFilterClientId] = useState<number | undefined>(undefined);
-  const [templateType, setTemplateType] = useState<'pkwt' | 'mitra'>('pkwt');
+  const [templateType, setTemplateType] = useState<'' | 'pkwt' | 'mitra'>('');
   // Download drawer (pick client + template type before generating the XLSX template).
   const [downloadDrawerOpen, setDownloadDrawerOpen] = useState(false);
   const [drawerClientId, setDrawerClientId] = useState<number | undefined>(undefined);
@@ -266,21 +266,29 @@ export default function PayslipUploadsPage() {
                   )}
                 </div>
               )}
-              <select
-                value={templateType}
-                onChange={(e) => setTemplateType(e.target.value as 'pkwt' | 'mitra')}
-                title="Template type"
-                className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
-              >
-                <option value="pkwt">PKWT</option>
-                <option value="mitra">Mitra</option>
-              </select>
+              {(clients.length === 0 || selectedClientId) && (
+                <div className="flex flex-col gap-1">
+                  <select
+                    value={templateType}
+                    onChange={(e) => setTemplateType(e.target.value as '' | 'pkwt' | 'mitra')}
+                    title="Jenis Template"
+                    className={`rounded-xl border px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand ${
+                      !templateType ? 'border-red-300 bg-rose-50 text-slate-500' : 'border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="">Pilih Template</option>
+                    <option value="pkwt">PKWT</option>
+                    <option value="mitra">Mitra</option>
+                  </select>
+                  {!templateType && <p className="text-xs text-red-500">Template wajib dipilih</p>}
+                </div>
+              )}
               <input
                 id="payslip-csv-input"
                 type="file"
                 accept=".csv,text/csv"
                 onChange={handleFileSelect}
-                disabled={clients.length > 0 && !selectedClientId}
+                disabled={(clients.length > 0 && !selectedClientId) || !templateType}
                 className="text-slate-600 max-w-xs text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               />
               <Button
@@ -288,7 +296,7 @@ export default function PayslipUploadsPage() {
                 variant="secondary"
                 onClick={() => {
                   setDrawerClientId(selectedClientId);
-                  setDrawerType(templateType);
+                  setDrawerType(templateType === '' ? 'pkwt' : templateType);
                   setDownloadDrawerOpen(true);
                 }}
               >
@@ -313,7 +321,7 @@ export default function PayslipUploadsPage() {
             <Button variant="secondary" onClick={closePreview} disabled={uploading}>
               {t('common:cancel', 'Cancel')}
             </Button>
-            <Button onClick={handleConfirmUpload} disabled={uploading || (clients.length > 0 && !selectedClientId)}>
+            <Button onClick={handleConfirmUpload} disabled={uploading || (clients.length > 0 && !selectedClientId) || !templateType}>
               {uploading ? t('pages:payslips.uploading') : t('pages:payslipUploads.confirmAndUpload', 'Confirm & Upload')}
             </Button>
           </>
