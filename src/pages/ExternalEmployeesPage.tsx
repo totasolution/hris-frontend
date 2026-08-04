@@ -45,6 +45,16 @@ const clientSelectStyles = {
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
+function contractTypeBadge(type?: 'pkwt' | 'partnership' | null) {
+  if (type === 'pkwt') {
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">PKWT</span>;
+  }
+  if (type === 'partnership') {
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">Mitra</span>;
+  }
+  return <span className="text-slate-400">—</span>;
+}
+
 export default function ExternalEmployeesPage() {
   const { t } = useTranslation('pages');
   const { permissions = [] } = useAuth();
@@ -331,6 +341,7 @@ export default function ExternalEmployeesPage() {
                 <TH>{t('employees.client')}</TH>
                 <TH>PIC</TH>
                 <TH>{t('employees.employeeNumber')}</TH>
+                <TH>{t('employees.contractType')}</TH>
                 <TH>{t('employees.emailAddress')}</TH>
                 <TH>{t('common:status')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -339,7 +350,7 @@ export default function ExternalEmployeesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={7} className="py-12 text-center text-slate-400">
+                  <TD colSpan={8} className="py-12 text-center text-slate-400">
                     {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
@@ -354,6 +365,7 @@ export default function ExternalEmployeesPage() {
                     <TD className="text-slate-600">{e.client_name || '—'}</TD>
                     <TD className="text-slate-600">{e.pic_name || '—'}</TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
+                    <TD>{contractTypeBadge(e.employment_contract_type)}</TD>
                     <TD>{e.email}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${

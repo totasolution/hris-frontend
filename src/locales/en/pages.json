@@ -29,6 +29,7 @@
     "statusContractEnded": "Contract Ended",
     "fullName": "Full Name",
     "employeeNumber": "Employee No.",
+    "contractType": "Contract Type",
     "taxStatus": "Tax Status",
     "emailAddress": "Email Address",
     "noEmployeesFound": "No employees found.",
