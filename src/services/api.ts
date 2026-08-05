@@ -1602,7 +1602,8 @@ export async function updateEmployee(id: number, body: Partial<Employee>): Promi
 }
 
 export async function updateEmployeeInformation(id: number, body: EmployeeInformationPayload): Promise<Employee> {
-  const res = await authFetch(`${API_BASE}/employees/${id}/employee-information`, {
+  // Stores the information section (incl. position/placement/branch) on the employees row.
+  const res = await authFetch(`${API_BASE}/employees/${id}/information`, {
     method: 'PUT',
     credentials: 'include',
     headers: authHeaders(),
