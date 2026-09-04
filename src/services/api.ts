@@ -2384,6 +2384,8 @@ export type PayslipUpload = {
   total_rows: number;
   success_count: number;
   error_count: number;
+  status?: 'processing' | 'completed' | 'failed';
+  completed_at?: string;
   created_at: string;
 };
 
@@ -2515,11 +2517,16 @@ export async function bulkUploadPayslips(
 }
 
 /** Upload a CSV file containing multiple payslips (matched by employee NIK). */
+/**
+ * Starts an async bulk payslip generation. Returns the created upload record with
+ * status "processing"; the caller polls listPayslipUploads / getPayslipUploadDetail for
+ * progress (status becomes "completed"/"failed" and success/error counts fill in).
+ */
 export async function bulkUploadPayslipsFromCSV(
   file: File,
   clientId?: number,
   template?: string
-): Promise<{ data: Payslip[]; count: number; failed: string[] }> {
+): Promise<PayslipUpload> {
   const form = new FormData();
   form.append('file', file);
   if (clientId) form.append('client_id', String(clientId));
@@ -2535,7 +2542,7 @@ export async function bulkUploadPayslipsFromCSV(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Bulk upload failed');
-  return { data: data.data ?? [], count: data.count ?? 0, failed: data.failed ?? [] };
+  return data as PayslipUpload;
 }
 
 /** Download the payslip XLSX template for a client + template type (pkwt | mitra). */

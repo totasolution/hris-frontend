@@ -103,6 +103,16 @@ export default function PayslipUploadsPage() {
     loadUploads();
   }, [loadUploads]);
 
+  // While any upload is still generating in the background, poll the list so its status
+  // and success/error counts update automatically.
+  useEffect(() => {
+    if (!uploads.some((u) => u.status === 'processing')) return;
+    const id = setInterval(() => {
+      loadUploads();
+    }, 4000);
+    return () => clearInterval(id);
+  }, [uploads, loadUploads]);
+
   useEffect(() => {
     if (canUpload) api.getClients().then(setClients).catch(() => {});
   }, [canUpload]);
@@ -158,30 +168,15 @@ export default function PayslipUploadsPage() {
     if (!previewFile) return;
     setUploading(true);
     try {
-      const res = await api.bulkUploadPayslipsFromCSV(previewFile, selectedClientId, templateType);
-      const created = res.count ?? 0;
-      const failedCount = res.failed?.length ?? 0;
-      if (failedCount > 0) {
-        // Partial or full failure: upload was still recorded on the server
-        if (created > 0) {
-          toast.warning(
-            t('pages:payslipUploads.partialSuccess', {
-              count: created,
-              failed: failedCount,
-              defaultValue: '{{count}} payslips created, {{failed}} rows had errors. Upload recorded.',
-            })
-          );
-        } else {
-          toast.warning(
-            t('pages:payslipUploads.allFailedRecorded', {
-              failed: failedCount,
-              defaultValue: 'No payslips created; {{failed}} rows had errors. Upload recorded.',
-            })
-          );
-        }
-      } else {
-        toast.success(t('pages:payslips.payslipsUploaded'));
-      }
+      const upload = await api.bulkUploadPayslipsFromCSV(previewFile, selectedClientId, templateType);
+      // Async: the server generates payslips in the background. Show the "processing"
+      // upload in the history and let the poll below refresh it until it completes.
+      toast.success(
+        t('pages:payslipUploads.processingStarted', {
+          count: upload.total_rows,
+          defaultValue: 'Memproses {{count}} payslip di latar belakang. Statusnya akan terbarui otomatis di daftar di bawah.',
+        })
+      );
       closePreview();
       setPage(1);
       try {
@@ -407,6 +402,7 @@ export default function PayslipUploadsPage() {
                 <TH>Client</TH>
                 <TH>{t('pages:payslipUploads.uploadedBy', 'Uploaded by')}</TH>
                 <TH>{t('pages:payslipUploads.uploadedAt', 'Uploaded')}</TH>
+                <TH>{t('pages:payslipUploads.status', 'Status')}</TH>
                 <TH>{t('pages:payslipUploads.totalRows', 'Rows')}</TH>
                 <TH>{t('pages:payslipUploads.successCount', 'OK')}</TH>
                 <TH>{t('pages:payslipUploads.errorCount', 'Errors')}</TH>
@@ -420,6 +416,18 @@ export default function PayslipUploadsPage() {
                   <TD className="text-slate-600">{u.client_name || '—'}</TD>
                   <TD>{u.uploaded_by_name ?? '—'}</TD>
                   <TD>{formatDate(u.created_at)}</TD>
+                  <TD>
+                    {u.status === 'processing' ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
+                        Memproses…
+                      </span>
+                    ) : u.status === 'failed' ? (
+                      <span className="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">Gagal</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">Selesai</span>
+                    )}
+                  </TD>
                   <TD>{u.total_rows}</TD>
                   <TD>{u.success_count}</TD>
                   <TD>{u.error_count > 0 ? <span className="text-amber-600">{u.error_count}</span> : u.error_count}</TD>
