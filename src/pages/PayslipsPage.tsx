@@ -4,6 +4,7 @@ import { Card } from '../components/Card';
 import { DocumentPreviewModal } from '../components/DocumentPreviewModal';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
+import ReactSelect from 'react-select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { Pagination } from '../components/Pagination';
 import { useToast } from '../components/Toast';
@@ -21,6 +22,26 @@ const MONTHS = [
 
 const currentYear = new Date().getFullYear();
 const YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
+const clientSelectStyles = {
+  control: (base: object) => ({
+    ...base,
+    borderRadius: '0.5rem',
+    border: '1px solid #e2e8f0',
+    minHeight: '38px',
+    boxShadow: 'none',
+    '&:hover': { border: '1px solid #107BC7' },
+  }),
+  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+    fontSize: '0.875rem',
+  }),
+  placeholder: (base: object) => ({ ...base, fontSize: '0.875rem', color: '#94a3b8' }),
+  singleValue: (base: object) => ({ ...base, fontSize: '0.875rem', color: '#282828' }),
+  menu: (base: object) => ({ ...base, zIndex: 20 }),
+};
 
 export default function PayslipsPage() {
   const { t } = useTranslation(['pages', 'common']);
@@ -201,13 +222,23 @@ export default function PayslipsPage() {
             ))}
           </Select>
         </div>
-        <div className="w-56">
-          <Select value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">{t('pages:payslips.allClients', 'All clients')}</option>
-            {clients.map((c) => (
-              <option key={c.id} value={String(c.id)}>{c.name}</option>
-            ))}
-          </Select>
+        <div className="w-64">
+          <ReactSelect
+            options={[
+              { value: '', label: t('pages:payslips.allClients', 'All clients') },
+              ...clients.map((c) => ({ value: String(c.id), label: c.name })),
+            ]}
+            value={
+              clientId
+                ? { value: clientId, label: clients.find((c) => String(c.id) === clientId)?.name ?? clientId }
+                : { value: '', label: t('pages:payslips.allClients', 'All clients') }
+            }
+            onChange={(opt: { value: string; label: string } | null) => setClientId(opt?.value ?? '')}
+            placeholder={t('pages:payslips.allClients', 'All clients')}
+            styles={clientSelectStyles}
+            isSearchable
+            isClearable
+          />
         </div>
       </div>
 
