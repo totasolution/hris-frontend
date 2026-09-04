@@ -29,6 +29,8 @@ export default function PayslipsPage() {
   const [error, setError] = useState<string | null>(null);
   const [year, setYear] = useState<string>(String(currentYear));
   const [month, setMonth] = useState<string>('');
+  const [clientId, setClientId] = useState<string>('');
+  const [clients, setClients] = useState<api.Client[]>([]);
   const [employeeNameSearch, setEmployeeNameSearch] = useState('');
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(20);
@@ -37,6 +39,8 @@ export default function PayslipsPage() {
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const toast = useToast();
 
   const handlePreview = async (p: Payslip) => {
@@ -62,6 +66,7 @@ export default function PayslipsPage() {
       const data = await api.getPayslips({
         year: year ? parseInt(year, 10) : undefined,
         month: month ? parseInt(month, 10) : undefined,
+        client_id: clientId ? parseInt(clientId, 10) : undefined,
       });
       setList(data);
       setPage(1);
@@ -70,7 +75,11 @@ export default function PayslipsPage() {
     } finally {
       setLoading(false);
     }
-  }, [year, month, t]);
+  }, [year, month, clientId, t]);
+
+  useEffect(() => {
+    api.getClients().then(setClients).catch(() => {});
+  }, []);
 
 
   useEffect(() => {
@@ -110,6 +119,47 @@ export default function PayslipsPage() {
   const totalPages = Math.max(1, Math.ceil(total / perPage));
   const startIndex = (page - 1) * perPage;
   const paginatedList = filteredList.slice(startIndex, startIndex + perPage);
+
+  // Reset selection whenever the underlying list changes (new filter/reload).
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [list]);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const allOnPageSelected = paginatedList.length > 0 && paginatedList.every((p) => selectedIds.has(p.id));
+  const toggleSelectAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allOnPageSelected) paginatedList.forEach((p) => next.delete(p.id));
+      else paginatedList.forEach((p) => next.add(p.id));
+      return next;
+    });
+  };
+  const selectAllFiltered = () => setSelectedIds(new Set(filteredList.map((p) => p.id)));
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Hapus ${ids.length} payslip terpilih? Tindakan ini tidak bisa dibatalkan.`)) return;
+    setBulkDeleting(true);
+    try {
+      const deleted = await api.bulkDeletePayslips(ids);
+      toast.success(`${deleted} payslip dihapus.`);
+      setSelectedIds(new Set());
+      load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menghapus payslip');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -151,7 +201,38 @@ export default function PayslipsPage() {
             ))}
           </Select>
         </div>
+        <div className="w-56">
+          <Select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+            <option value="">{t('pages:payslips.allClients', 'All clients')}</option>
+            {clients.map((c) => (
+              <option key={c.id} value={String(c.id)}>{c.name}</option>
+            ))}
+          </Select>
+        </div>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5">
+          <span className="text-sm font-semibold text-red-700">{selectedIds.size} terpilih</span>
+          {selectedIds.size < total && (
+            <button type="button" onClick={selectAllFiltered} className="text-sm font-medium text-slate-600 hover:text-slate-800 underline">
+              Pilih semua {total}
+            </button>
+          )}
+          <button type="button" onClick={() => setSelectedIds(new Set())} className="text-sm font-medium text-slate-500 hover:text-slate-700">
+            Batal
+          </button>
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={handleBulkDelete}
+            disabled={bulkDeleting}
+            className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+          >
+            {bulkDeleting ? 'Menghapus…' : `Hapus ${selectedIds.size} payslip`}
+          </button>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (
@@ -163,6 +244,15 @@ export default function PayslipsPage() {
           <Table>
             <THead>
               <TR>
+                <TH className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={allOnPageSelected}
+                    onChange={toggleSelectAllOnPage}
+                    className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                    title="Pilih semua di halaman ini"
+                  />
+                </TH>
                 <TH>{t('pages:payslips.employee')}</TH>
                 <TH>{t('pages:payslips.identificationId')}</TH>
                 <TH>{t('pages:payslips.nip')}</TH>
@@ -175,13 +265,21 @@ export default function PayslipsPage() {
             <TBody>
               {filteredList.length === 0 ? (
                 <TR>
-                  <TD colSpan={7} className="py-12 text-center text-slate-400">
+                  <TD colSpan={8} className="py-12 text-center text-slate-400">
                     {t('pages:payslips.noPayslipsFound')}
                   </TD>
                 </TR>
               ) : (
                 paginatedList.map((p) => (
                   <TR key={p.id}>
+                    <TD className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(p.id)}
+                        onChange={() => toggleSelect(p.id)}
+                        className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                      />
+                    </TD>
                     <TD className="font-medium text-brand-dark">
                       {p.employee_name ?? `Employee #${p.employee_id}`}
                     </TD>

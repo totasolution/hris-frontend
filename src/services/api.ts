@@ -2464,11 +2464,13 @@ export async function getPayslips(params?: {
   employee_id?: number;
   year?: number;
   month?: number;
+  client_id?: number;
 }): Promise<Payslip[]> {
   const q = new URLSearchParams();
   if (params?.employee_id) q.set('employee_id', String(params.employee_id));
   if (params?.year) q.set('year', String(params.year));
   if (params?.month) q.set('month', String(params.month));
+  if (params?.client_id) q.set('client_id', String(params.client_id));
   const url = q.toString() ? `${API_BASE}/payslips?${q}` : `${API_BASE}/payslips`;
   const res = await authFetch(url);
   const data = await res.json();
@@ -2484,6 +2486,19 @@ export async function deletePayslip(id: number): Promise<void> {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to delete payslip');
+}
+
+/** Deletes several payslips by ID. Returns the number actually deleted. */
+export async function bulkDeletePayslips(ids: number[]): Promise<number> {
+  const res = await authFetch(`${API_BASE}/payslips/bulk-delete`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify({ ids }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to delete payslips');
+  return data?.deleted ?? 0;
 }
 
 export async function getMyPayslips(): Promise<Payslip[]> {
