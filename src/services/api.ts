@@ -1879,6 +1879,7 @@ export async function getContracts(params?: {
   employee_id?: number;
   status?: string;
   search?: string;
+  client_id?: number;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Contract>> {
@@ -1886,6 +1887,7 @@ export async function getContracts(params?: {
   if (params?.employee_id) q.set('employee_id', String(params.employee_id));
   if (params?.status) q.set('status', params.status);
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/contracts?${q}` : `${API_BASE}/contracts`;
@@ -1906,6 +1908,29 @@ export async function getContract(id: number): Promise<Contract> {
   const data = await res.json();
   if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to fetch contract');
   return data;
+}
+
+export async function deleteContract(id: number): Promise<void> {
+  const res = await authFetch(`${API_BASE}/contracts/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to delete contract');
+}
+
+/** Deletes several contracts by ID. Returns the number actually deleted. */
+export async function bulkDeleteContracts(ids: number[]): Promise<number> {
+  const res = await authFetch(`${API_BASE}/contracts/bulk-delete`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: authHeaders(),
+    body: JSON.stringify({ ids }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message ?? 'Failed to delete contracts');
+  return data?.deleted ?? 0;
 }
 
 /** Rendered HTML for the contract draft (embedded PKWT / Partnership layout). */
