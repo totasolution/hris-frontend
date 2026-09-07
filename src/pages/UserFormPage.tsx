@@ -5,7 +5,19 @@ import { Card, CardBody } from '../components/Card';
 import { Input } from '../components/Input';
 import { PageHeader } from '../components/PageHeader';
 import { Select } from '../components/Select';
+import AsyncSelect from 'react-select/async';
 import * as api from '../services/api';
+
+type EmpOption = { value: number; label: string };
+
+const employeeLabel = (emp: api.Employee): string =>
+  `${emp.full_name}${emp.company_email ? ` (${emp.company_email})` : emp.email ? ` (${emp.email})` : ''}`;
+
+const empSelectStyles = {
+  control: (base: object) => ({ ...base, borderRadius: '0.5rem', border: '1px solid #e2e8f0', minHeight: '42px', boxShadow: 'none', '&:hover': { border: '1px solid #107BC7' } }),
+  option: (base: object, state: { isSelected?: boolean; isFocused?: boolean }) => ({ ...base, backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white', color: state.isSelected ? 'white' : '#282828', fontSize: '0.875rem' }),
+  menu: (base: object) => ({ ...base, zIndex: 30 }),
+};
 
 export default function UserFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +35,7 @@ export default function UserFormPage() {
   const [employeeId, setEmployeeId] = useState<string>('');
   const [roles, setRoles] = useState<api.Role[]>([]);
   const [departments, setDepartments] = useState<api.Department[]>([]);
-  const [employees, setEmployees] = useState<api.Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<EmpOption | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,14 +43,12 @@ export default function UserFormPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [roleList, deptList, employeeList] = await Promise.all([
+        const [roleList, deptList] = await Promise.all([
           api.getRoles(),
           api.getDepartments(),
-          api.getEmployees({ per_page: 1000 }).then((r) => r.data).catch(() => []),
         ]);
         setRoles(roleList);
         setDepartments(deptList);
-        setEmployees(employeeList);
         if (isEdit && id) {
           const detail = await api.getUser(parseInt(id, 10));
           setEmail(detail.user.email);
@@ -49,7 +59,12 @@ export default function UserFormPage() {
           setUserType(detail.user.user_type ?? 'internal');
           setRoleIds(detail.role_ids ?? []);
           setDepartmentId(detail.department_ids && detail.department_ids.length > 0 ? String(detail.department_ids[0]) : '');
-          setEmployeeId(detail.user.employee_id != null ? String(detail.user.employee_id) : '');
+          const empId = detail.user.employee_id;
+          setEmployeeId(empId != null ? String(empId) : '');
+          if (empId != null) {
+            // Load the currently-assigned employee so the async select shows its label.
+            api.getEmployee(empId).then((emp) => setSelectedEmployee({ value: emp.id, label: employeeLabel(emp) })).catch(() => {});
+          }
         }
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load');
@@ -58,6 +73,11 @@ export default function UserFormPage() {
       }
     })();
   }, [isEdit, id]);
+
+  const loadEmployeeOptions = async (input: string): Promise<EmpOption[]> => {
+    const res = await api.getEmployees({ search: input.trim() || undefined, per_page: 50 });
+    return res.data.map((emp) => ({ value: emp.id, label: employeeLabel(emp) }));
+  };
 
   const toggleRole = (roleId: number) => {
     setRoleIds((prev) =>
@@ -180,19 +200,24 @@ export default function UserFormPage() {
                 <option value="suspended">Suspended</option>
               </Select>
               {isEdit && (
-                <Select
-                  label="Assign Employee"
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                >
-                  <option value="">None</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.full_name}
-                      {emp.company_email ? ` (${emp.company_email})` : emp.email ? ` (${emp.email})` : ''}
-                    </option>
-                  ))}
-                </Select>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Assign Employee</label>
+                  <AsyncSelect
+                    cacheOptions
+                    defaultOptions
+                    loadOptions={loadEmployeeOptions}
+                    value={selectedEmployee}
+                    onChange={(opt: EmpOption | null) => {
+                      setSelectedEmployee(opt);
+                      setEmployeeId(opt ? String(opt.value) : '');
+                    }}
+                    placeholder="Cari karyawan…"
+                    noOptionsMessage={() => 'Ketik untuk mencari karyawan'}
+                    loadingMessage={() => 'Memuat…'}
+                    styles={empSelectStyles}
+                    isClearable
+                  />
+                </div>
               )}
             </div>
           </CardBody>
