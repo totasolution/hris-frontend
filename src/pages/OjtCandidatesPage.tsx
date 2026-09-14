@@ -182,13 +182,16 @@ export default function OjtCandidatesPage() {
                 <TH>Bank</TH>
                 <TH>Account No.</TH>
                 <TH>Account Name</TH>
+                <TH>No KTP</TH>
+                <TH>Marital</TH>
+                <TH>Pendidikan</TH>
                 <TH>{t('pages:candidates.status')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={11} className="py-12 text-center text-slate-400">
+                  <TD colSpan={14} className="py-12 text-center text-slate-400">
                     {t('pages:ojtCandidates.empty')}
                   </TD>
                 </TR>
@@ -217,6 +220,9 @@ export default function OjtCandidatesPage() {
                     <TD className="text-slate-600 text-sm">{c.bank_name || '—'}</TD>
                     <TD className="text-slate-600 text-sm">{c.bank_account_number || '—'}</TD>
                     <TD className="text-slate-600 text-sm">{c.bank_account_holder || '—'}</TD>
+                    <TD className="text-slate-600 text-sm">{c.id_number || '—'}</TD>
+                    <TD className="text-slate-600 text-sm">{c.marital_status || '—'}</TD>
+                    <TD className="text-slate-600 text-sm">{c.last_education || '—'}</TD>
                     <TD>
                       <span className={`text-xs font-bold uppercase ${c.screening_status === 'rejected' ? 'text-red-600' : 'text-teal-700'}`}>
                         {screeningStatusDisplay(c.screening_status)}

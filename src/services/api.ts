@@ -614,6 +614,9 @@ export type Candidate = {
   bank_name?: string;
   bank_account_number?: string;
   bank_account_holder?: string;
+  id_number?: string;
+  marital_status?: string;
+  last_education?: string;
   created_by?: number;
   pic_name?: string;
   client_name?: string;
@@ -797,6 +800,9 @@ export async function rejectOjtCandidate(
     bank_name?: string;
     bank_account_number?: string;
     bank_account_holder?: string;
+    identification_id?: string;
+    marital_status?: string;
+    last_education?: string;
   }
 ): Promise<Candidate> {
   const res = await authFetch(`${API_BASE}/candidates/${id}/reject-ojt`, {
@@ -988,6 +994,7 @@ export type OnboardingFormData = {
   gender?: string;
   religion?: string;
   marital_status?: string;
+  last_education?: string;
   phone_no?: string;
   child_number?: number;
 

@@ -582,12 +582,18 @@ function OverviewTab({
     bank_name: string;
     bank_account_number: string;
     bank_account_holder: string;
+    identification_id: string;
+    marital_status: string;
+    last_education: string;
   }>({
     ojt_start_date: '',
     ojt_end_date: '',
     bank_name: '',
     bank_account_number: '',
     bank_account_holder: '',
+    identification_id: '',
+    marital_status: '',
+    last_education: '',
   });
 
   const selectedProvinceId = (editingEmploymentTerms ? employmentTermsForm.province_id : candidate.province_id)?.trim();
@@ -658,6 +664,9 @@ function OverviewTab({
       bank_name: onboardingData?.bank_name?.trim() ?? '',
       bank_account_number: onboardingData?.bank_account_number?.trim() ?? '',
       bank_account_holder: onboardingData?.bank_account_holder?.trim() ?? '',
+      identification_id: onboardingData?.id_number?.trim() ?? '',
+      marital_status: onboardingData?.marital_status?.trim() ?? '',
+      last_education: onboardingData?.last_education?.trim() ?? '',
     });
     setRejectOjtOpen(true);
   };
@@ -676,6 +685,9 @@ function OverviewTab({
         bank_name: rejectOjtForm.bank_name || undefined,
         bank_account_number: rejectOjtForm.bank_account_number || undefined,
         bank_account_holder: rejectOjtForm.bank_account_holder || undefined,
+        identification_id: rejectOjtForm.identification_id || undefined,
+        marital_status: rejectOjtForm.marital_status || undefined,
+        last_education: rejectOjtForm.last_education || undefined,
       });
       setCandidate((prev) => mergeCandidateFromApiResponse(prev, updated, { screeningStatusFallback: 'rejected' }));
       setRejectOjtOpen(false);
@@ -1510,6 +1522,32 @@ function OverviewTab({
                   name="bank_account_holder"
                   value={rejectOjtForm.bank_account_holder}
                   onChange={(e) => setRejectOjtForm((p) => ({ ...p, bank_account_holder: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Personal data</p>
+              <div className="space-y-3">
+                <Input
+                  label="No KTP"
+                  name="identification_id"
+                  value={rejectOjtForm.identification_id}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, identification_id: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+                <Input
+                  label="Status marital"
+                  name="marital_status"
+                  value={rejectOjtForm.marital_status}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, marital_status: e.target.value }))}
+                  disabled={rejectOjtLoading || !canActOnCandidate}
+                />
+                <Input
+                  label="Pendidikan"
+                  name="last_education"
+                  value={rejectOjtForm.last_education}
+                  onChange={(e) => setRejectOjtForm((p) => ({ ...p, last_education: e.target.value }))}
                   disabled={rejectOjtLoading || !canActOnCandidate}
                 />
               </div>
