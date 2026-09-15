@@ -267,7 +267,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Main content area */}
-      <div className="flex-1 lg:pl-72 flex flex-col">
+      <div className="flex-1 min-w-0 lg:pl-72 flex flex-col">
         {/* Top Header - Sharp & Contextual */}
         <header className="h-20 sm:h-24 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-20 px-4 sm:px-6 lg:px-10 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -368,7 +368,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-12">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-10 py-6 sm:py-8 lg:py-12">
           <Outlet />
         </main>
       </div>

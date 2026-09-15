@@ -169,7 +169,6 @@ export default function OjtCandidatesPage() {
         </div>
       ) : (
         <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
           <Table>
             <THead>
               <TR>
@@ -238,7 +237,6 @@ export default function OjtCandidatesPage() {
               )}
             </TBody>
           </Table>
-          </div>
           <Pagination
             page={page}
             totalPages={totalPages}
