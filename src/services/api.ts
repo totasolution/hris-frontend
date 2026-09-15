@@ -617,6 +617,8 @@ export type Candidate = {
   id_number?: string;
   marital_status?: string;
   last_education?: string;
+  salary?: string;
+  placement_district?: string;
   created_by?: number;
   pic_name?: string;
   client_name?: string;

@@ -169,6 +169,7 @@ export default function OjtCandidatesPage() {
         </div>
       ) : (
         <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <THead>
               <TR>
@@ -185,13 +186,15 @@ export default function OjtCandidatesPage() {
                 <TH>No KTP</TH>
                 <TH>Marital</TH>
                 <TH>Pendidikan</TH>
+                <TH>Salary</TH>
+                <TH>Placement District</TH>
                 <TH>{t('pages:candidates.status')}</TH>
               </TR>
             </THead>
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={14} className="py-12 text-center text-slate-400">
+                  <TD colSpan={16} className="py-12 text-center text-slate-400">
                     {t('pages:ojtCandidates.empty')}
                   </TD>
                 </TR>
@@ -223,6 +226,8 @@ export default function OjtCandidatesPage() {
                     <TD className="text-slate-600 text-sm">{c.id_number || '—'}</TD>
                     <TD className="text-slate-600 text-sm">{c.marital_status || '—'}</TD>
                     <TD className="text-slate-600 text-sm">{c.last_education || '—'}</TD>
+                    <TD className="text-slate-600 text-sm whitespace-nowrap">{c.salary || '—'}</TD>
+                    <TD className="text-slate-600 text-sm whitespace-nowrap">{c.placement_district || '—'}</TD>
                     <TD>
                       <span className={`text-xs font-bold uppercase ${c.screening_status === 'rejected' ? 'text-red-600' : 'text-teal-700'}`}>
                         {screeningStatusDisplay(c.screening_status)}
@@ -233,6 +238,7 @@ export default function OjtCandidatesPage() {
               )}
             </TBody>
           </Table>
+          </div>
           <Pagination
             page={page}
             totalPages={totalPages}
