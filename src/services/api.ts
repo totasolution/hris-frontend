@@ -2118,11 +2118,13 @@ export type PaklaringDocument = {
 
 export async function getPaklarings(params?: {
   search?: string;
+  client_id?: number;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<PaklaringDocument>> {
   const q = new URLSearchParams();
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/paklaring?${q}` : `${API_BASE}/paklaring`;
@@ -2239,12 +2241,14 @@ export type WarningLetter = {
 export async function getWarnings(params?: {
   employee_id?: number;
   search?: string;
+  client_id?: number;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<WarningLetter>> {
   const q = new URLSearchParams();
   if (params?.employee_id) q.set('employee_id', String(params.employee_id));
   if (params?.search?.trim()) q.set('search', params.search.trim());
+  if (params?.client_id) q.set('client_id', String(params.client_id));
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/warnings?${q}` : `${API_BASE}/warnings`;

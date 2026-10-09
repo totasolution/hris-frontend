@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Select from 'react-select';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -9,12 +10,31 @@ import { PageHeader } from '../components/PageHeader';
 import { Pagination } from '../components/Pagination';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import { useToast } from '../components/Toast';
-import type { PaklaringDocument } from '../services/api';
+import type { PaklaringDocument, Client } from '../services/api';
 import * as api from '../services/api';
 import { downloadFromUrl } from '../utils/download.ts';
 import { formatDateLong } from '../utils/formatDate';
 
 const DEBOUNCE_MS = 350;
+
+const customSelectStyles = {
+  control: (base: any) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    border: '1px solid #e2e8f0',
+    padding: '2px',
+    boxShadow: 'none',
+    minHeight: '44px',
+    '&:hover': { border: '1px solid #107BC7' },
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isSelected ? '#107BC7' : state.isFocused ? '#E8F5FF' : 'white',
+    color: state.isSelected ? 'white' : '#282828',
+    fontSize: '0.875rem',
+    fontWeight: '500',
+  }),
+};
 
 export default function PaklaringPage() {
   const { t } = useTranslation(['pages', 'common']);
@@ -23,6 +43,8 @@ export default function PaklaringPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientId, setClientId] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,6 +60,7 @@ export default function PaklaringPage() {
     try {
       const res = await api.getPaklarings({
         search: search.trim() || undefined,
+        client_id: clientId ? Number(clientId) : undefined,
         page,
         per_page: perPage,
       });
@@ -49,7 +72,11 @@ export default function PaklaringPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, page, perPage, t]);
+  }, [search, clientId, page, perPage, t]);
+
+  useEffect(() => {
+    api.getClients().then(setClients).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -62,6 +89,8 @@ export default function PaklaringPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const clientOptions = clients.map((c) => ({ value: String(c.id), label: c.name }));
 
   const handleDownload = async (doc: PaklaringDocument) => {
     try {
@@ -130,6 +159,20 @@ export default function PaklaringPage() {
             placeholder={t('pages:paklaring.typeToFilter')}
             title={t('pages:paklaring.searchByEmployeeName')}
             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+          />
+        </div>
+        <div className="w-64">
+          <Select
+            options={clientOptions}
+            value={clientOptions.find((o) => o.value === clientId) ?? null}
+            onChange={(o: { value: string; label: string } | null) => {
+              setClientId(o?.value ?? '');
+              setPage(1);
+            }}
+            placeholder="Filter by client"
+            styles={customSelectStyles}
+            isClearable
+            isSearchable
           />
         </div>
       </div>
