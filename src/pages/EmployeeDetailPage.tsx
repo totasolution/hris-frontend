@@ -254,7 +254,7 @@ function ContractsTab({
   onExtended?: () => void;
 }) {
   const [extendTarget, setExtendTarget] = useState<Contract | null>(null);
-  const [extendForm, setExtendForm] = useState({ contract_number: '', duration_months: '' });
+  const [extendForm, setExtendForm] = useState({ contract_number: '', duration_months: '', start_date: '' });
   const [extending, setExtending] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
@@ -266,7 +266,14 @@ function ContractsTab({
   }, []);
 
   const openExtendDrawer = (contract: Contract) => {
-    setExtendForm({ contract_number: '', duration_months: '' });
+    // Default start = day after the parent contract ends (user can redefine it).
+    let defaultStart = '';
+    if (contract.contract_end) {
+      const d = new Date(contract.contract_end);
+      d.setDate(d.getDate() + 1);
+      defaultStart = d.toLocaleDateString('en-CA'); // YYYY-MM-DD, local
+    }
+    setExtendForm({ contract_number: '', duration_months: '', start_date: defaultStart });
     setExtendTarget(contract);
   };
 
@@ -279,6 +286,7 @@ function ContractsTab({
       await api.extendContract(extendTarget.id, {
         contract_number: extendForm.contract_number || undefined,
         duration_months: months,
+        start_date: extendForm.start_date || undefined,
       });
       toast.success('Extension contract created as draft.');
       setExtendTarget(null);
@@ -478,6 +486,20 @@ function ContractsTab({
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                  Start Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={extendForm.start_date}
+                  onChange={(e) => setExtendForm((f) => ({ ...f, start_date: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                />
+                <p className="mt-1.5 text-xs text-slate-400">Defaults to the day after the current contract ends; change it to redefine the extension start.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Duration <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-3">
@@ -493,9 +515,8 @@ function ContractsTab({
                   />
                   <span className="text-sm text-slate-500">months</span>
                 </div>
-                {extendTarget.contract_end && extendForm.duration_months && parseInt(extendForm.duration_months, 10) > 0 && (() => {
-                  const startDate = new Date(extendTarget.contract_end);
-                  startDate.setDate(startDate.getDate() + 1);
+                {extendForm.start_date && extendForm.duration_months && parseInt(extendForm.duration_months, 10) > 0 && (() => {
+                  const startDate = new Date(extendForm.start_date);
                   const endDate = new Date(startDate);
                   endDate.setMonth(endDate.getMonth() + parseInt(extendForm.duration_months, 10));
                   endDate.setDate(endDate.getDate() - 1);

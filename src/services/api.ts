@@ -2036,7 +2036,7 @@ export async function updateContract(id: number, body: Partial<Contract>): Promi
   return data;
 }
 
-export async function extendContract(id: number, body?: { contract_number?: string; duration_months?: number }): Promise<Contract> {
+export async function extendContract(id: number, body?: { contract_number?: string; duration_months?: number; start_date?: string }): Promise<Contract> {
   const res = await authFetch(`${API_BASE}/contracts/${id}/extend`, {
     method: 'POST',
     credentials: 'include',
