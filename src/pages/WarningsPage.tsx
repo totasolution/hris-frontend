@@ -128,6 +128,7 @@ export default function WarningsPage() {
               <TR>
                 <TH>{t('pages:warnings.documentNumber')}</TH>
                 <TH>{t('pages:warnings.employee')}</TH>
+                <TH>Client</TH>
                 <TH>{t('pages:warnings.type')}</TH>
                 <TH>{t('pages:warnings.status')}</TH>
                 <TH>{t('common:date')}</TH>
@@ -138,7 +139,7 @@ export default function WarningsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={7} className="py-12 text-center text-slate-400">
+                  <TD colSpan={8} className="py-12 text-center text-slate-400">
                     {t('pages:warnings.noWarningsFound')}
                   </TD>
                 </TR>
@@ -149,6 +150,7 @@ export default function WarningsPage() {
                     <TD className="font-bold text-[#0f172a]">
                       {w.employee_name ?? `ID: ${w.employee_id}`}
                     </TD>
+                    <TD className="text-slate-600 text-sm">{w.client_name || '—'}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                         w.type === 'SP3' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'

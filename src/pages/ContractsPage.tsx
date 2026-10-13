@@ -257,6 +257,7 @@ export default function ContractsPage() {
                 </TH>
                 <TH>{t('pages:contracts.contract')}</TH>
                 <TH>{t('pages:contracts.employee')}</TH>
+                <TH>Client</TH>
                 <TH>{t('common:status')}</TH>
                 <TH>{t('pages:contracts.createdDate')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -265,7 +266,7 @@ export default function ContractsPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={6} className="py-12 text-center text-slate-400">
+                  <TD colSpan={7} className="py-12 text-center text-slate-400">
                     {t('pages:contracts.noContractsFound')}
                   </TD>
                 </TR>
@@ -291,6 +292,7 @@ export default function ContractsPage() {
                     <TD>
                       <span className="text-sm text-slate-700">{c.employee_name || '—'}</span>
                     </TD>
+                    <TD className="text-sm text-slate-600">{c.client_name || '—'}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                         c.status === 'signed' ? 'bg-green-100 text-green-700' :

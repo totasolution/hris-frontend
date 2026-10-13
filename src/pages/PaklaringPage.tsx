@@ -195,6 +195,7 @@ export default function PaklaringPage() {
               <TR>
                 <TH>{t('pages:paklaring.documentNumber')}</TH>
                 <TH>{t('pages:paklaring.employee')}</TH>
+                <TH>Client</TH>
                 <TH>{t('pages:paklaring.lastWorkingDate')}</TH>
                 <TH>{t('pages:paklaring.generated')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -203,7 +204,7 @@ export default function PaklaringPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={5} className="py-12 text-center text-slate-400">
+                  <TD colSpan={6} className="py-12 text-center text-slate-400">
                     {t('pages:paklaring.noPaklaringFound')}
                   </TD>
                 </TR>
@@ -218,6 +219,7 @@ export default function PaklaringPage() {
                         {displayName(doc)}
                       </Link>
                     </TD>
+                    <TD className="text-sm text-slate-600">{doc.client_name || '—'}</TD>
                     <TD className="text-sm text-slate-600">
                       {doc.last_working_date ? formatDateLong(doc.last_working_date) : '—'}
                     </TD>

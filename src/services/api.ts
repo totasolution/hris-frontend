@@ -1868,6 +1868,7 @@ export type Contract = {
   tenant_id: number;
   employee_id?: number;
   employee_name?: string;
+  client_name?: string;
   contract_number?: string;
   contract_start?: string;
   contract_end?: string;
@@ -2114,6 +2115,7 @@ export type PaklaringDocument = {
   generated_at: string;
   created_at: string;
   employee_name?: string;
+  client_name?: string;
 };
 
 export async function getPaklarings(params?: {
@@ -2223,6 +2225,7 @@ export type WarningLetter = {
   tenant_id: number;
   employee_id: number;
   employee_name?: string;
+  client_name?: string;
   type: string;
   status?: string;
   document_number?: string | null;
