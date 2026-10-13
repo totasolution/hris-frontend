@@ -13,9 +13,12 @@ import * as api from '../services/api';
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-function contractTypeBadge(type?: 'pkwt' | 'partnership' | null) {
+function contractTypeBadge(type?: 'pkwt' | 'pkwtt' | 'partnership' | null) {
   if (type === 'pkwt') {
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">PKWT</span>;
+  }
+  if (type === 'pkwtt') {
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">PKWTT</span>;
   }
   if (type === 'partnership') {
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">Mitra</span>;

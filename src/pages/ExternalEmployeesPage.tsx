@@ -11,6 +11,7 @@ import { Select as NativeSelect } from '../components/Select';
 import { Table, THead, TBody, TR, TH, TD } from '../components/Table';
 import type { Employee } from '../services/api';
 import * as api from '../services/api';
+import { formatDate } from '../utils/formatDate';
 
 const clientSelectStyles = {
   control: (base: object) => ({
@@ -45,9 +46,12 @@ const clientSelectStyles = {
 
 const PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
-function contractTypeBadge(type?: 'pkwt' | 'partnership' | null) {
+function contractTypeBadge(type?: 'pkwt' | 'pkwtt' | 'partnership' | null) {
   if (type === 'pkwt') {
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">PKWT</span>;
+  }
+  if (type === 'pkwtt') {
+    return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">PKWTT</span>;
   }
   if (type === 'partnership') {
     return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700">Mitra</span>;
@@ -66,6 +70,8 @@ export default function ExternalEmployeesPage() {
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
   const statusFilter = searchParams.get('status') || '';
   const clientId = searchParams.get('client_id') || '';
+  const joinFrom = searchParams.get('join_from') || '';
+  const joinTo = searchParams.get('join_to') || '';
   const search = searchParams.get('q') || '';
   const perPageParam = parseInt(searchParams.get('per_page') || '10', 10);
   const perPage = PER_PAGE_OPTIONS.includes(perPageParam) ? perPageParam : 10;
@@ -92,6 +98,8 @@ export default function ExternalEmployeesPage() {
   };
   const setStatusFilter = (value: string) => updateParams({ status: value }, true);
   const setClientId = (value: string) => updateParams({ client_id: value }, true);
+  const setJoinFrom = (value: string) => updateParams({ join_from: value }, true);
+  const setJoinTo = (value: string) => updateParams({ join_to: value }, true);
   const setSearch = (value: string) => updateParams({ q: value }, true);
   const setPerPage = (value: number) => updateParams({ per_page: value !== 10 ? String(value) : '' }, true);
   const setPage = (value: number) => updateParams({ page: value > 1 ? String(value) : '' });
@@ -114,6 +122,8 @@ export default function ExternalEmployeesPage() {
         status: statusFilter || undefined,
         search: search.trim() || undefined,
         client_id: clientId ? Number(clientId) : undefined,
+        join_date_from: joinFrom || undefined,
+        join_date_to: joinTo || undefined,
         page,
         per_page: perPage,
       });
@@ -129,7 +139,7 @@ export default function ExternalEmployeesPage() {
 
   useEffect(() => {
     load();
-  }, [statusFilter, clientId, search, page, perPage]);
+  }, [statusFilter, clientId, joinFrom, joinTo, search, page, perPage]);
 
   const handleDownload = async () => {
     if (!clientId) return;
@@ -319,6 +329,23 @@ export default function ExternalEmployeesPage() {
             isClearable
           />
         </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={joinFrom}
+            onChange={(e) => setJoinFrom(e.target.value)}
+            title="Join date from"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+          <span className="text-slate-400 text-sm">–</span>
+          <input
+            type="date"
+            value={joinTo}
+            onChange={(e) => setJoinTo(e.target.value)}
+            title="Join date to"
+            className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand"
+          />
+        </div>
       </div>
 
       {error && (
@@ -342,6 +369,7 @@ export default function ExternalEmployeesPage() {
                 <TH>PIC</TH>
                 <TH>{t('employees.employeeNumber')}</TH>
                 <TH>{t('employees.contractType')}</TH>
+                <TH>Join Date</TH>
                 <TH>{t('employees.emailAddress')}</TH>
                 <TH>{t('common:status')}</TH>
                 <TH className="text-right">{t('common:actions')}</TH>
@@ -350,7 +378,7 @@ export default function ExternalEmployeesPage() {
             <TBody>
               {list.length === 0 ? (
                 <TR>
-                  <TD colSpan={8} className="py-12 text-center text-slate-400">
+                  <TD colSpan={9} className="py-12 text-center text-slate-400">
                     {t('employees.noEmployeesFound')}
                   </TD>
                 </TR>
@@ -366,6 +394,7 @@ export default function ExternalEmployeesPage() {
                     <TD className="text-slate-600">{e.pic_name || '—'}</TD>
                     <TD className="text-slate-600">{e.employee_number ?? '—'}</TD>
                     <TD>{contractTypeBadge(e.employment_contract_type)}</TD>
+                    <TD className="text-slate-600 whitespace-nowrap">{e.join_date ? formatDate(e.join_date, { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}</TD>
                     <TD>{e.email}</TD>
                     <TD>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${

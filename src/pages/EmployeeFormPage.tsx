@@ -294,7 +294,7 @@ export default function EmployeeFormPage() {
         phone: phone.trim() || undefined,
         employee_number: employeeNumber.trim() || undefined,
         employee_type: employeeType,
-        employment_contract_type: (employmentContractType === 'pkwt' || employmentContractType === 'partnership') ? employmentContractType : undefined,
+        employment_contract_type: (employmentContractType === 'pkwt' || employmentContractType === 'pkwtt' || employmentContractType === 'partnership') ? employmentContractType : undefined,
         contract_duration_months: parsedContractMonths,
         status,
         hire_date: hireDate || undefined,
@@ -456,6 +456,7 @@ export default function EmployeeFormPage() {
               >
                 <option value="">— Select —</option>
                 <option value="pkwt">PKWT</option>
+                <option value="pkwtt">PKWTT</option>
                 <option value="partnership">Mitra Kerja (Partnership)</option>
               </Select>
             </div>

@@ -1363,7 +1363,7 @@ export type Employee = {
   user_id?: number;
   candidate_id?: number;
   employee_type: string;
-  employment_contract_type?: 'pkwt' | 'partnership' | null; // From candidate when hired; selects embedded PKWT vs Partnership HTML
+  employment_contract_type?: 'pkwt' | 'pkwtt' | 'partnership' | null; // From candidate when hired; selects embedded PKWT vs Partnership HTML
   /** Contract length in months (from candidate employment terms / onboarding on hire). */
   contract_duration_months?: number | null;
   employee_number?: string;
@@ -1556,6 +1556,8 @@ export async function getEmployees(params?: {
   status?: string;
   search?: string;
   client_id?: number;
+  join_date_from?: string;
+  join_date_to?: string;
   page?: number;
   per_page?: number;
 }): Promise<PaginatedResponse<Employee>> {
@@ -1564,6 +1566,8 @@ export async function getEmployees(params?: {
   if (params?.status) q.set('status', params.status);
   if (params?.search?.trim()) q.set('search', params.search.trim());
   if (params?.client_id != null) q.set('client_id', String(params.client_id));
+  if (params?.join_date_from) q.set('join_date_from', params.join_date_from);
+  if (params?.join_date_to) q.set('join_date_to', params.join_date_to);
   if (params?.page) q.set('page', String(params.page));
   if (params?.per_page) q.set('per_page', String(params.per_page));
   const url = q.toString() ? `${API_BASE}/employees?${q}` : `${API_BASE}/employees`;
