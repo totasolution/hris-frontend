@@ -554,6 +554,7 @@ export async function updateUser(
   id: number,
   body: {
     full_name: string;
+    email?: string;
     phone?: string;
     username?: string;
     status?: string;

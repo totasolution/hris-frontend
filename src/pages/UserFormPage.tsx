@@ -94,6 +94,7 @@ export default function UserFormPage() {
       if (isEdit && id) {
         await api.updateUser(parseInt(id, 10), {
           full_name: fullName.trim(),
+          email: email.trim(),
           phone: phone.trim() || undefined,
           username: username.trim() || undefined,
           status,
@@ -158,7 +159,6 @@ export default function UserFormPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isEdit}
                 placeholder="user@example.com"
               />
               {!isEdit && (
